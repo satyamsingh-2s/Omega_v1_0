@@ -13,7 +13,7 @@ import com.example.omega_v1_0.ui.model.DashboardPhaseItem
 
 @Composable
 fun ProjectDashboardScreen(
-    projectName: String = "badd",
+    projectName: String,
     phases: List<DashboardPhaseItem>,
     onPhaseClicked: (Long) -> Unit
 ) {

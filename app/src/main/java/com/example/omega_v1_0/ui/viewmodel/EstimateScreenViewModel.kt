@@ -22,6 +22,17 @@ class EstimateScreenViewModel(
      * above 2 line have more to lear
      * stateFlow is for the data, that changes and it tells , mutalble be changeable
      */
+// ------------------for fetching project name from id--------------------------
+    private val _projectName = MutableStateFlow("")
+    val projectName: StateFlow<String> = _projectName
+
+    fun loadProject(projectId: Long) {
+        viewModelScope.launch {
+            _projectName.value =
+                repository.getProjectById(projectId).name
+        }
+    }
+
 
     fun estimateAndSave(
         projectId: Long,

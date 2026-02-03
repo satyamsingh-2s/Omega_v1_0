@@ -1,6 +1,7 @@
 package com.example.omega_v1_0.ui.screens
 
 import android.util.Log
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -13,17 +14,19 @@ import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.tooling.preview.Devices
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.example.omega_v1_0.data_layer.entites.ProjectEntity
 import com.example.omega_v1_0.models.Experience
+
 
 @Composable
 fun CreateProjectScreen(
-    onCreateClicked: (String, Experience) -> Unit
+    recentProjects: List<ProjectEntity>,
+    onCreateClicked: (String, Experience) -> Unit,
+    onRecentProjectClicked: (Long) -> Unit
 ) {
     var projectName by remember { mutableStateOf("") }
     var experience by remember { mutableStateOf(Experience.INTERMEDIATE) }
 
-    // temporary recent projects
-    val recentProjects = listOf("badd")
 
     Column(
         modifier = Modifier
@@ -48,33 +51,58 @@ fun CreateProjectScreen(
         Spacer(Modifier.height(32.dp))
 
         // ---------- Recent Projects ----------
-        Text(
-            text = "RECENT PROJECTS",
-            style = MaterialTheme.typography.labelMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-
-        Divider(modifier = Modifier.padding(vertical = 8.dp))
-
-        LazyColumn(
+        Surface(
             modifier = Modifier.fillMaxWidth(),
-            contentPadding = PaddingValues(vertical = 8.dp)
+            shape = RoundedCornerShape(6.dp),
+            border = BorderStroke(
+                width = 1.dp,
+                color = MaterialTheme.colorScheme.outlineVariant
+            ),
+            color = MaterialTheme.colorScheme.surface
         ) {
-            items(recentProjects) { project ->
+            Column(
+                modifier = Modifier.padding(12.dp)
+            ) {
+
                 Text(
-                    text = project,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clickable {
-                            Log.d("Omega", "Recent project feature not implemented")
-                        }
-                        .padding(vertical = 12.dp)
+                    text = "RECENT PROJECTS",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
-                Divider()
+
+                Divider(modifier = Modifier.padding(vertical = 8.dp))
+
+                if (recentProjects.isEmpty()) {
+
+                    Text(
+                        text = "No recent projects",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(vertical = 8.dp)
+                    )
+
+                } else {
+
+                    recentProjects.forEach { project ->
+                        Text(
+                            text = project.name,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable {
+                                    onRecentProjectClicked(project.id)
+                                }
+                                .padding(vertical = 8.dp)
+                        )
+                    }
+                }
             }
         }
 
         Spacer(Modifier.height(44.dp))
+
+
 
         // ---------- Project Name ----------
         Text(
@@ -177,7 +205,9 @@ fun ExperienceDropdown(
 fun CreateProjectScreenPreview() {
     MaterialTheme {
         CreateProjectScreen(
-            onCreateClicked = { _, _ -> }
+            recentProjects = emptyList(),
+            onCreateClicked = { _, _ -> },
+            onRecentProjectClicked = {}
         )
     }
 }

@@ -32,6 +32,11 @@ class Omega_Repository (
             )
         )
     }
+    // -------- for recents projects function ------------
+    suspend fun getRecentProjects(limit: Int = 5): List<ProjectEntity> {
+        return projectDao.getRecentProjects(limit)
+    }
+
 
     //----- phase related operations -----
 
@@ -110,6 +115,12 @@ class Omega_Repository (
     suspend fun getPhaseById(phaseId: Long): PhaseEntity {
         return phaseDao.getPhaseById(phaseId)
     }
+
+    // -------------------- used for getting the projectname for estimate and dashboard scrren ------------------
+    suspend fun getProjectById(projectId: Long): ProjectEntity {
+        return projectDao.getProjectById(projectId)
+    }
+
 
 
 

@@ -16,6 +16,10 @@ class DashboardViewModel(
     private val _phases = MutableStateFlow<List<DashboardPhaseItem>>(emptyList())
     val phases: StateFlow<List<DashboardPhaseItem>> = _phases
 
+    private val _projectName = MutableStateFlow("")
+    val projectName: StateFlow<String> = _projectName
+
+
     fun loadDashboard(projectId: Long) {
         viewModelScope.launch {
 
@@ -34,4 +38,12 @@ class DashboardViewModel(
             }
         }
     }
+    // -------------- function to load project naem from database ----------------------
+    fun loadProject(projectId: Long) {
+        viewModelScope.launch {
+            val project = repository.getProjectById(projectId)
+            _projectName.value = project.name
+        }
+    }
+
 }

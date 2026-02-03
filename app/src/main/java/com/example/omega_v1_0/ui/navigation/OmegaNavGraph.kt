@@ -75,16 +75,29 @@ fun OmegaNavGraph(
                 CreateProjectViewModel(repository)
             }
 
+            // 🔹 NEW: load recent projects ONCE
+            LaunchedEffect(Unit) {
+                viewModel.loadRecentProjects()
+            }
+
             /**
              * more to learn form line 73 to 85
              */
+            val recentProjects by viewModel.recentProjects.collectAsState()
             val projectId by viewModel.createProjectId.collectAsState() // here we collect value of projectId , and it get automatically if changes
           //  val experinece by viewModel.createProjectId.collectAsState()  // now we have to collect value of experinec, but in viewmodel we have to define the flow taht will give the experinced, right now experince is getting nothing
 
 
+
             CreateProjectScreen (       // here we create the onCreateClicked function, and call CreateProjectScreen with the parameter of OnCreateClicked.
-            onCreateClicked = {name, experience ->
+                recentProjects = recentProjects,
+                onCreateClicked = {name, experience ->
                 viewModel.createProject(name,experience)
+                },
+                onRecentProjectClicked = { projectId ->
+                    navController.navigate(
+                        Screen.Dashboard.createRoute(projectId)
+                    )
                 }
             )
             /**
@@ -170,7 +183,15 @@ fun OmegaNavGraph(
 
             val navigate by viewModel.navigateToDashboard.collectAsState()
 
-            EstimateScreen(experience = experience,
+            LaunchedEffect(projectId) {
+                viewModel.loadProject(projectId)
+            }
+
+            val projectName by viewModel.projectName.collectAsState()
+
+            EstimateScreen(
+                projectName = projectName,
+                experience = experience,
                 onEstimateClicked = { phaseInputs, experience ->             // here the function is originally created, from estimateScree.kt it is called, here it performs funciton
                     viewModel.estimateAndSave(
                         projectId = projectId,
@@ -235,9 +256,17 @@ fun OmegaNavGraph(
             LaunchedEffect(Unit) {
                 viewModel.loadDashboard(projectId)
             }
+    // ---------------- fro projject name, automatically called if projdect id is change to give automatic recomposition
+            LaunchedEffect(projectId) {
+                viewModel.loadProject(projectId)
+            }
+
+            val projectName by viewModel.projectName.collectAsState()
+
 
             // here the projectDashboard screen is called......
             ProjectDashboardScreen(
+                projectName = projectName,
                 phases = phases,
                 onPhaseClicked = { phaseId ->              // here this function is created, here it performs its function,
                     navController.navigate(               // also when we click any phase onPhaseClicked function is called..... direlty [perfoms certain opooeration and performs navigation, ]

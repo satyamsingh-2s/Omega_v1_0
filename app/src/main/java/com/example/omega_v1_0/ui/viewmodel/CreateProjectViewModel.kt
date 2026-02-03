@@ -3,13 +3,14 @@ package com.example.omega_v1_0.ui.viewmodel
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.omega_v1_0.data_layer.entites.ProjectEntity
 import com.example.omega_v1_0.data_layer.omega_repository.Omega_Repository
 import com.example.omega_v1_0.models.Experience
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 
-// viewmodel - for logic, connectng repositor, handling navigation, everything, we leave ouly ui part to ui
+// viewmodel - for logic, connecting repositor, handling navigation, everything, we leave ouly ui part to ui
 class CreateProjectViewModel (
     private val repository: Omega_Repository)
     : ViewModel()
@@ -23,6 +24,14 @@ class CreateProjectViewModel (
     /** above 2 line have more to lear
      * stateFlow is for the data, that changes and it tells , mutalble be changeable
      */
+
+    private val _recentProjects =
+        MutableStateFlow<List<ProjectEntity>>(emptyList())
+
+    val recentProjects: StateFlow<List<ProjectEntity>> =
+        _recentProjects
+
+
     // now we create the latest_experince variable to be used by OmegaNavGraph
   private var latestExperience: Experience? = null
 
@@ -50,5 +59,14 @@ class CreateProjectViewModel (
     }
     // now function is created to give the latest_experienced value
     fun getLatestExperience(): Experience? = latestExperience
+
+    // function to get the recent projects
+
+    fun loadRecentProjects() {
+        viewModelScope.launch {
+            _recentProjects.value = repository.getRecentProjects(5)
+        }
+    }
+
 }
 

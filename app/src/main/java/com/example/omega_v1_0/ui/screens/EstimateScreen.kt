@@ -13,8 +13,8 @@ import com.example.omega_v1_0.models.*
 
 @Composable
 fun EstimateScreen(
+    projectName: String,
     experience: Experience,
-    projectName: String = "kbkjb",
     onEstimateClicked: (
         phaseInputs: Map<PhaseType, Pair<Complexity, Scope>>,
         experience: Experience
@@ -166,15 +166,15 @@ fun <T : Enum<T>> EnumDropdown(
     }
 }
 
-@Preview(showBackground = true)
-@Composable
-fun EstimateScreenPreview() {
-    MaterialTheme {
-        EstimateScreen(
-            experience = Experience.INTERMEDIATE,
-            onEstimateClicked = { _, _ -> }
-        )
-    }
-}
-
+//@Preview(showBackground = true)
+//@Composable
+//fun EstimateScreenPreview() {
+//    MaterialTheme {
+//        EstimateScreen(
+//            experience = Experience.INTERMEDIATE,
+//            onEstimateClicked = { _, _ -> }
+//        )
+//    }
+//}
+//
 

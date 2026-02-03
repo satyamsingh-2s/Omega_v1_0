@@ -15,6 +15,26 @@ interface ProjectDao{
 
     @Query("SELECT * FROM projects ORDER BY createdAt DESC")
     fun getAllProjects(): Flow<List<ProjectEntity>>
+
+    // function to get the recent projecys
+    @Query("""
+    SELECT p.*
+    FROM projects p
+    LEFT JOIN phases ph ON ph.projectId = p.id
+    LEFT JOIN sessions s ON s.phaseId = ph.id
+    GROUP BY p.id
+    ORDER BY 
+        MAX(s.endTime) DESC,
+        p.createdAt DESC
+    LIMIT :limit
+""")
+    suspend fun getRecentProjects(limit: Int): List<ProjectEntity>
+
+    // function to get project name from database
+    @Query("SELECT * FROM projects WHERE id = :projectId")
+    suspend fun getProjectById(projectId: Long): ProjectEntity
+
+
 }
 
 
