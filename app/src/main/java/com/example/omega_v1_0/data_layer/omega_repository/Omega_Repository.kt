@@ -60,9 +60,9 @@ class Omega_Repository (
         return sessionDao.getTotalMinutesForPhase(phaseId) ?: 0
     }
 
-    // --- sesssion related operations ---
+    // -------------------- session related operations -----------------------
 
-    // indeirect way to create a session
+    // indirect way to create a session
     suspend fun startSession(phaseId: Long){
         if(hasActiveSession()){
             return // now showoing of messaged
@@ -79,27 +79,21 @@ class Omega_Repository (
     }
 
     suspend fun hasActiveSession(): Boolean {
-        // ❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌ checking it is created or not
-        Log.d("OMEGA_DB", "⭕⭕⭕⭕⭕⭕⭕⭕ here hasActiveSession is called & value of ${sessionDao.getActiveSessionCount()}")
-
-        val active = sessionDao.getActiveSession()
-        Log.d("OMEGA_DB", "Active session = $active")
-
         return sessionDao.getActiveSessionCount() > 0
     }
 
+    suspend fun getActiveSession(): SessionEntity? {
+        return sessionDao.getActiveSession()
+    }
+
+
     suspend fun stopSession() {
 
-        // ❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌ checking it is created or not
-        Log.d("OMEGA_DB", "⭕⭕⭕⭕⭕⭕⭕⭕-- eneter into stopsession function in repository")
         val activeSession = sessionDao.getActiveSession()
 
         val endTime= System.currentTimeMillis()
         val durationMinutes = ((endTime - activeSession!!.startTime) / 60000).toInt()
         // ----<< for now i am saying active session will always be not null, later handle it properly >>----
-
-        // ❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌ checking it is created or not
-        Log.d("OMEGA_DB", "⭕⭕⭕⭕⭕⭕⭕⭕-- value of durationminutes=$durationMinutes")
 
         sessionDao.endSession(
             sessionId = activeSession.id,

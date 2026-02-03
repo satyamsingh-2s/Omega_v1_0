@@ -78,19 +78,24 @@ fun OmegaNavGraph(
             // 🔹 NEW: load recent projects ONCE
             LaunchedEffect(Unit) {
                 viewModel.loadRecentProjects()
+                viewModel.checkActiveSession()
             }
 
             /**
              * more to learn form line 73 to 85
              */
+            // below there are 3 data streams
             val recentProjects by viewModel.recentProjects.collectAsState()
             val projectId by viewModel.createProjectId.collectAsState() // here we collect value of projectId , and it get automatically if changes
           //  val experinece by viewModel.createProjectId.collectAsState()  // now we have to collect value of experinec, but in viewmodel we have to define the flow taht will give the experinced, right now experince is getting nothing
+            val activeSession by viewModel.activeSession.collectAsState()
+
 
 
 
             CreateProjectScreen (       // here we create the onCreateClicked function, and call CreateProjectScreen with the parameter of OnCreateClicked.
                 recentProjects = recentProjects,
+                activeSession = activeSession,
                 onCreateClicked = {name, experience ->
                 viewModel.createProject(name,experience)
                 },
@@ -98,6 +103,9 @@ fun OmegaNavGraph(
                     navController.navigate(
                         Screen.Dashboard.createRoute(projectId)
                     )
+                },
+                onStopActiveSession = {
+                    viewModel.stopActiveSession()
                 }
             )
             /**
