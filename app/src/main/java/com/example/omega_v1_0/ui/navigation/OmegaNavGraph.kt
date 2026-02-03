@@ -121,17 +121,18 @@ fun OmegaNavGraph(
                     // navigate to estimate screen with projectId -----
                     navController.navigate(
                         Screen.Estimate.createRoute(id,experience)
-                    ){
-
-                        // ❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌ checking it is created or not
-                        Log.d("OMEGA_DB", "⭕⭕⭕⭕⭕⭕⭕⭕Project created with id=$projectId")
-
-                        // remove CreateProject from backstack
-                        // the bleow line remove every visited screen till CreateProject screen
-                        popUpTo(Screen.CreateProject.route) {
-                            inclusive=true // this inculde creeteproject screen also
-                        }
-                    }
+                   )
+                //                    {
+//
+//                        // ❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌ checking it is created or not
+//                        Log.d("OMEGA_DB", "⭕⭕⭕⭕⭕⭕⭕⭕Project created with id=$projectId")
+//
+//                        // remove CreateProject from backstack
+//                        // the bleow line remove every visited screen till CreateProject screen
+//                        popUpTo(Screen.CreateProject.route) {
+//                            inclusive=true // this inculde creeteproject screen also
+//                        }
+//                    }
                 }
             }
 
@@ -148,9 +149,6 @@ fun OmegaNavGraph(
         ) { backStackEntry ->
 
             val projectId = backStackEntry.arguments?.getLong("projectId") ?: return@composable
-
-            // ❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌ checking it is created or not
-            Log.d("OMEGA_DB", "⭕⭕⭕⭕⭕⭕⭕⭕estimate screen1. with id=$projectId")
 
             // * imp - navigation passes string, int, long and so on not enum types
             // so we convert into enums, as acroos all app we are using enums, not strings
@@ -214,9 +212,6 @@ fun OmegaNavGraph(
                     navController.navigate(
                         Screen.Dashboard.createRoute(projectId)
                     ){
-                        // ❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌ checking it is created or not
-                        Log.d("OMEGA_DB", "⭕⭕⭕⭕⭕⭕⭕⭕2.navigation to dashboard with id=$projectId")
-
                             popUpTo(Screen.Estimate.route) {
                                 inclusive = true
                             }
@@ -264,7 +259,7 @@ fun OmegaNavGraph(
             LaunchedEffect(Unit) {
                 viewModel.loadDashboard(projectId)
             }
-    // ---------------- fro projject name, automatically called if projdect id is change to give automatic recomposition
+    // ---------------- fro project name, automatically called if projdect id is change to give automatic recomposition
             LaunchedEffect(projectId) {
                 viewModel.loadProject(projectId)
             }
@@ -280,6 +275,9 @@ fun OmegaNavGraph(
                     navController.navigate(               // also when we click any phase onPhaseClicked function is called..... direlty [perfoms certain opooeration and performs navigation, ]
                         Screen.PhaseTimer.createRoute(phaseId)
                     )
+                },
+                onBack = {
+                    navController.popBackStack()
                 }
             )
 
@@ -328,7 +326,7 @@ fun OmegaNavGraph(
                 viewModel.loadPhase(phaseId)                       // here the view model load data, by calling loadPhase function, now the ui updates automatatically as the data of uistate changes and also becaouse of line 282
             }
 
-            // --- UI ---                          // after launchedeffect the phaseTimerscreen is called with values, and function
+            // --- UI ---                          // after launched effect the phaseTimerscreen is called with values, and function
             PhaseTimerScreen(
                 uiState = uiState,
                 isRunning = isRunning,
@@ -340,6 +338,9 @@ fun OmegaNavGraph(
                     viewModel.stop(phaseId)
                     // After stop, refresh phase info
                     viewModel.loadPhase(phaseId)
+                },
+                onBack = {
+                    navController.popBackStack()
                 }
             )
         }

@@ -16,7 +16,8 @@ import com.example.omega_v1_0.ui.model.DashboardPhaseItem
 fun ProjectDashboardScreen(
     projectName: String,
     phases: List<DashboardPhaseItem>,
-    onPhaseClicked: (Long) -> Unit
+    onPhaseClicked: (Long) -> Unit,
+    onBack: () -> Unit
 ) {
     Column(
         modifier = Modifier
@@ -101,7 +102,7 @@ fun ProjectDashboardScreen(
             style = MaterialTheme.typography.labelMedium,
             color = MaterialTheme.colorScheme.primary,
             modifier = Modifier.clickable {
-                Log.d("Omega", "Back to projects feature not implemented")
+                onBack()
             }
         )
     }
@@ -120,7 +121,8 @@ fun ProjectDashboardScreenPreview() {
                 DashboardPhaseItem(4, PhaseType.DEBUG, 120, 0),
                 DashboardPhaseItem(5, PhaseType.POLISH, 120, 0),
             ),
-            onPhaseClicked = {}
+            onPhaseClicked = {},
+            onBack = {}
         )
     }
 }

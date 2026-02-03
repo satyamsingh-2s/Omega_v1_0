@@ -22,7 +22,8 @@ fun PhaseTimerScreen(
     isRunning: Boolean,
     onStart: () -> Unit,
     onStop: () -> Unit,
-    elapsedSeconds: Int
+    elapsedSeconds: Int,
+    onBack: () -> Unit
 
 ) {
     Column(
@@ -184,7 +185,7 @@ fun PhaseTimerScreen(
             style = MaterialTheme.typography.labelMedium,
             color = MaterialTheme.colorScheme.primary,
             modifier = Modifier.clickable {
-                Log.d("Omega", "Back to dashboard feature not implemented")
+                onBack()
             }
         )
     }
