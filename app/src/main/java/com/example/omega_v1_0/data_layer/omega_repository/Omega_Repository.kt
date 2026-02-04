@@ -89,6 +89,18 @@ class Omega_Repository (
         return sessionDao.getActiveSessionCount() > 0
     }
 
+    // for the particular session which is active in database
+    suspend fun hasActiveSessionForPhase(phaseId: Long): Boolean {
+        return sessionDao.getActiveSessionForPhase(phaseId) != null
+    }
+
+    // for icon
+    suspend fun getRunningPhaseId(): Long? {
+        return sessionDao.getRunningPhaseId()
+    }
+
+
+
     suspend fun getActiveSession(): SessionEntity? {
         return sessionDao.getActiveSession()
     }

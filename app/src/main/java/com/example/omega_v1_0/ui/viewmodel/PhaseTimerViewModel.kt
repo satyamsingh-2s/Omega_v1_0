@@ -52,23 +52,25 @@ class PhaseTimerViewModel(
         }
     }
 
+    // --------- check if the session is active in database
+    fun syncRunningState(phaseId: Long) {
+        viewModelScope.launch {
+            val active = repository.hasActiveSessionForPhase(phaseId)
+            _isRunning.value = active
+        }
+    }
+
+
     // ---------- Start session ----------
     private var tickerJob: Job? = null
 
     fun start(phaseId: Long) {
-        // ❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌ checking it is created or not
-        Log.d("OMEGA_DB", "⭕⭕⭕⭕⭕⭕⭕⭕-- (1.)phase id with id=$phaseId")
-
-
         viewModelScope.launch {
 
             if (repository.hasActiveSession()) return@launch
 
             repository.startSession(phaseId)
             _isRunning.value = true
-            // ❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌ checking it is created or not
-            Log.d("OMEGA_DB", "⭕⭕⭕⭕⭕⭕⭕⭕change the value=${_isRunning.value}")
-
             startTicker()
         }
     }

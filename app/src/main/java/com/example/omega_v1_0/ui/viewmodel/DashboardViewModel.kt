@@ -19,6 +19,17 @@ class DashboardViewModel(
     private val _projectName = MutableStateFlow("")
     val projectName: StateFlow<String> = _projectName
 
+    private val _runningPhaseId = MutableStateFlow<Long?>(null)
+    val runningPhaseId: StateFlow<Long?> = _runningPhaseId
+
+
+    fun syncRunningState() {
+        viewModelScope.launch {
+            _runningPhaseId.value = repository.getRunningPhaseId()
+        }
+    }
+
+
 
     fun loadDashboard(projectId: Long) {
         viewModelScope.launch {

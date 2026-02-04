@@ -24,6 +24,16 @@ interface SessionDao{
     """) // for now i am limiting it to 1 because there should be only one active session at a time
     suspend fun getActiveSession(): SessionEntity?
 
+    // for getting the session if it is active in database
+    @Query("""
+    SELECT * FROM sessions
+    WHERE phaseId = :phaseId
+    AND endTime IS NULL
+    LIMIT 1
+""")
+    suspend fun getActiveSessionForPhase(phaseId: Long): SessionEntity?
+
+
     // now running query for getting active session count
     // for it will give only one, feature is limited`
     @Query("""
@@ -32,6 +42,15 @@ interface SessionDao{
         WHERE endTime IS NULL
     """)
     suspend fun getActiveSessionCount(): Int
+
+    @Query("""
+    SELECT phaseId
+    FROM sessions
+    WHERE endTime IS NULL
+    LIMIT 1
+""")
+    suspend fun getRunningPhaseId(): Long?
+
 
     //function to end the active session
     @Query("""

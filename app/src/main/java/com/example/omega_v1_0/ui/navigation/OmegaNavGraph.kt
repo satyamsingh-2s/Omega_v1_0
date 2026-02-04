@@ -259,9 +259,12 @@ fun OmegaNavGraph(
             }
 
             val phases by viewModel.phases.collectAsState()
+            val runningPhaseId by viewModel.runningPhaseId.collectAsState()
 
             LaunchedEffect(Unit) {
                 viewModel.loadDashboard(projectId)
+                viewModel.syncRunningState()
+
             }
     // ---------------- fro project name, automatically called if projdect id is change to give automatic recomposition
             LaunchedEffect(projectId) {
@@ -275,6 +278,7 @@ fun OmegaNavGraph(
             ProjectDashboardScreen(
                 projectName = projectName,
                 phases = phases,
+                runningPhaseId = runningPhaseId,
                 onPhaseClicked = { phaseId ->              // here this function is created, here it performs its function,
                     navController.navigate(               // also when we click any phase onPhaseClicked function is called..... direlty [perfoms certain opooeration and performs navigation, ]
                         Screen.PhaseTimer.createRoute(phaseId)
@@ -328,6 +332,7 @@ fun OmegaNavGraph(
             // --- Load phase info once ---
             LaunchedEffect(phaseId) {
                 viewModel.loadPhase(phaseId)                       // here the view model load data, by calling loadPhase function, now the ui updates automatatically as the data of uistate changes and also becaouse of line 282
+                viewModel.syncRunningState(phaseId)
             }
 
             // --- UI ---                          // after launched effect the phaseTimerscreen is called with values, and function
