@@ -16,7 +16,7 @@ interface ProjectDao{
     @Query("SELECT * FROM projects ORDER BY createdAt DESC")
     fun getAllProjects(): Flow<List<ProjectEntity>>
 
-    // function to get the recent projecys
+    // function to get the recent projects
     @Query("""
     SELECT p.*
     FROM projects p

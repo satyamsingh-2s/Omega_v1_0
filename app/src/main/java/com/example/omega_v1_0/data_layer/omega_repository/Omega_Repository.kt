@@ -9,6 +9,7 @@ import com.example.omega_v1_0.data_layer.entites.ProjectEntity
 import com.example.omega_v1_0.data_layer.entites.SessionEntity
 import com.example.omega_v1_0.models.Experience
 import com.example.omega_v1_0.models.PhaseType
+import kotlinx.coroutines.flow.Flow
 
 
 class Omega_Repository (
@@ -33,8 +34,14 @@ class Omega_Repository (
         )
     }
     // -------- for recents projects function ------------
-    suspend fun getRecentProjects(limit: Int = 5): List<ProjectEntity> {
+    suspend fun getRecentProjects(limit: Int = 3): List<ProjectEntity> {
         return projectDao.getRecentProjects(limit)
+    }
+
+    // ----- Function to get all projects for the "Show All" feature -----
+    // here i am sticking with the flow, to get automatically updated from any changes
+    fun getAllProjects(): Flow<List<ProjectEntity>> {
+        return projectDao.getAllProjects()
     }
 
 
@@ -65,7 +72,7 @@ class Omega_Repository (
     // indirect way to create a session
     suspend fun startSession(phaseId: Long){
         if(hasActiveSession()){
-            return // now showoing of messaged
+            return // now showing of messaged
         }
 
         val session = SessionEntity(

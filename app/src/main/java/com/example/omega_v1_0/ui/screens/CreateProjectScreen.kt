@@ -3,30 +3,62 @@ package com.example.omega_v1_0.ui.screens
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
-import androidx.compose.ui.tooling.preview.Preview
+// import androidx.compose.ui.text.intl.Locale
 import androidx.compose.ui.unit.dp
 import com.example.omega_v1_0.data_layer.entites.ProjectEntity
 import com.example.omega_v1_0.models.Experience
 import com.example.omega_v1_0.ui.model.ActiveSessionUiModel
+import com.example.omega_v1_0.ui.model.AllProjectsUiModel
+import java.text.SimpleDateFormat
+import java.util.Locale.getDefault
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CreateProjectScreen(
     recentProjects: List<ProjectEntity>,
     activeSession: ActiveSessionUiModel?,
+    allProjects: List<AllProjectsUiModel>,
     onCreateClicked: (String, Experience) -> Unit,
     onRecentProjectClicked: (Long) -> Unit,
     onStopActiveSession: () -> Unit
 ) {
     var projectName by remember { mutableStateOf("") }
     var experience by remember { mutableStateOf(Experience.INTERMEDIATE) }
+    var showAllProjectsSheet by remember { mutableStateOf(false) }
 
     Box(modifier = Modifier.fillMaxSize()) {
+
+        // ---------- All Projects Popup ----------
+        if (showAllProjectsSheet) {
+            ModalBottomSheet(
+                onDismissRequest = { showAllProjectsSheet = false },
+                sheetState = rememberModalBottomSheetState(
+                    skipPartiallyExpanded = true
+                ),
+
+            ) {
+                // FIX 2: Apply a modifier to the content to control its height
+                Box(modifier = Modifier.fillMaxHeight(0.9f)) {
+                    AllProjectsBottomSheetContent(
+                        allProjects = allProjects,
+                        onProjectClick = { projectId ->
+                            showAllProjectsSheet = false
+                            onRecentProjectClicked(projectId) // 🔗 navigation hook
+                        }
+                    )
+                }
+            }
+        }
+
 
         // ---------- Main Content ----------
         Column(
@@ -79,11 +111,15 @@ fun CreateProjectScreen(
                             modifier = Modifier.padding(vertical = 8.dp)
                         )
                     } else {
-                        recentProjects.forEach { project ->
+                        recentProjects.forEachIndexed { index, project ->
+                            val textColor =
+                                if (index == 0) MaterialTheme.colorScheme.onSurface
+                                else MaterialTheme.colorScheme.onSurfaceVariant
+
                             Text(
                                 text = project.name,
                                 style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                color = textColor,
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .clickable(enabled = activeSession == null) {
@@ -91,6 +127,18 @@ fun CreateProjectScreen(
                                     }
                                     .padding(vertical = 8.dp)
                             )
+                        }
+                    }
+
+                    if (recentProjects.isNotEmpty()) {
+                        Box(modifier = Modifier.fillMaxWidth()) {
+                            TextButton(
+                                onClick = { showAllProjectsSheet = true },
+                                modifier = Modifier.align(Alignment.CenterEnd),
+                                enabled = activeSession == null
+                            ) {
+                                Text("Show all projects")
+                            }
                         }
                     }
                 }
@@ -260,25 +308,78 @@ fun ActiveSessionBottomBox(
     }
 }
 
-@Preview(
-    showBackground = true,
-    name = "Create Project - Normal"
-)
+/**
+ * Dialog popup showing all projects (read-only).
+ */
 @Composable
-fun CreateProjectScreenPreview_Normal() {
-    MaterialTheme {
-        CreateProjectScreen(
-            recentProjects = emptyList(),
-            activeSession = ActiveSessionUiModel(
-                sessionId = 10L,
-                projectId = 1L,
-                projectName = "Omega v1",
-                phaseName = "ESTIMATION",
-                startedAt = System.currentTimeMillis()
-            ),
-            onCreateClicked = { _, _ -> },
-            onRecentProjectClicked = {},
-            onStopActiveSession = {}
-        )
+fun AllProjectsBottomSheetContent(
+    allProjects: List<AllProjectsUiModel>,
+    onProjectClick: (Long) -> Unit
+) {
+    // 1. Create a date formatter
+    val dateFormatter = remember {
+        SimpleDateFormat("dd MMM yyyy", getDefault())
+        }
+    LazyColumn(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp)
+    ) {
+
+        item {
+            Text(
+                text = "All Projects",
+                style = MaterialTheme.typography.titleMedium
+            )
+
+            Spacer(Modifier.height(12.dp))
+        }
+
+        if (allProjects.isEmpty()) {
+            item {
+                Text(
+                    text = "No projects found",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(vertical = 16.dp)
+                )
+            }
+        } else {
+            items(allProjects) { project ->
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { onProjectClick(project.id) }
+                        .padding(vertical = 12.dp)
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 12.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        // This is the existing Text for the project name
+                        Text(
+                            text = project.projectName,
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                        // FIX: Add a new Text composable to display the formatted date
+                        Text(
+                            text = dateFormatter.format(project.createdAt),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+
+                HorizontalDivider()
+            }
+        }
+
+//        item {
+//            Spacer(Modifier.height(32.dp)) // bottom padding for gesture nav
+//        }
     }
 }
+

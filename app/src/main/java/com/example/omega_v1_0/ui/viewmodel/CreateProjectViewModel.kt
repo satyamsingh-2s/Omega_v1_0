@@ -8,9 +8,14 @@ import com.example.omega_v1_0.data_layer.entites.SessionEntity
 import com.example.omega_v1_0.data_layer.omega_repository.Omega_Repository
 import com.example.omega_v1_0.models.Experience
 import com.example.omega_v1_0.ui.model.ActiveSessionUiModel
+import com.example.omega_v1_0.ui.model.AllProjectsUiModel
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import java.util.Date
 
 // viewmodel - for logic, connecting repositor, handling navigation, everything, we leave ouly ui part to ui
 class CreateProjectViewModel (
@@ -54,6 +59,23 @@ class CreateProjectViewModel (
         }
 
     }
+    // function to get all projects
+    // Expose an immutable StateFlow to the UI
+    val allProjects: StateFlow<List<AllProjectsUiModel>> = repository.getAllProjects()
+        .map { entities ->
+            // Transform the database entities into a model the UI can use
+            entities.map { AllProjectsUiModel(
+                id=it.id,
+                projectName = it.name,
+                createdAt = Date(it.createdAt)) }
+            // here to convert long to date object, simply wrap it.createdAt to the Date(it.createdAt) ⭕
+        }
+        .stateIn(
+            scope = viewModelScope, // The lifecycle of the subscription
+            started = SharingStarted.WhileSubscribed(5000), // Keep the subscription alive for 5s after UI stops collecting
+            initialValue = emptyList() // The initial state before the first value from the DB arrives
+        )
+
     // now function is created to give the latest_experienced value
     fun getLatestExperience(): Experience? = latestExperience
 
@@ -61,7 +83,7 @@ class CreateProjectViewModel (
 
     fun loadRecentProjects() {
         viewModelScope.launch {
-            _recentProjects.value = repository.getRecentProjects(5)
+            _recentProjects.value = repository.getRecentProjects(3)
         }
     }
     // ----------------- function for the invisible Active Session, basically mapping of datalayer to its ui model------

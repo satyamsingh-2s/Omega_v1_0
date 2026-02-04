@@ -87,8 +87,11 @@ fun OmegaNavGraph(
             // below there are 3 data streams
             val recentProjects by viewModel.recentProjects.collectAsState()
             val projectId by viewModel.createProjectId.collectAsState() // here we collect value of projectId , and it get automatically if changes
-          //  val experinece by viewModel.createProjectId.collectAsState()  // now we have to collect value of experinec, but in viewmodel we have to define the flow taht will give the experinced, right now experince is getting nothing
+            // now we have to collect value of experience, but in viewmodel we have to define the flow taht will give the experinced, right now experince is getting nothing
             val activeSession by viewModel.activeSession.collectAsState()
+            // collecting the new state for all projects
+            val allProjects by viewModel.allProjects.collectAsState()
+
 
 
 
@@ -96,6 +99,7 @@ fun OmegaNavGraph(
             CreateProjectScreen (       // here we create the onCreateClicked function, and call CreateProjectScreen with the parameter of OnCreateClicked.
                 recentProjects = recentProjects,
                 activeSession = activeSession,
+                allProjects = allProjects,
                 onCreateClicked = {name, experience ->
                 viewModel.createProject(name,experience)
                 },
