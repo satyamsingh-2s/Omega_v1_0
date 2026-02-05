@@ -1,6 +1,5 @@
 package com.example.omega_v1_0.data_layer.omega_repository
 
-import android.util.Log
 import com.example.omega_v1_0.data_layer.dao.PhaseDao
 import com.example.omega_v1_0.data_layer.dao.ProjectDao
 import com.example.omega_v1_0.data_layer.dao.SessionDao
@@ -63,8 +62,8 @@ class Omega_Repository (
         phaseDao.insertAll(phases)  // here phases are inserted into table
     }
 
-    suspend fun getActualMinutesForPhase(phaseId: Long): Int {
-        return sessionDao.getTotalMinutesForPhase(phaseId) ?: 0
+    suspend fun getActualSecondsForPhase(phaseId: Long): Int {
+        return sessionDao.getActualSecondForPhase(phaseId) ?: 0
     }
 
     // -------------------- session related operations -----------------------
@@ -99,6 +98,10 @@ class Omega_Repository (
         return sessionDao.getRunningPhaseId()
     }
 
+    suspend fun getRunningPhaseName(): String? {
+        val phaseId = sessionDao.getRunningPhaseId() ?: return null
+        return phaseDao.getPhaseById(phaseId).phaseType.name
+    }
 
 
     suspend fun getActiveSession(): SessionEntity? {
@@ -111,13 +114,13 @@ class Omega_Repository (
         val activeSession = sessionDao.getActiveSession()
 
         val endTime= System.currentTimeMillis()
-        val durationMinutes = ((endTime - activeSession!!.startTime) / 60000).toInt()
+        val durationSeconds = ((endTime - activeSession!!.startTime) / 1000).toInt()
         // ----<< for now i am saying active session will always be not null, later handle it properly >>----
 
         sessionDao.endSession(
             sessionId = activeSession.id,
             endTime = endTime,
-            durationTime = durationMinutes
+            durationTime = durationSeconds
         )
     }
 // --------- used in DashboardViewmodel.kt file ------------------------------

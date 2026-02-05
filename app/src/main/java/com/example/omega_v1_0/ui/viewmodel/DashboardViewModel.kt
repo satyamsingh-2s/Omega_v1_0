@@ -41,7 +41,7 @@ class DashboardViewModel(
                         phaseId = phase.id,
                         phaseType = phase.phaseType,
                         estimatedMinutes = phase.estimatedMinutes,
-                        actualMinutes = repository.getActualMinutesForPhase(phase.id)
+                        actualMinutes = repository.getActualSecondsForPhase(phase.id)
                     )
                 }
 

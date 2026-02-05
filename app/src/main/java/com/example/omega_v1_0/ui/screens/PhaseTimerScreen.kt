@@ -20,6 +20,7 @@ import com.example.omega_v1_0.ui.model.PhaseTimerUiModel
 fun PhaseTimerScreen(
     uiState: PhaseTimerUiModel,
     isRunning: Boolean,
+    runningPhaseName: String?,
     onStart: () -> Unit,
     onStop: () -> Unit,
     elapsedSeconds: Int,
@@ -84,16 +85,36 @@ fun PhaseTimerScreen(
 
         Spacer(Modifier.height(8.dp))
 
+        // FIX 4: Calculate minutes and seconds from the new actualSeconds property
+        val actualMinutes = uiState.actualMinutes
+        val actualSeconds = uiState.actualSeconds
+
+
+
         Row(
             verticalAlignment = Alignment.Bottom
         ) {
+            // Display Minutes
             Text(
-                text = "${uiState.actualMinutes}",
+                text = "$actualMinutes",
                 style = MaterialTheme.typography.displaySmall
             )
             Spacer(Modifier.width(4.dp))
             Text(
                 text = "min",
+                style = MaterialTheme.typography.bodyMedium,
+                modifier = Modifier.padding(bottom = 6.dp)
+            )
+
+            // Display Seconds
+            Spacer(Modifier.width(8.dp)) // A bit more space
+            Text(
+                text = "$actualSeconds",
+                style = MaterialTheme.typography.displaySmall
+            )
+            Spacer(Modifier.width(4.dp))
+            Text(
+                text = "sec",
                 style = MaterialTheme.typography.bodyMedium,
                 modifier = Modifier.padding(bottom = 6.dp)
             )
@@ -142,12 +163,15 @@ fun PhaseTimerScreen(
 
         Spacer(Modifier.height(32.dp))
 
+        // ------- for the telling that the there is a running pahse
+        val startBlocked = runningPhaseName != null
+
 
         // ---------- Buttons ----------
         if(!isRunning) {
             Button(
                 onClick = onStart,
-                enabled = true,
+                enabled = !startBlocked,
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(4.dp),
                 colors = ButtonDefaults.buttonColors(
@@ -173,11 +197,28 @@ fun PhaseTimerScreen(
         }
     }
 
-        Spacer(Modifier.height(32.dp))
+        Spacer(Modifier.height(26.dp))
 
         Divider()
 
-        Spacer(Modifier.height(24.dp))
+        if (startBlocked) {
+            Spacer(Modifier.height(8.dp))
+
+            Box(
+                modifier = Modifier.fillMaxWidth(),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = "(${runningPhaseName} session is running)",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            Spacer(Modifier.height(8.dp))
+            Divider()
+        }
+
+        Spacer(Modifier.height(26.dp))
 
         // ---------- Back ----------
         Text(

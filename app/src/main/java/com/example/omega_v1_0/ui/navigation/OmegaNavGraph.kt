@@ -339,6 +339,7 @@ fun OmegaNavGraph(
             PhaseTimerScreen(
                 uiState = uiState,
                 isRunning = isRunning,
+                runningPhaseName = viewModel.runningPhaseName.collectAsState().value,
                 onStart = {
                     viewModel.start(phaseId)
                 },

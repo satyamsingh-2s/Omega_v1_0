@@ -74,7 +74,7 @@ interface SessionDao{
         where phaseId = :phaseId
         AND endTime IS NOT NULL
     """)
-    suspend fun getTotalMinutesForPhase(phaseId: Long): Int?
+    suspend fun getActualSecondForPhase(phaseId: Long): Int?
 
 
 
