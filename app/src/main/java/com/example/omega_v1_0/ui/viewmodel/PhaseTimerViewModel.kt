@@ -86,6 +86,19 @@ class PhaseTimerViewModel(
         }
     }
 
+    // ----------- for ticker working logic-------------
+    fun syncElapsedTimeIfRunning() {
+        viewModelScope.launch {
+            val startTime = repository.getActiveSessionStartTime()
+            if (startTime != null) {
+                val now = System.currentTimeMillis()
+                val elapsed = ((now - startTime) / 1000).toInt()
+                _elapsedSeconds.value = elapsed
+                startTicker()
+            }
+        }
+    }
+
 
     // ---------- Start session ----------
     private var tickerJob: Job? = null

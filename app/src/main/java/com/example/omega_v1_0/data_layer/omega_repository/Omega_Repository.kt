@@ -108,6 +108,12 @@ class Omega_Repository (
         return sessionDao.getActiveSession()
     }
 
+    // mainly for ticker
+    suspend fun getActiveSessionStartTime(): Long? {
+        return sessionDao.getActiveSessionStartTime()
+    }
+
+
 
     suspend fun stopSession() {
 

@@ -76,6 +76,15 @@ interface SessionDao{
     """)
     suspend fun getActualSecondForPhase(phaseId: Long): Int?
 
+    // for ticker
+    @Query("""
+    SELECT startTime
+    FROM sessions
+    WHERE endTime IS NULL
+    LIMIT 1
+""")
+    suspend fun getActiveSessionStartTime(): Long?
+
 
 
 }

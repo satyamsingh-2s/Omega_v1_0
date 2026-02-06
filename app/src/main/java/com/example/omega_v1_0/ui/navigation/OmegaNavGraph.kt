@@ -343,6 +343,7 @@ fun OmegaNavGraph(
             LaunchedEffect(phaseId) {
                 viewModel.loadPhase(phaseId)                       // here the view model load data, by calling loadPhase function, now the ui updates automatatically as the data of uistate changes and also becaouse of line 282
                 viewModel.syncRunningState(phaseId)
+                viewModel.syncElapsedTimeIfRunning()
             }
 
             // --- UI ---                          // after launched effect the phaseTimerscreen is called with values, and function
