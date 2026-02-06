@@ -110,6 +110,12 @@ fun OmegaNavGraph(
                 onStopActiveSession = {
                     viewModel.stopActiveSession()
                 },
+                onStopSessionAndGoToDashboard = { projectId ->
+                    viewModel.stopActiveSession()
+                    navController.navigate(
+                        Screen.Dashboard.createRoute(projectId)
+                    )
+                },
                 onAllProjectLongPressed = { project ->
                     viewModel.onProjectLongPressed(project)
                     // here project is passed which is long pressed...

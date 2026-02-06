@@ -31,6 +31,7 @@ fun CreateProjectScreen(
     onCreateClicked: (String, Experience) -> Unit,
     onRecentProjectClicked: (Long) -> Unit,
     onStopActiveSession: () -> Unit,
+    onStopSessionAndGoToDashboard: (Long) -> Unit,
 
     onAllProjectLongPressed: (AllProjectsUiModel) -> Unit,
     projectToDelete: AllProjectsUiModel?,
@@ -206,6 +207,7 @@ fun CreateProjectScreen(
         if (activeSession != null) {
             ActiveSessionBottomBox(
                 activeSession = activeSession,
+                onStopAndGoToDashboard = onStopSessionAndGoToDashboard,
                 onStopSession = onStopActiveSession,
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
@@ -288,6 +290,7 @@ fun ExperienceDropdown(
 @Composable
 fun ActiveSessionBottomBox(
     activeSession: ActiveSessionUiModel,
+    onStopAndGoToDashboard: (Long) -> Unit,
     onStopSession: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -335,6 +338,17 @@ fun ActiveSessionBottomBox(
                 )
             ) {
                 Text("STOP SESSION")
+            }
+
+            Spacer(Modifier.height(8.dp))
+
+            OutlinedButton(
+                onClick = {
+                    onStopAndGoToDashboard(activeSession.projectId)
+                },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("STOP SESSION & GO TO DASHBOARD")
             }
         }
     }
@@ -407,9 +421,9 @@ fun AllProjectsBottomSheetContent(
                 Divider()
             }
         }
-        //item {
-       /// Spacer(Modifier.height(32.dp))
+        item {
+        Spacer(Modifier.height(32.dp))
         // bottom padding for gesture nav
-       //  }
+         }
     }
 }
