@@ -78,7 +78,7 @@ fun ProjectDashboardScreen(
                             .padding(end = 4.dp)
                     )
                 } else {
-                    Spacer(modifier = Modifier.width(26.dp))
+                    Spacer(modifier = Modifier.width(3.dp))
                 }
 
                 Text(

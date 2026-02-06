@@ -41,7 +41,7 @@ class DashboardViewModel(
                         phaseId = phase.id,
                         phaseType = phase.phaseType,
                         estimatedMinutes = phase.estimatedMinutes,
-                        actualMinutes = repository.getActualSecondsForPhase(phase.id)
+                        actualMinutes = repository.getActualSecondsForPhase(phase.id)/60
                     )
                 }
 
@@ -49,7 +49,7 @@ class DashboardViewModel(
             }
         }
     }
-    // -------------- function to load project naem from database ----------------------
+    // -------------- function to load project name from database ----------------------
     fun loadProject(projectId: Long) {
         viewModelScope.launch {
             val project = repository.getProjectById(projectId)
