@@ -1,6 +1,7 @@
 package com.example.omega_v1_0.ui.screens
 
 import android.util.Log
+import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -12,6 +13,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.example.omega_v1_0.ui.model.PhaseTimerUiModel
@@ -35,6 +37,21 @@ fun PhaseTimerScreen(
             .verticalScroll(rememberScrollState())
             .padding(horizontal = 16.dp)
     ) {
+
+        // this is to block intentional navigation by button and gesture
+        if(isRunning) {
+            val context = LocalContext.current
+            BackHandler(enabled = true) {
+                // Do nothing → blocks back navigation
+                Toast
+                    .makeText(
+                        context,
+                        "  Session active.      \n  use     <— BACK TO DASHBOARD      ",
+                        Toast.LENGTH_SHORT
+                    )
+                    .show()
+            }
+        }
 
         // ---------- Header ----------
         Text(
