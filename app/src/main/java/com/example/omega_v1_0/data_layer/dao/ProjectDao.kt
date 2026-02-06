@@ -34,6 +34,12 @@ interface ProjectDao{
     @Query("SELECT * FROM projects WHERE id = :projectId")
     suspend fun getProjectById(projectId: Long): ProjectEntity
 
+    // function to delete project from database
+        @Query("DELETE FROM projects WHERE id = :projectId")
+        suspend fun deleteProjectById(projectId: Long)
+
+
+
 
 }
 

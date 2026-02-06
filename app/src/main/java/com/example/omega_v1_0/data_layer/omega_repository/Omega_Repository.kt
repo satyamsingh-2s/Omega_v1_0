@@ -137,6 +137,12 @@ class Omega_Repository (
         return projectDao.getProjectById(projectId)
     }
 
+    // -------------------- used for deleting the project by cascade feature ------------------
+    suspend fun deleteProject(projectId: Long) {
+        projectDao.deleteProjectById(projectId)
+    }
+
+
 
 
 

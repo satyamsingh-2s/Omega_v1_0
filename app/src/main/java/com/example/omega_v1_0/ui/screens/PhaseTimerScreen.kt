@@ -217,6 +217,23 @@ fun PhaseTimerScreen(
             Spacer(Modifier.height(8.dp))
             Divider()
         }
+        else
+        {
+            Spacer(Modifier.height(8.dp))
+
+            Box(
+                modifier = Modifier.fillMaxWidth(),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = " running ",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            Spacer(Modifier.height(8.dp))
+            Divider()
+        }
 
         Spacer(Modifier.height(26.dp))
 

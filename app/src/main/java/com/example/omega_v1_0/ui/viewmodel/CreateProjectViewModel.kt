@@ -32,11 +32,12 @@ class CreateProjectViewModel (
      * stateFlow is for the data, that changes and it tells , mutalble be changeable
      */
 
-    private val _recentProjects =
-        MutableStateFlow<List<ProjectEntity>>(emptyList())
+    private val _recentProjects = MutableStateFlow<List<ProjectEntity>>(emptyList())
+    val recentProjects: StateFlow<List<ProjectEntity>> = _recentProjects
 
-    val recentProjects: StateFlow<List<ProjectEntity>> =
-        _recentProjects
+    private val _projectToDelete = MutableStateFlow<AllProjectsUiModel?>(null)
+    val projectToDelete: StateFlow<AllProjectsUiModel?> = _projectToDelete
+    // here i have to changed projectEntity to ProjectUImodel ⭕⭕⭕⭕⭕⭕ -- understand it more
 
 
     // now we create the latest_experince variable to be used by OmegaNavGraph
@@ -107,8 +108,6 @@ class CreateProjectViewModel (
     }
 
 
-
-
     // ----- reading data from table is allowed but not modifying----------
     private suspend fun mapToActiveSessionUiModel(
         session: SessionEntity
@@ -137,6 +136,27 @@ class CreateProjectViewModel (
             loadRecentProjects()
         }
     }
+
+    // function to delete project
+    fun onProjectLongPressed(project: AllProjectsUiModel) {
+        _projectToDelete.value = project
+        // here in _projectToDelete the whole particular project is present. it is for the ux, so if user want to the name, creation, it can get from _projectTodelete , no need to fetch data from database by id
+    }
+
+    fun confirmDeleteProject() {
+        val project = _projectToDelete.value ?: return
+
+        viewModelScope.launch {
+            repository.deleteProject(project.id)
+            loadRecentProjects()   // refresh list
+            _projectToDelete.value = null
+        }
+    }
+
+    fun cancelDelete() {
+        _projectToDelete.value = null
+    }
+
 
 
 }

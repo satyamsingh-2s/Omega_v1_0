@@ -2,6 +2,7 @@ package com.example.omega_v1_0.ui.screens
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -29,7 +30,12 @@ fun CreateProjectScreen(
     allProjects: List<AllProjectsUiModel>,
     onCreateClicked: (String, Experience) -> Unit,
     onRecentProjectClicked: (Long) -> Unit,
-    onStopActiveSession: () -> Unit
+    onStopActiveSession: () -> Unit,
+
+    onAllProjectLongPressed: (AllProjectsUiModel) -> Unit,
+    projectToDelete: AllProjectsUiModel?,
+    onConfirmDelete: () -> Unit,
+    onCancelDelete: () -> Unit
 ) {
     var projectName by remember { mutableStateOf("") }
     var experience by remember { mutableStateOf(Experience.INTERMEDIATE) }
@@ -45,15 +51,16 @@ fun CreateProjectScreen(
                     skipPartiallyExpanded = true
                 ),
 
-            ) {
+                ) {
                 // FIX 2: Apply a modifier to the content to control its height
-                Box(modifier = Modifier.fillMaxHeight(0.9f)) {
+                Box(modifier = Modifier.fillMaxHeight(0.67f)) {
                     AllProjectsBottomSheetContent(
                         allProjects = allProjects,
                         onProjectClick = { projectId ->
                             showAllProjectsSheet = false
-                            onRecentProjectClicked(projectId) // 🔗 navigation hook
-                        }
+                            onRecentProjectClicked(projectId)
+                        },
+                        onProjectLongPressed = onAllProjectLongPressed
                     )
                 }
             }
@@ -84,7 +91,7 @@ fun CreateProjectScreen(
 
             Spacer(Modifier.height(32.dp))
 
-            // ---------- Recent Projects ----------
+            // ---------- Recent Projects (read only)----------
             Surface(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(6.dp),
@@ -112,14 +119,14 @@ fun CreateProjectScreen(
                         )
                     } else {
                         recentProjects.forEachIndexed { index, project ->
-                            val textColor =
-                                if (index == 0) MaterialTheme.colorScheme.onSurface
-                                else MaterialTheme.colorScheme.onSurfaceVariant
+                            val textSize =
+                                if (index == 0) MaterialTheme.typography.titleMedium
+                                else MaterialTheme.typography.bodyMedium
 
                             Text(
                                 text = project.name,
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = textColor,
+                                style = textSize,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .clickable(enabled = activeSession == null) {
@@ -146,7 +153,7 @@ fun CreateProjectScreen(
 
             Spacer(Modifier.height(44.dp))
 
-            // ---------- Project Name ----------
+            // ----------Create Project ----------
             Text(
                 text = "PROJECT NAME",
                 style = MaterialTheme.typography.labelMedium,
@@ -203,6 +210,31 @@ fun CreateProjectScreen(
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
                     .padding(12.dp)
+            )
+        }
+        //--------------- Delete Confirmation Dialog----------
+        if (projectToDelete != null) {
+            AlertDialog(
+                onDismissRequest = onCancelDelete,
+                title = {
+                    Text("Delete Project")
+                },
+                text = {
+                    Text("This will permanently delete the project and all its data.")
+                },
+                confirmButton = {
+                    TextButton(onClick = onConfirmDelete) {
+                        Text(
+                            "Delete",
+                            color = MaterialTheme.colorScheme.error
+                        )
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = onCancelDelete) {
+                        Text("Cancel")
+                    }
+                }
             )
         }
     }
@@ -311,15 +343,18 @@ fun ActiveSessionBottomBox(
 /**
  * Dialog popup showing all projects (read-only).
  */
+/* ---------------- ALL PROJECTS BOTTOM SHEET ---------------- */
+
 @Composable
 fun AllProjectsBottomSheetContent(
     allProjects: List<AllProjectsUiModel>,
-    onProjectClick: (Long) -> Unit
+    onProjectClick: (Long) -> Unit,
+    onProjectLongPressed: (AllProjectsUiModel) -> Unit
 ) {
-    // 1. Create a date formatter
-    val dateFormatter = remember {
+    val formatter = remember {
         SimpleDateFormat("dd MMM yyyy", getDefault())
-        }
+    }
+
     LazyColumn(
         modifier = Modifier
             .fillMaxWidth()
@@ -331,7 +366,6 @@ fun AllProjectsBottomSheetContent(
                 text = "All Projects",
                 style = MaterialTheme.typography.titleMedium
             )
-
             Spacer(Modifier.height(12.dp))
         }
 
@@ -349,37 +383,33 @@ fun AllProjectsBottomSheetContent(
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clickable { onProjectClick(project.id) }
+                        .combinedClickable(
+                            onClick = { onProjectClick(project.id) },
+                            onLongClick = { onProjectLongPressed(project) }
+                        )
                         .padding(vertical = 12.dp)
                 ) {
                     Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 12.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween
                     ) {
-                        // This is the existing Text for the project name
                         Text(
                             text = project.projectName,
                             style = MaterialTheme.typography.bodyMedium
                         )
-                        // FIX: Add a new Text composable to display the formatted date
                         Text(
-                            text = dateFormatter.format(project.createdAt),
+                            text = formatter.format(project.createdAt),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
                 }
-
-                HorizontalDivider()
+                Divider()
             }
         }
-
-//        item {
-//            Spacer(Modifier.height(32.dp)) // bottom padding for gesture nav
-//        }
+        //item {
+       /// Spacer(Modifier.height(32.dp))
+        // bottom padding for gesture nav
+       //  }
     }
 }
-

@@ -91,9 +91,8 @@ fun OmegaNavGraph(
             val activeSession by viewModel.activeSession.collectAsState()
             // collecting the new state for all projects
             val allProjects by viewModel.allProjects.collectAsState()
-
-
-
+            // collection the project to delete  2. also projectToDelete contains all information of particular project, a data type to store that particular type of data
+            val projectToDelete by viewModel.projectToDelete.collectAsState()
 
 
             CreateProjectScreen (       // here we create the onCreateClicked function, and call CreateProjectScreen with the parameter of OnCreateClicked.
@@ -110,6 +109,17 @@ fun OmegaNavGraph(
                 },
                 onStopActiveSession = {
                     viewModel.stopActiveSession()
+                },
+                onAllProjectLongPressed = { project ->
+                    viewModel.onProjectLongPressed(project)
+                    // here project is passed which is long pressed...
+                },
+                projectToDelete = projectToDelete, // here project is passed which is to be deleted
+                onConfirmDelete = {
+                    viewModel.confirmDeleteProject()
+                },
+                onCancelDelete = {
+                    viewModel.cancelDelete()
                 }
             )
             /**
