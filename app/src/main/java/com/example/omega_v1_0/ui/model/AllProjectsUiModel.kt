@@ -6,7 +6,7 @@ import java.util.Date
  * Represents a single project item for the "Show All Projects" UI list.
  *
  * This is a UI-specific model, containing only the data needed by the composable,
- * which decouples the UI from the database `ProjectEntity`.
+ * which decouples the UI from the database `PlannedProjectEntity`.
  */
 data class AllProjectsUiModel(
     val id: Long,

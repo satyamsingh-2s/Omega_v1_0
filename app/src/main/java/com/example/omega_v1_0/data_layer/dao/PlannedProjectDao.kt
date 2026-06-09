@@ -3,39 +3,40 @@ package com.example.omega_v1_0.data_layer.dao
 import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.Query
-import com.example.omega_v1_0.data_layer.entites.ProjectEntity
+import com.example.omega_v1_0.data_layer.entites.PlannedProjectEntity
 import kotlinx.coroutines.flow.Flow
 
 
 // here we are creating bridge between database(i.e table) and app
 @Dao
-interface ProjectDao{
+interface PlannedProjectDao{
     @Insert
-    suspend fun insert(project: ProjectEntity): Long
+    suspend fun insert(project: PlannedProjectEntity): Long
 
-    @Query("SELECT * FROM projects ORDER BY createdAt DESC")
-    fun getAllProjects(): Flow<List<ProjectEntity>>
+    @Query("SELECT * FROM planned_projects ORDER BY createdAt DESC")
+    fun getAllProjects(): Flow<List<PlannedProjectEntity>>
 
     // function to get the recent projects
     @Query("""
     SELECT p.*
-    FROM projects p
+    FROM planned_projects p
     LEFT JOIN phases ph ON ph.projectId = p.id
-    LEFT JOIN sessions s ON s.phaseId = ph.id
+    LEFT JOIN sessions s ON s.parentId = ph.id
+    AND s.parentType = 'PLANNED'
     GROUP BY p.id
     ORDER BY 
         MAX(s.endTime) DESC,
         p.createdAt DESC
     LIMIT :limit
 """)
-    suspend fun getRecentProjects(limit: Int): List<ProjectEntity>
+    suspend fun getRecentProjects(limit: Int): List<PlannedProjectEntity>
 
     // function to get project name from database
-    @Query("SELECT * FROM projects WHERE id = :projectId")
-    suspend fun getProjectById(projectId: Long): ProjectEntity
+    @Query("SELECT * FROM planned_projects WHERE id = :projectId")
+    suspend fun getProjectById(projectId: Long): PlannedProjectEntity
 
     // function to delete project from database
-        @Query("DELETE FROM projects WHERE id = :projectId")
+        @Query("DELETE FROM planned_projects WHERE id = :projectId")
         suspend fun deleteProjectById(projectId: Long)
 
 
@@ -55,7 +56,7 @@ Flow	Auto-updating stream
 Interface   	It makes the file iterface, in interface
 We can define what is allowed and what is not.
 ORDER BY createdAt DESC	It sorts the master table(projects) with latest projects
-<List<ProjectEntity>	It gives all the data of class name ProjectEntity
+<List<PlannedProjectEntity>	It gives all the data of class name PlannedProjectEntity
 For now, I stop my doubt and simply learn that
 We created a table(i.e project etntiy) class, which has parametes or main purpose define sturture of table,
 Also it converts every row to the instace of the projectEntity class

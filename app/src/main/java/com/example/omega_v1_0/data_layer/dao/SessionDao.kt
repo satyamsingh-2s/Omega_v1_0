@@ -4,6 +4,7 @@ import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.Query
 import com.example.omega_v1_0.data_layer.entites.SessionEntity
+import com.example.omega_v1_0.models.SessionType
 
 /**
  * for now featur of session doa is limited to creating a session when we are working on that session, no support for pause session, just start and end session.
@@ -27,11 +28,13 @@ interface SessionDao{
     // for getting the session if it is active in database
     @Query("""
     SELECT * FROM sessions
-    WHERE phaseId = :phaseId
+    WHERE parentId   = :parentId
+    AND parentType = :parentType
     AND endTime IS NULL
     LIMIT 1
 """)
-    suspend fun getActiveSessionForPhase(phaseId: Long): SessionEntity?
+    suspend fun getActiveSessionForParent(parentId: Long, parentType: SessionType): SessionEntity?
+    // ⭕⭕⭕⭕ be cautious, here parentId is the phase id for the planned work, is the unplanned_project id, is the daily_work id-- as they don't have any phase, they have direct sessions. ⭕⭕⭕⭕
 
 
     // now running query for getting active session count
@@ -44,19 +47,30 @@ interface SessionDao{
     suspend fun getActiveSessionCount(): Int
 
     @Query("""
-    SELECT phaseId
+    SELECT parentId
     FROM sessions
     WHERE endTime IS NULL
     LIMIT 1
 """)
-    suspend fun getRunningPhaseId(): Long?
+    suspend fun getRunningParentId(): Long?
+// --- now we don't need phaseid, we needparent id
+//- for planned - it is phase id
+//- for unplanned - it is project id
+//- for daily- it is project id
 
+    @Query("""
+    SELECT parentType
+    FROM sessions
+    WHERE endTime IS NULL
+    LIMIT 1
+    """)
+    suspend fun getRunningParentType(): SessionType?
 
     //function to end the active session
     @Query("""
         UPDATE sessions
         SET endTime =:endTime,
-        durationTime =:durationTime
+        durationSeconds =:durationTime
         WHERE id = :sessionId
     """)
     suspend fun endSession(
@@ -69,12 +83,13 @@ interface SessionDao{
 
     // this query will sum up the duration time of all sessions for a given phase id and it is for function getTotalMinutesForPhase
     @Query("""
-        SELECT SUM(durationTime)
+        SELECT SUM(durationSeconds)
         FROM sessions
-        where phaseId = :phaseId
+        where parentId = :parentId
+        AND parentType = :parentType
         AND endTime IS NOT NULL
     """)
-    suspend fun getActualSecondForPhase(phaseId: Long): Int?
+    suspend fun getActualSecondForPhase(parentId: Long, parentType: SessionType): Int?
 
     // for ticker
     @Query("""
@@ -84,6 +99,14 @@ interface SessionDao{
     LIMIT 1
 """)
     suspend fun getActiveSessionStartTime(): Long?
+
+    // function to delete the session manually of respective phases
+    @Query("""
+    DELETE FROM sessions
+    WHERE parentId = :parentId
+    AND parentType = :parentType
+""")
+    suspend fun deleteSessionForPhase(parentId: Long, parentType: SessionType)
 
 
 

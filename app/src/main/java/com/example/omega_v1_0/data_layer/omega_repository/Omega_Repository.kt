@@ -1,21 +1,23 @@
 package com.example.omega_v1_0.data_layer.omega_repository
 
 import com.example.omega_v1_0.data_layer.dao.PhaseDao
-import com.example.omega_v1_0.data_layer.dao.ProjectDao
+import com.example.omega_v1_0.data_layer.dao.PlannedProjectDao
 import com.example.omega_v1_0.data_layer.dao.SessionDao
 import com.example.omega_v1_0.data_layer.entites.PhaseEntity
-import com.example.omega_v1_0.data_layer.entites.ProjectEntity
+import com.example.omega_v1_0.data_layer.entites.PlannedProjectEntity
 import com.example.omega_v1_0.data_layer.entites.SessionEntity
 import com.example.omega_v1_0.models.Experience
 import com.example.omega_v1_0.models.PhaseType
+import com.example.omega_v1_0.models.SessionType
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.first
 
 
 class Omega_Repository (
     // creating dao variable to access the database
-    private val projectDao: ProjectDao,
-            private val phaseDao: PhaseDao,
-                    private val sessionDao: SessionDao
+    private val plannedProjectDao: PlannedProjectDao,
+    private val phaseDao: PhaseDao,
+    private val sessionDao: SessionDao
 ){
 
     // ----- project related operations -----
@@ -24,8 +26,8 @@ class Omega_Repository (
         name: String,
         experience: Experience
     ): Long {
-        return projectDao.insert(
-            ProjectEntity(
+        return plannedProjectDao.insert(
+            PlannedProjectEntity(
                 name = name,
                 experience = experience,
                 createdAt = System.currentTimeMillis(),
@@ -33,14 +35,14 @@ class Omega_Repository (
         )
     }
     // -------- for recents projects function ------------
-    suspend fun getRecentProjects(limit: Int = 3): List<ProjectEntity> {
-        return projectDao.getRecentProjects(limit)
+    suspend fun getRecentProjects(limit: Int = 3): List<PlannedProjectEntity> {
+        return plannedProjectDao.getRecentProjects(limit)
     }
 
     // ----- Function to get all projects for the "Show All" feature -----
     // here i am sticking with the flow, to get automatically updated from any changes
-    fun getAllProjects(): Flow<List<ProjectEntity>> {
-        return projectDao.getAllProjects()
+    fun getAllProjects(): Flow<List<PlannedProjectEntity>> {
+        return plannedProjectDao.getAllProjects()
     }
 
 
@@ -62,8 +64,10 @@ class Omega_Repository (
         phaseDao.insertAll(phases)  // here phases are inserted into table
     }
 
+    // ---------- PLANNED WORK -----------------
+
     suspend fun getActualSecondsForPhase(phaseId: Long): Int {
-        return sessionDao.getActualSecondForPhase(phaseId) ?: 0
+        return sessionDao.getActualSecondForPhase(phaseId, parentType = SessionType.PLANNED) ?: 0
     }
 
     // -------------------- session related operations -----------------------
@@ -75,10 +79,11 @@ class Omega_Repository (
         }
 
         val session = SessionEntity(
-            phaseId= phaseId,
-            startTime= System.currentTimeMillis(),
-            endTime= null,
-            durationTime = 0
+            parentId = phaseId,
+            parentType = SessionType.PLANNED,
+            startTime = System.currentTimeMillis(),
+            endTime = null,
+            durationSeconds = 0
         )
 
         sessionDao.insertSession(session)
@@ -90,16 +95,16 @@ class Omega_Repository (
 
     // for the particular session which is active in database
     suspend fun hasActiveSessionForPhase(phaseId: Long): Boolean {
-        return sessionDao.getActiveSessionForPhase(phaseId) != null
+        return sessionDao.getActiveSessionForParent(phaseId, SessionType.PLANNED) != null
     }
 
     // for icon
     suspend fun getRunningPhaseId(): Long? {
-        return sessionDao.getRunningPhaseId()
+        return sessionDao.getRunningParentId()
     }
 
     suspend fun getRunningPhaseName(): String? {
-        val phaseId = sessionDao.getRunningPhaseId() ?: return null
+        val phaseId = sessionDao.getRunningParentId() ?: return null
         return phaseDao.getPhaseById(phaseId).phaseType.name
     }
 
@@ -139,13 +144,52 @@ class Omega_Repository (
     }
 
     // -------------------- used for getting the projectname for estimate and dashboard scrren ------------------
-    suspend fun getProjectById(projectId: Long): ProjectEntity {
-        return projectDao.getProjectById(projectId)
+    suspend fun getProjectById(projectId: Long): PlannedProjectEntity {
+        return plannedProjectDao.getProjectById(projectId)
     }
 
     // -------------------- used for deleting the project by cascade feature ------------------
+    // 📛📛 -- in v1.0 it is done by cascading by the help of foreign key, but in v2 cascading is only possible to project to phase,
+    // so we have to delete the session manually
+    // algo - first have all phases, for unplanned it is one session, for daily it is one session
+    // then delete session of each pahses and then delete project
     suspend fun deleteProject(projectId: Long) {
-        projectDao.deleteProjectById(projectId)
+
+        val phases = phaseDao.getPhaseForProject(projectId).first()
+        for (phase in phases) {
+            sessionDao.deleteSessionForPhase(phase.id, SessionType.PLANNED)
+        }
+        plannedProjectDao.deleteProjectById(projectId)
+
+        // ---------------- Session cleanup during project deletion ---------------- 📛📛
+//
+// getPhaseForProject() returns Flow<List<PhaseEntity>>.
+//
+// Flow is ideal for UI because it continuously emits updates,
+// but deletion only needs the current snapshot of phases.
+//
+// Possible approaches:
+//
+// 1. Create a separate DAO function returning List<PhaseEntity>
+//    Pros: Clear intent, repository doesn't depend on Flow.
+//    Cons: Extra DAO method to maintain.
+//
+// 2. Use .first() on the Flow (chosen approach)
+//    Pros: No extra DAO function, less code.
+//    Cons: Repository becomes aware that DAO returns Flow.
+//
+// Omega uses Option 2:
+//
+// val phases = phaseDao.getPhaseForProject(projectId).first()
+//
+// Flow<List<PhaseEntity>>
+//          ↓
+// List<PhaseEntity>
+//
+// This provides a one-time snapshot for session cleanup before
+// deleting the project.
+//
+// -------------------------------------------------------------------------📛📛📛📛
     }
 
 

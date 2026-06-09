@@ -1,11 +1,14 @@
 package com.example.omega_v1_0.data_layer.convertor
 
-import androidx.core.view.WindowInsetsCompat
 import androidx.room.TypeConverter
 import com.example.omega_v1_0.models.Complexity
 import com.example.omega_v1_0.models.Experience
 import com.example.omega_v1_0.models.PhaseType
 import com.example.omega_v1_0.models.Scope
+import com.example.omega_v1_0.models.SessionType
+
+// room cannot store enum directyl so we need type convertors
+// enum is a type that contains fix predefined values
 
 class EnumConvertors {
 
@@ -36,6 +39,15 @@ class EnumConvertors {
 
     @TypeConverter
     fun toComplexity(value: String): Complexity = Complexity.valueOf(value)
+
+
+    // -------- SessionType -------------
+    @TypeConverter
+    fun fromSessionType(value: SessionType): String = value.name
+
+    @TypeConverter
+    fun toSessionType(value: String): SessionType = SessionType.valueOf(value)
+
 
     // -> now tell database that about the EnumConvertor file, as Database.kt act
 

@@ -8,14 +8,13 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 // import androidx.compose.ui.text.intl.Locale
 import androidx.compose.ui.unit.dp
-import com.example.omega_v1_0.data_layer.entites.ProjectEntity
+import com.example.omega_v1_0.data_layer.entites.PlannedProjectEntity
 import com.example.omega_v1_0.models.Experience
 import com.example.omega_v1_0.ui.model.ActiveSessionUiModel
 import com.example.omega_v1_0.ui.model.AllProjectsUiModel
@@ -25,7 +24,7 @@ import java.util.Locale.getDefault
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CreateProjectScreen(
-    recentProjects: List<ProjectEntity>,
+    recentProjects: List<PlannedProjectEntity>,
     activeSession: ActiveSessionUiModel?,
     allProjects: List<AllProjectsUiModel>,
     onCreateClicked: (String, Experience) -> Unit,

@@ -12,10 +12,11 @@ import com.example.omega_v1_0.models.PhaseType
     tableName= "phases",
     foreignKeys=[
         ForeignKey(
-            entity= ProjectEntity::class, // defining the parent table: i.e project entity
+            entity= PlannedProjectEntity::class, // defining the parent table: i.e project entity
             parentColumns=["id"],
             childColumns=["projectId"],
-            onDelete= ForeignKey.CASCADE  // this deletes all phases table related to project table,
+            onDelete= ForeignKey.CASCADE  // when the planned projects is deleted
+        // then deletes all phases table related to project table,
         )
     ],
     indices = [Index("projectId")]  // Inedex is the data stuructue, which is used to improve searching , if it is not used then it have to manually search each row

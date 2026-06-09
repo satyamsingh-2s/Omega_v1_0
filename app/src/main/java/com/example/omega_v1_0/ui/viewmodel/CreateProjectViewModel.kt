@@ -1,9 +1,8 @@
 package com.example.omega_v1_0.ui.viewmodel
 
-import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.omega_v1_0.data_layer.entites.ProjectEntity
+import com.example.omega_v1_0.data_layer.entites.PlannedProjectEntity
 import com.example.omega_v1_0.data_layer.entites.SessionEntity
 import com.example.omega_v1_0.data_layer.omega_repository.Omega_Repository
 import com.example.omega_v1_0.models.Experience
@@ -32,8 +31,8 @@ class CreateProjectViewModel (
      * stateFlow is for the data, that changes and it tells , mutalble be changeable
      */
 
-    private val _recentProjects = MutableStateFlow<List<ProjectEntity>>(emptyList())
-    val recentProjects: StateFlow<List<ProjectEntity>> = _recentProjects
+    private val _recentProjects = MutableStateFlow<List<PlannedProjectEntity>>(emptyList())
+    val recentProjects: StateFlow<List<PlannedProjectEntity>> = _recentProjects
 
     private val _projectToDelete = MutableStateFlow<AllProjectsUiModel?>(null)
     val projectToDelete: StateFlow<AllProjectsUiModel?> = _projectToDelete
@@ -112,7 +111,7 @@ class CreateProjectViewModel (
     private suspend fun mapToActiveSessionUiModel(
         session: SessionEntity
     ): ActiveSessionUiModel {
-        val phase = repository.getPhaseById(session.phaseId)
+        val phase = repository.getPhaseById(session.parentId)
         val project = repository.getProjectById(phase.projectId)
 
         return ActiveSessionUiModel(
