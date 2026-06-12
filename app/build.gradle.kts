@@ -47,33 +47,40 @@ dependencies {
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.activity.compose)
+
+    // Import the Compose BOM to manage Compose library versions
     implementation(platform(libs.androidx.compose.bom))
+
+    // Declare Compose libraries without versions, as they are managed by the BOM
     implementation(libs.androidx.ui)
     implementation(libs.androidx.ui.graphics)
     implementation(libs.androidx.ui.tooling.preview)
     implementation(libs.androidx.material3)
-    implementation(libs.androidx.room.common.jvm)
-    implementation(libs.androidx.room.runtime.android)
-    implementation(libs.androidx.navigation.runtime.android)
-    implementation(libs.androidx.compose.foundation)
     implementation(libs.androidx.foundation)
-    implementation(libs.androidx.compose.ui)
+    implementation(libs.androidx.compose.runtime)
+
+    // Material Design Icons Extended - provides access to a wider range of icons
+    implementation(libs.androidx.material.icons.extended)
+
+    implementation(libs.androidx.navigation.compose)
+
+    // Room dependencies
+    implementation(libs.androidx.room.runtime)
+    implementation(libs.androidx.room.ktx)
+    implementation(libs.androidx.compose.foundation)
+    ksp(libs.androidx.room.compiler)
+
+    implementation(libs.androidx.navigation.runtime.android)
+
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
-    testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.espresso.core)
+
+    // Use Compose BOM for Android UI tests as well
     androidTestImplementation(platform(libs.androidx.compose.bom))
     androidTestImplementation(libs.androidx.ui.test.junit4)
+
     debugImplementation(libs.androidx.ui.tooling)
     debugImplementation(libs.androidx.ui.test.manifest)
-
-    implementation(libs.androidx.navigation.compose) // Or the latest version
-
-    // Room dependencies to avoid database tm errores, adding kotlin annotation processing tool (ksp) plugin on top
-    implementation("androidx.room:room-runtime:2.8.4")
-    implementation("androidx.room:room-ktx:2.8.4")
-
-    ksp("androidx.room:room-compiler:2.8.4")
-    implementation(kotlin("test"))
 
 }

@@ -24,9 +24,11 @@ data class SessionEntity(
 // DAILY_RECORD -> DailyRecordEntity.id
     val parentType: SessionType,
 
-
     val startTime: Long,
     val endTime: Long?, // if endTime is null then it means Active Session,0 can be considerd as timestamp that why 0 not used
     // it makes endTime nullable, so that it can store null, if value is not given or produced yet.
-    val durationSeconds: Int
+    val durationSeconds: Int,
+
+    val sessionName: String? = null,
+    val expectedDurationMinutes: Int? = null
 )

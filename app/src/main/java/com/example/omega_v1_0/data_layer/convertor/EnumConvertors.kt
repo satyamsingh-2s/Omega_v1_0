@@ -6,6 +6,7 @@ import com.example.omega_v1_0.models.Experience
 import com.example.omega_v1_0.models.PhaseType
 import com.example.omega_v1_0.models.Scope
 import com.example.omega_v1_0.models.SessionType
+import java.time.LocalDate
 
 // room cannot store enum directyl so we need type convertors
 // enum is a type that contains fix predefined values
@@ -36,7 +37,6 @@ class EnumConvertors {
     // ---- Complexity ----
     @TypeConverter
     fun fromComplexity(value: Complexity): String = value.name
-
     @TypeConverter
     fun toComplexity(value: String): Complexity = Complexity.valueOf(value)
 
@@ -44,9 +44,18 @@ class EnumConvertors {
     // -------- SessionType -------------
     @TypeConverter
     fun fromSessionType(value: SessionType): String = value.name
-
     @TypeConverter
     fun toSessionType(value: String): SessionType = SessionType.valueOf(value)
+
+    // --------- DailyRecord --- converting local date to string and inverse
+    @TypeConverter
+    fun fromLocalDate(date: LocalDate?): String? {
+        return date?.toString()
+    }
+    @TypeConverter
+    fun toLocalDate(dateString: String?): LocalDate? {
+        return dateString?.let { LocalDate.parse(it) }
+    }
 
 
     // -> now tell database that about the EnumConvertor file, as Database.kt act

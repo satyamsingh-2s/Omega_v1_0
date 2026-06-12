@@ -14,7 +14,7 @@ import com.example.omega_v1_0.models.SessionType
 interface SessionDao{
 
     @Insert  // function to insert a new session into the database thats's all
-    suspend fun insertSession(session: SessionEntity)
+    suspend fun insertSession(session: SessionEntity): Long
 
 
 
@@ -57,6 +57,7 @@ interface SessionDao{
 //- for planned - it is phase id
 //- for unplanned - it is project id
 //- for daily- it is project id
+
 
     @Query("""
     SELECT parentType
@@ -108,6 +109,56 @@ interface SessionDao{
 """)
     suspend fun deleteSessionForPhase(parentId: Long, parentType: SessionType)
 
+
+    // -------- mainly used by dailyrecord... to for session1, session2, session3 automatically-----------------------
+
+    @Query("""
+    SELECT COUNT(*)
+    FROM sessions
+    WHERE parentId = :parentId
+    AND parentType = :parentType
+""")
+    suspend fun getSessionCountForParent(
+        parentId: Long,
+        parentType: SessionType
+    ): Int
+
+    @Query("""
+    SELECT COALESCE(SUM(durationSeconds), 0)
+    FROM sessions
+    WHERE parentId = :parentId
+    AND parentType = :parentType
+    AND endTime IS NOT NULL
+""")
+    suspend fun getTotalDurationForParent(
+        parentId: Long,
+        parentType: SessionType
+    ): Int
+
+    // get all sessions w.r.t to its parents id, for planned - phase, for unplanned - project, for daily - project
+    @Query("""
+    SELECT *
+    FROM sessions
+    WHERE parentId = :parentId
+    AND parentType = :parentType
+    ORDER BY endTime DESC
+""")
+    suspend fun getRecentSessionsForParent(
+        parentId: Long,
+        parentType: SessionType,
+    ): List<SessionEntity>
+
+    @Query("""
+    UPDATE sessions
+    SET sessionName = :sessionName
+    AND expectedDurationMinutes = :expectedDurationMinutes
+    WHERE id = :sessionId
+""")
+    suspend fun updateSessionName(
+        sessionId: Long,
+        sessionName: String,
+        expectedDurationMinutes: Int? = null
+    )
 
 
 }

@@ -1,23 +1,31 @@
 package com.example.omega_v1_0.data_layer.omega_repository
 
+import com.example.omega_v1_0.data_layer.dao.ActiveSessionDao
 import com.example.omega_v1_0.data_layer.dao.PhaseDao
 import com.example.omega_v1_0.data_layer.dao.PlannedProjectDao
 import com.example.omega_v1_0.data_layer.dao.SessionDao
+import com.example.omega_v1_0.data_layer.entites.DailyRecordEntity
 import com.example.omega_v1_0.data_layer.entites.PhaseEntity
 import com.example.omega_v1_0.data_layer.entites.PlannedProjectEntity
 import com.example.omega_v1_0.data_layer.entites.SessionEntity
 import com.example.omega_v1_0.models.Experience
 import com.example.omega_v1_0.models.PhaseType
 import com.example.omega_v1_0.models.SessionType
+import com.example.omega_v1_0.data_layer.dao.DailyRecordDao
+import com.example.omega_v1_0.data_layer.entites.ActiveSessionEntity
+import com.example.omega_v1_0.models.SessionStatus
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
+import java.time.LocalDate
 
 
 class Omega_Repository (
     // creating dao variable to access the database
     private val plannedProjectDao: PlannedProjectDao,
     private val phaseDao: PhaseDao,
-    private val sessionDao: SessionDao
+    private val sessionDao: SessionDao,
+    private val dailyRecordDao: DailyRecordDao,
+    private val activeSessionDao: ActiveSessionDao
 ){
 
     // ----- project related operations -----
@@ -190,6 +198,241 @@ class Omega_Repository (
 // deleting the project.
 //
 // -------------------------------------------------------------------------📛📛📛📛
+    }
+
+
+
+    // 📛📛-------------- Daily Record related operations ----------------------
+
+    // Create a new daily record, and returns its id,
+    // here we are getting session id
+    suspend fun getOrCreateTodayRecord(): Long {
+
+        val today = LocalDate.now()
+
+        val existingRecord =
+            dailyRecordDao.getRecordByDate(today)
+
+        if (existingRecord != null) {
+            return existingRecord.id
+        }
+
+        return dailyRecordDao.insert(
+            DailyRecordEntity(
+                recordDate = today,
+                createdAt = System.currentTimeMillis()
+            )
+        )
+    }
+
+    // -------------------------------to start a new Daily Record session -----------------------------------------
+
+    // here we create a session in session entity and in Activesesionentity
+    suspend fun startDailySession(
+        sessionName: String?,
+        expectedDurationMinutes: Int?
+    ) {
+
+        // Global Omega rule:
+        // only one active session at a time
+        if (sessionDao.getActiveSessionCount() > 0) {
+            throw IllegalStateException(
+                "Another session is already running."
+            )
+        }
+
+        val dailyRecordId = getOrCreateTodayRecord()    // here we are getting id by daily recordid
+
+        val finalName =
+            if (sessionName.isNullOrBlank()) { // it is naming for session name, if not set by user..
+
+                val sessionCount =
+                    sessionDao.getSessionCountForParent(
+                        parentId = dailyRecordId,
+                        parentType = SessionType.DAILY_RECORD
+                    )
+
+                "Session ${sessionCount + 1}"
+
+            } else {
+                sessionName.trim()
+            }
+
+        // NOTE:
+        // Using a single timestamp keeps SessionEntity.startTime
+        // and ActiveSessionEntity.currentStartTime identical.
+        val now = System.currentTimeMillis()
+
+        val sessionId =
+            sessionDao.insertSession(
+                SessionEntity(
+                    parentId = dailyRecordId,
+                    parentType = SessionType.DAILY_RECORD,
+
+                    sessionName = finalName,
+                    expectedDurationMinutes = expectedDurationMinutes,
+
+                    startTime = now,
+                    endTime = null,
+                    durationSeconds = 0
+                )
+            )
+
+        activeSessionDao.insert(
+            ActiveSessionEntity(
+                id = 1, // Singleton row: only one active session allowed globally
+
+                sessionId = sessionId,
+
+                status = SessionStatus.RUNNING,
+
+                currentStartTime = now,
+
+                accumulatedDurationSeconds = 0
+            )
+        )
+
+        // TODO:
+        // SessionEntity insert and ActiveSessionEntity insert
+        // should eventually be wrapped in a Room @Transaction
+        // so both succeed or fail together.
+    }
+
+
+    // --------- for stopping the session of DailyRecord ------------------------------
+
+    // here we are verfiying active session from the ActiveSessionEntity not from SessionEntity'end time📛📛
+    // ⚠️⚠️⚠️⚠️  always be sure to clear ActiveSessionentity to avoid inconsitences..⚠️⚠️⚠️⚠️
+    suspend fun stopDailySession() {
+
+        val activeSession =
+            activeSessionDao.getActiveSession()
+                ?: throw IllegalStateException(
+                    "No active daily session found."
+                )
+
+        val endTime = System.currentTimeMillis()
+
+        val durationSeconds =
+            when (activeSession.status) {
+
+                SessionStatus.RUNNING -> {
+                    activeSession.accumulatedDurationSeconds +
+                            ((endTime - activeSession.currentStartTime) / 1000).toInt()
+                }
+
+                SessionStatus.PAUSED -> {
+                    activeSession.accumulatedDurationSeconds
+                }
+            }
+
+        sessionDao.endSession(
+            sessionId = activeSession.sessionId,
+            endTime = endTime,
+            durationTime = durationSeconds
+        )
+
+        activeSessionDao.clear()
+    }
+
+    suspend fun getDailyActiveSession(): ActiveSessionEntity? {
+        return activeSessionDao.getActiveSession()
+    }
+
+    // ---- updating sesion name after the stop button ------------------
+    // here we are getting the active session whole row not id, so using getorCreateTodayRecord() for sessionId
+    suspend fun updateDailySessionName(
+        sessionName: String,expectedDurationMinutes: Int?
+    ) {
+
+               val activeSession =
+            activeSessionDao.getActiveSession()
+                ?: return
+
+        sessionDao.updateSessionName(
+            sessionId = activeSession.sessionId,  //getOrCreateTodayRecord(),  one issue with activesesion working but with getorcratedaileyrecord not📛📛📛📛📛
+            sessionName = sessionName,
+            expectedDurationMinutes=expectedDurationMinutes
+        )
+    }
+
+    // ---------- for pause sessison ----
+    suspend fun pauseDailySession() {
+
+        val activeSession =
+            activeSessionDao.getActiveSession()
+                ?: throw IllegalStateException(
+                    "No active session found."
+                )
+
+        if (activeSession.status != SessionStatus.RUNNING) {
+            return
+        }
+
+        val now = System.currentTimeMillis()
+
+        val currentSegmentSeconds =
+            ((now - activeSession.currentStartTime) / 1000).toInt()
+
+        activeSessionDao.update(
+            activeSession.copy(
+                status = SessionStatus.PAUSED,
+                accumulatedDurationSeconds =
+                    activeSession.accumulatedDurationSeconds +
+                            currentSegmentSeconds
+            )
+        )
+    }
+
+    // -------- for resume session --------------
+    suspend fun resumeDailySession() {
+
+        val activeSession =
+            activeSessionDao.getActiveSession()
+                ?: throw IllegalStateException(
+                    "No active session found."
+                )
+
+        if (activeSession.status != SessionStatus.PAUSED) {
+            return
+        }
+
+        activeSessionDao.update( // .copy is the function of kotlin that creates the copy of the of the specified field only not the whole field
+            activeSession.copy(
+                status = SessionStatus.RUNNING,
+                currentStartTime = System.currentTimeMillis()
+            )
+        )
+    }
+
+    // ------------- function to load todays total time
+    suspend fun getTodaysTotalDuration(): Int {
+
+        val todayRecord =
+            dailyRecordDao.getRecordByDate(
+                LocalDate.now()
+            ) ?: return 0
+
+        return sessionDao.getTotalDurationForParent(
+            parentId = todayRecord.id,
+            parentType = SessionType.DAILY_RECORD
+        )
+    }
+
+    // -------- functions to load session wrt parent for all 3 types --------
+
+    suspend fun getRecentDailyRecordSessions(
+    ): List<SessionEntity> {
+
+        val todayRecord =
+            dailyRecordDao.getRecordByDate(
+                LocalDate.now()
+            ) ?: return emptyList()
+
+        return sessionDao.getRecentSessionsForParent(
+            parentId = todayRecord.id,
+            parentType = SessionType.DAILY_RECORD,
+        )
     }
 
 

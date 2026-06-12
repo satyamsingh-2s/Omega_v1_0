@@ -1,6 +1,5 @@
 package com.example.omega_v1_0.ui.navigation
 
-import android.util.Log
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -12,16 +11,18 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
 import androidx.navigation.NavType
-import androidx.room.Room
 import com.example.omega_v1_0.data_layer.database.DatabaseProvider
-import com.example.omega_v1_0.data_layer.database.OmegaDatabase
 import com.example.omega_v1_0.data_layer.omega_repository.Omega_Repository
 import com.example.omega_v1_0.models.Experience
 import com.example.omega_v1_0.ui.screens.CreateProjectScreen
+import com.example.omega_v1_0.ui.screens.DailyRecordHistoryScreen
+import com.example.omega_v1_0.ui.screens.DailyRecordScreen
 import com.example.omega_v1_0.ui.screens.EstimateScreen
+import com.example.omega_v1_0.ui.screens.MainScreen
 import com.example.omega_v1_0.ui.screens.PhaseTimerScreen
 import com.example.omega_v1_0.ui.screens.ProjectDashboardScreen
 import com.example.omega_v1_0.ui.viewmodel.CreateProjectViewModel
+import com.example.omega_v1_0.ui.viewmodel.DailyRecordViewModel
 import com.example.omega_v1_0.ui.viewmodel.DashboardViewModel
 import com.example.omega_v1_0.ui.viewmodel.EstimateScreenViewModel
 import com.example.omega_v1_0.ui.viewmodel.PhaseTimerViewModel
@@ -34,14 +35,41 @@ import com.example.omega_v1_0.ui.viewmodel.PhaseTimerViewModel
  * navArgument = enforced context
  */
 
+/*
+i am not injecting hilt dependecy injection, as we are manually creating viewmodel , repositroy every time and wiring them,
+in v2 I will use them
+ */
+
 @Composable
 fun OmegaNavGraph(
     navController: NavHostController
 ) {
     NavHost(
         navController = navController,
-        startDestination = Screen.CreateProject.route
+        startDestination = Screen.MainScreen.route
     ) {
+
+        // here the entry point of the app to mainScreen
+        composable(Screen.MainScreen.route) {
+
+            MainScreen(
+
+                onPlannedWorkClick = {
+                    navController.navigate(
+                        Screen.CreateProject.route
+                    )
+                },
+
+                onUnplannedWorkClick = {
+                    // Placeholder for now
+                },
+
+                onDailyRecordClick = {
+                    navController.navigate(
+                        Screen.DailyRecord.route)
+                }
+            )
+        }
 
         composable(Screen.CreateProject.route)    // jab yeah wala composable ka call karnege, tab ek hi value dena hoaga -> route
         {
@@ -67,7 +95,9 @@ fun OmegaNavGraph(
                 Omega_Repository(
                     db.ProjectDao(),
                     db.PhaseDao(),
-                    db.SessionDao()
+                    db.SessionDao(),
+                    dailyRecordDao= db.DailyRecordDao(),
+                    activeSessionDao = db.ActiveSessionDao()
                 )
             }
 
@@ -199,7 +229,9 @@ fun OmegaNavGraph(
                 Omega_Repository(
                     db.ProjectDao(),
                     db.PhaseDao(),
-                    db.SessionDao()
+                    db.SessionDao(),
+                    dailyRecordDao = db.DailyRecordDao(),
+                    activeSessionDao = db.ActiveSessionDao()
                 )
             }
 
@@ -266,7 +298,9 @@ fun OmegaNavGraph(
                 Omega_Repository(
                     db.ProjectDao(),
                     db.PhaseDao(),
-                    db.SessionDao()
+                    db.SessionDao(),
+                    dailyRecordDao = db.DailyRecordDao(),
+                    activeSessionDao = db.ActiveSessionDao()
                 )
             }
 
@@ -330,7 +364,9 @@ fun OmegaNavGraph(
                 Omega_Repository(
                     db.ProjectDao(),
                     db.PhaseDao(),
-                    db.SessionDao()
+                    db.SessionDao(),
+                    dailyRecordDao = db.DailyRecordDao(),
+                    activeSessionDao = db.ActiveSessionDao()
                 )
             }
 
@@ -370,6 +406,66 @@ fun OmegaNavGraph(
                     navController.popBackStack()
                 }
             )
+        }
+
+        // -------------------- DailyRecordScreen part ------------------
+        composable(Screen.DailyRecord.route) {
+
+            val context = LocalContext.current
+            val db = remember { DatabaseProvider.getDatabase(context) }
+
+            val repository = remember {
+                Omega_Repository(
+                    db.ProjectDao(),
+                    db.PhaseDao(),
+                    db.SessionDao(),
+                    dailyRecordDao= db.DailyRecordDao(),
+                    activeSessionDao = db.ActiveSessionDao()
+                )
+            }
+
+            val viewModel = remember {
+                DailyRecordViewModel(repository)
+            }
+
+            val uiState by viewModel.uiState.collectAsState()
+
+            LaunchedEffect(Unit) {
+                viewModel.syncActiveSession()
+                viewModel.loadTodaysTotal()
+                viewModel.loadRecentSessions()
+
+            }
+
+            DailyRecordScreen(
+                todaystotalSeconds = uiState.todaysTotalSeconds,
+                sessionName = uiState.sessionNameInput,
+                activeSessionName=uiState.activeSessionName,
+                selectedEstimateMinutes =
+                    uiState.selectedEstimateMinutes,
+                onEstimateSelected =
+                    viewModel::onEstimateSelected,
+                onSessionNameChange =
+                    viewModel::onSessionNameChanged,
+//               // onExpectedDurationChange =
+//                    viewModel::onExpectedDurationChanged,
+                onStartSession =
+                    viewModel::startSession,
+                sessionStatus = uiState.sessionStatus,
+                onPauseSession = viewModel::pauseSession,
+                onResumeSession = viewModel::resumeSession,
+                onStopSession = viewModel::stopSession,
+                stopwatchSeconds =
+                    uiState.stopwatchSeconds,
+                recentSessions = uiState.recentSessions,
+                onHistoryClick = {navController.navigate(Screen.DailyRecordHistory.route)}
+            )
+        }
+
+        // ---------------- DailyRecordHistoryScreen --------------------
+        composable(route = Screen.DailyRecordHistory.route) {
+
+            DailyRecordHistoryScreen()
         }
     }
 }

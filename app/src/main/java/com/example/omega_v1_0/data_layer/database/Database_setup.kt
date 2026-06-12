@@ -12,6 +12,9 @@ import com.example.omega_v1_0.data_layer.entites.SessionEntity
 import com.example.omega_v1_0.data_layer.entites.UnplannedProjectEntity
 import com.example.omega_v1_0.data_layer.entites.DailyRecordEntity
 import com.example.omega_v1_0.data_layer.convertor.EnumConvertors
+import com.example.omega_v1_0.data_layer.dao.ActiveSessionDao
+import com.example.omega_v1_0.data_layer.dao.DailyRecordDao
+import com.example.omega_v1_0.data_layer.entites.ActiveSessionEntity
 
 @Database(
     [
@@ -20,9 +23,10 @@ import com.example.omega_v1_0.data_layer.convertor.EnumConvertors
         SessionEntity::class,
 
         UnplannedProjectEntity::class,
-        DailyRecordEntity::class
+        DailyRecordEntity::class,
+        ActiveSessionEntity::class
     ],
-    version = 2
+    version = 4
 )
 
 // here we are telling database that to use type convertors for enum
@@ -31,6 +35,8 @@ abstract class OmegaDatabase: RoomDatabase() {
     abstract fun ProjectDao(): PlannedProjectDao
     abstract fun PhaseDao(): PhaseDao
     abstract fun SessionDao(): SessionDao
+    abstract fun DailyRecordDao(): DailyRecordDao
+    abstract fun ActiveSessionDao(): ActiveSessionDao
 }
 
 /**
