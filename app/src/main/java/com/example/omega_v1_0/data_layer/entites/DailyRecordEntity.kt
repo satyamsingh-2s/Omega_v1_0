@@ -17,9 +17,20 @@ data class DailyRecordEntity(
 
     val recordDate: LocalDate,
 
-    val createdAt: Long
+    val createdAt: Long,
+
+    val totalDurationSeconds: Int = 0,
+    val totalSessionCount: Int = 0
 
     // 📛📛 1. record date -use local date not string - only con - need a type convertor, with string - switching back and forth
     // 2. logic to lock is if (record date<today date) ....
     // 📛📛
 )
+// after adding 2 colums , total duration of day and total session count
+//SessionEntity
+//↓
+//Detailed history
+//
+//DailyRecordEntity
+//↓
+//Daily summary

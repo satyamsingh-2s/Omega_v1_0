@@ -5,6 +5,7 @@ import androidx.room.Insert
 import androidx.room.Query
 import com.example.omega_v1_0.data_layer.entites.SessionEntity
 import com.example.omega_v1_0.models.SessionType
+import kotlinx.coroutines.flow.Flow
 
 /**
  * for now featur of session doa is limited to creating a session when we are working on that session, no support for pause session, just start and end session.
@@ -24,6 +25,16 @@ interface SessionDao{
         LIMIT 1                           
     """) // for now i am limiting it to 1 because there should be only one active session at a time
     suspend fun getActiveSession(): SessionEntity?
+
+    // get session by its session id -------------------
+    @Query("""
+    SELECT *
+    FROM sessions
+    WHERE id = :sessionId
+""")
+    suspend fun getSessionById(
+        sessionId: Long
+    ): SessionEntity
 
     // for getting the session if it is active in database
     @Query("""
@@ -150,8 +161,8 @@ interface SessionDao{
 
     @Query("""
     UPDATE sessions
-    SET sessionName = :sessionName
-    AND expectedDurationMinutes = :expectedDurationMinutes
+    SET sessionName = :sessionName,
+     expectedDurationMinutes = :expectedDurationMinutes
     WHERE id = :sessionId
 """)
     suspend fun updateSessionName(
@@ -159,6 +170,19 @@ interface SessionDao{
         sessionName: String,
         expectedDurationMinutes: Int? = null
     )
+
+    // ------ used for providing the list of session in DailyRecordHistory Screen -------------
+    @Query("""
+    SELECT *
+    FROM sessions
+    WHERE parentId = :dailyRecordId
+    AND parentType = :parentType
+    ORDER BY startTime DESC
+""")
+    fun getSessionsForDailyRecord(
+        dailyRecordId: Long,
+        parentType: SessionType
+    ): Flow<List<SessionEntity>>
 
 
 }

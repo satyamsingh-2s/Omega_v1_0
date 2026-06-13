@@ -1,5 +1,6 @@
 package com.example.omega_v1_0.ui.viewmodel
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.omega_v1_0.data_layer.omega_repository.Omega_Repository
@@ -95,18 +96,6 @@ class DailyRecordViewModel(
         }
     }
 
-    fun onExpectedDurationChanged(value: String) {
-        _uiState.update {
-            it.copy(
-                selectedEstimateMinutes = value.toIntOrNull() // value is changed ot int and null.......❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌
-            )
-        }
-    }
-
-    // ---------------------------
-    // Session Actions
-    // ---------------------------
-
     fun startSession() {
         viewModelScope.launch {
 
@@ -118,7 +107,6 @@ class DailyRecordViewModel(
                 expectedDurationMinutes =
                     uiState.value.selectedEstimateMinutes
             )
-
             syncActiveSession()
         }
     }
@@ -146,6 +134,11 @@ class DailyRecordViewModel(
             if (sessionName.isNotBlank()) {
                 repository.updateDailySessionName(sessionName,expectedMinutes)
             }
+            // ---- it is updateing, only issue in the session name
+            if(expectedMinutes!=null) {
+                repository.updateDailySessionName(_uiState.value.activeSessionName.toString(), expectedMinutes)
+            }
+
             repository.stopDailySession()
             loadTodaysTotal()
             syncActiveSession()
@@ -153,7 +146,7 @@ class DailyRecordViewModel(
 
         }
     }
-
+// ------------- HERE ONLY UI IS UPDATED , NOT VAIRABLES OF DATALAYER IS UPDATED,
     fun syncActiveSession() {
 
         viewModelScope.launch {
@@ -182,10 +175,10 @@ class DailyRecordViewModel(
                     sessionStatus = activeSession.status,
                     accumulatedDurationSeconds = activeSession.accumulatedDurationSeconds,
                     currentStartTime = activeSession.currentStartTime,
-                    activeSessionName = session?.sessionName
+                    activeSessionName = session?.sessionName,
+                    selectedEstimateMinutes = session?.expectedDurationMinutes
                 )
             }
-
             when (activeSession.status) {
 
                 SessionStatus.RUNNING -> {
@@ -260,6 +253,27 @@ class DailyRecordViewModel(
                         minutes
                     }
             )
+        }
+        // here updating the moment it is selected
+        viewModelScope.launch {
+            val sessionName =
+                uiState.value.sessionNameInput.trim()
+
+            val expectedMinutes = uiState.value.selectedEstimateMinutes
+
+            Log.d("⭕⭕⭕⭕⭕",
+                "Session name = $sessionName")
+
+            if (sessionName.isNotBlank()) {
+                repository.updateDailySessionName(sessionName, expectedMinutes)
+            }
+            // ---- it is updateing, only issue in the session name
+            if (expectedMinutes != null) {
+                repository.updateDailySessionName(
+                    _uiState.value.activeSessionName.toString(),
+                    expectedMinutes
+                )
+            }
         }
     }
 

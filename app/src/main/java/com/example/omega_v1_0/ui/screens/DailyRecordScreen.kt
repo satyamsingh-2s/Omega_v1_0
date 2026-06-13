@@ -25,6 +25,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowForwardIos
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Stop
@@ -32,6 +33,8 @@ import androidx.compose.material.icons.outlined.BarChart
 import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.Schedule
 import androidx.compose.material3.Button
+import androidx.compose.material3.Checkbox
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -52,8 +55,17 @@ import com.example.omega_v1_0.models.SessionStatus
 import com.example.omega_v1_0.ui.model.DailyRecordRecentsSessionUiModel
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
+import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.unit.sp
 
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import com.example.omega_v1_0.ui.model.ToDoListUiModel
+
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DailyRecordScreen(
 
@@ -73,19 +85,31 @@ fun DailyRecordScreen(
     onStopSession: () -> Unit = {},
     stopwatchSeconds: Int = 0,
     recentSessions: List<DailyRecordRecentsSessionUiModel> = emptyList(),
-    onHistoryClick: () -> Unit = {}
+    onHistoryClick: () -> Unit = {},
+
+    // ----------To do list variables -----
+    todoItems: List<ToDoListUiModel> = emptyList(),
+    newTodoText: String = "",
+    onTodoTextChanged: (String) -> Unit = {},
+    onAddTodo: () -> Unit = {},
+    onToggleTodo: (ToDoListUiModel) -> Unit = {},
+    onDeleteTodo: (Long) -> Unit = {}
 
     )
 {
-     val estimateOptions = listOf(
-        5, 15, 30, null, 45, 60, 90, 105, 120
-    )
 
-
+     val estimateOptions = listOf( 5, 15, 30, 45, null, 60, 90, 105, 120)
     val listState =
         rememberLazyListState(
-            initialFirstVisibleItemIndex = 1
-        )
+            initialFirstVisibleItemIndex = 2)
+
+    // ---------------- variables for todo list ----------------
+    var showFocusSheet by remember { mutableStateOf(false)
+    }
+    val remainingCount = todoItems.count {
+            !it.isCompleted
+        }
+    //-----------------------------------------
 
     Column(
         modifier = Modifier
@@ -99,7 +123,7 @@ fun DailyRecordScreen(
 
         Text(
             text = "Daily Record",
-            style = MaterialTheme.typography.headlineMedium
+            style = MaterialTheme.typography.headlineMedium.copy(fontSize =19.sp),
         )
 
         Spacer(modifier = Modifier.height(22.dp))
@@ -120,7 +144,7 @@ fun DailyRecordScreen(
 
         Column(
             modifier = Modifier.fillMaxWidth(),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+            verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
 
             OutlinedTextField(
@@ -128,7 +152,7 @@ fun DailyRecordScreen(
                 onValueChange = onSessionNameChange,
 
                 textStyle =
-                    MaterialTheme.typography.bodyMedium,
+                    MaterialTheme.typography.bodyMedium.copy(fontSize = 16.sp),
 
                 placeholder = {
 
@@ -162,37 +186,6 @@ fun DailyRecordScreen(
                     unfocusedContainerColor = MaterialTheme.colorScheme.surface,
                 )
             )
-
-//            OutlinedTextField(
-//                value = expectedDuration,
-//                onValueChange = onExpectedDurationChange,
-//
-//                textStyle =
-//                    MaterialTheme.typography.bodyMedium,
-//
-//                placeholder = {
-//                    Text(
-//                        text = "Expected Minutes",
-//                        style = MaterialTheme.typography.bodyMedium,
-//                        color = MaterialTheme.colorScheme.onSurfaceVariant
-//                    )
-//                },
-//                leadingIcon = {
-//                    Icon(
-//                        imageVector = Icons.Outlined.Schedule,
-//                        contentDescription = "Expected Minutes",
-//                        tint = MaterialTheme.colorScheme.onSurfaceVariant
-//                    )
-//                },
-//                modifier = Modifier.fillMaxWidth(),
-//                singleLine = true,
-//                colors = OutlinedTextFieldDefaults.colors(
-//                    focusedBorderColor = Color.Transparent,
-//                    unfocusedBorderColor = Color.Transparent,
-//                    focusedContainerColor = MaterialTheme.colorScheme.surface,
-//                    unfocusedContainerColor = MaterialTheme.colorScheme.surface,
-//                )
-//            )
 
             //------------------------------------------------------
 
@@ -252,7 +245,7 @@ fun DailyRecordScreen(
         ) {
             Text(
                 text = formatDuration(stopwatchSeconds),
-                style = MaterialTheme.typography.displayLarge.copy(fontSize = 82.sp),
+                style = MaterialTheme.typography.displayLarge.copy(fontSize = 72.sp),
                 textAlign = TextAlign.Center,
                 color = MaterialTheme.colorScheme.onSurface // Ensure good contrast
             )
@@ -330,7 +323,7 @@ fun DailyRecordScreen(
             }
         }
 
-    // ignoring this for now ❌❌❌❌❌❌❌❌❌❌❌❌❌❌
+    // ignoring this for now ❌❌❌❌❌❌❌❌❌❌❌❌❌❌-----------------------------------------
         if(sessionStatus==null)
             Spacer(modifier = Modifier.height(48.dp))
         else
@@ -348,12 +341,12 @@ fun DailyRecordScreen(
                     imageVector = Icons.Outlined.BarChart,
                     contentDescription = "View History",
                     tint = MaterialTheme.colorScheme.primary, // Primary color for icon
-                    modifier = Modifier.size(24.dp)
+                    modifier = Modifier.size(16.dp)
                 )
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
                     text = "View History",
-                    style = MaterialTheme.typography.titleMedium,
+                    style = MaterialTheme.typography.titleMedium.copy(fontSize=12.sp),
                     color = MaterialTheme.colorScheme.primary, // Primary color for text
                     modifier = Modifier.weight(1f)
                 )
@@ -365,7 +358,88 @@ fun DailyRecordScreen(
                 )
             }
 
-            Spacer(modifier = Modifier.height(28.dp))
+//------------------------ Todo_list section -----------------------
+        Button(
+            onClick = { showFocusSheet = true
+                      }, modifier = Modifier.fillMaxWidth()
+        ) {
+            Text("Focus (${todoItems.count { !it.isCompleted }})",
+                style = MaterialTheme.typography.headlineSmall,
+                modifier = Modifier.padding(16.dp)
+            )
+        }
+        if (showFocusSheet) {
+            ModalBottomSheet(
+
+                onDismissRequest = {
+                    showFocusSheet = false
+                }
+
+            ) {
+                Text(
+                    text = "TO DO",
+                    style = MaterialTheme.typography.headlineSmall,
+                    modifier = Modifier.padding(6.dp)
+                )
+                LazyColumn(
+                    modifier = Modifier.fillMaxWidth()
+                        .height(300.dp)
+                ) {
+                    items(todoItems) { item ->
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp, vertical = 2.dp
+                                ),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Checkbox(
+                                checked = item.isCompleted,
+                                onCheckedChange = { onToggleTodo(item)
+                                }
+                            )
+                            Text(text = item.text,
+                                modifier = Modifier.weight(1f)
+                            )
+                            IconButton(
+                                onClick = {
+                                    onDeleteTodo(item.id)
+                                }
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Delete,
+                                    contentDescription = "Delete"
+                                )
+                            }
+                        }
+                    }
+                }
+                Spacer(modifier = Modifier.height(6.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth()
+                        .padding(horizontal = 16.dp)
+                ) {
+                    OutlinedTextField(
+                        value = newTodoText,
+                        onValueChange = onTodoTextChanged,
+                        modifier = Modifier.weight(1f),
+                        singleLine = true,
+                        label = {
+                            Text("Add Todo")
+                        })
+                  //  Spacer(modifier = Modifier.width(8.dp))
+                    Button(
+                        onClick = onAddTodo,
+                        enabled = todoItems.size < 7
+                    ) {
+                        Text("+")
+                    }
+                }
+            }
+        }
+        // ------------------------- Todolist section ------------------------------
+
+            Spacer(modifier = Modifier.height(18.dp))
 
             Text(
                 text = "PAST SESSIONS",

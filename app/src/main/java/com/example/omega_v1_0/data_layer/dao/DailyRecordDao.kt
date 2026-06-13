@@ -35,5 +35,19 @@ interface DailyRecordDao{
         ORDER BY recordDate DESC
     """)
     fun getAllRecords(): Flow<List<DailyRecordEntity>>
+
+    @Query("""
+    UPDATE daily_records
+    SET totalDurationSeconds =
+        totalDurationSeconds + :durationSeconds,
+        totalSessionCount =
+        totalSessionCount + 1
+    WHERE id = :recordId
+""")
+    suspend fun updateDailySummary(
+        recordId: Long,
+        durationSeconds: Int
+    )
+
 }
 

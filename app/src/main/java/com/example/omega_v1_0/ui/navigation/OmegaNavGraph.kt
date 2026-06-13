@@ -1,5 +1,6 @@
 package com.example.omega_v1_0.ui.navigation
 
+import android.util.Log
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -15,6 +16,7 @@ import com.example.omega_v1_0.data_layer.database.DatabaseProvider
 import com.example.omega_v1_0.data_layer.omega_repository.Omega_Repository
 import com.example.omega_v1_0.models.Experience
 import com.example.omega_v1_0.ui.screens.CreateProjectScreen
+import com.example.omega_v1_0.ui.screens.DailyRecordDetailsScreen
 import com.example.omega_v1_0.ui.screens.DailyRecordHistoryScreen
 import com.example.omega_v1_0.ui.screens.DailyRecordScreen
 import com.example.omega_v1_0.ui.screens.EstimateScreen
@@ -22,10 +24,13 @@ import com.example.omega_v1_0.ui.screens.MainScreen
 import com.example.omega_v1_0.ui.screens.PhaseTimerScreen
 import com.example.omega_v1_0.ui.screens.ProjectDashboardScreen
 import com.example.omega_v1_0.ui.viewmodel.CreateProjectViewModel
+import com.example.omega_v1_0.ui.viewmodel.DailyRecordDetailsViewModel
+import com.example.omega_v1_0.ui.viewmodel.DailyRecordHistoryViewModel
 import com.example.omega_v1_0.ui.viewmodel.DailyRecordViewModel
 import com.example.omega_v1_0.ui.viewmodel.DashboardViewModel
 import com.example.omega_v1_0.ui.viewmodel.EstimateScreenViewModel
 import com.example.omega_v1_0.ui.viewmodel.PhaseTimerViewModel
+import com.example.omega_v1_0.ui.viewmodel.ToDoListViewModel
 
 /**
  * NavHost = container
@@ -97,7 +102,8 @@ fun OmegaNavGraph(
                     db.PhaseDao(),
                     db.SessionDao(),
                     dailyRecordDao= db.DailyRecordDao(),
-                    activeSessionDao = db.ActiveSessionDao()
+                    activeSessionDao = db.ActiveSessionDao(),
+                    todolistDao = db.ToDoListDao()
                 )
             }
 
@@ -231,7 +237,8 @@ fun OmegaNavGraph(
                     db.PhaseDao(),
                     db.SessionDao(),
                     dailyRecordDao = db.DailyRecordDao(),
-                    activeSessionDao = db.ActiveSessionDao()
+                    activeSessionDao = db.ActiveSessionDao(),
+                    todolistDao = db.ToDoListDao()
                 )
             }
 
@@ -300,7 +307,8 @@ fun OmegaNavGraph(
                     db.PhaseDao(),
                     db.SessionDao(),
                     dailyRecordDao = db.DailyRecordDao(),
-                    activeSessionDao = db.ActiveSessionDao()
+                    activeSessionDao = db.ActiveSessionDao(),
+                    todolistDao = db.ToDoListDao()
                 )
             }
 
@@ -366,7 +374,8 @@ fun OmegaNavGraph(
                     db.PhaseDao(),
                     db.SessionDao(),
                     dailyRecordDao = db.DailyRecordDao(),
-                    activeSessionDao = db.ActiveSessionDao()
+                    activeSessionDao = db.ActiveSessionDao(),
+                    todolistDao = db.ToDoListDao()
                 )
             }
 
@@ -420,15 +429,23 @@ fun OmegaNavGraph(
                     db.PhaseDao(),
                     db.SessionDao(),
                     dailyRecordDao= db.DailyRecordDao(),
-                    activeSessionDao = db.ActiveSessionDao()
+                    activeSessionDao = db.ActiveSessionDao(),
+                    todolistDao = db.ToDoListDao()
                 )
             }
 
             val viewModel = remember {
                 DailyRecordViewModel(repository)
             }
-
             val uiState by viewModel.uiState.collectAsState()
+
+            val toDoListViewModel = remember {
+                ToDoListViewModel(repository)
+            }
+            val toDoUiState by
+            toDoListViewModel.uiState.collectAsState()
+
+
 
             LaunchedEffect(Unit) {
                 viewModel.syncActiveSession()
@@ -441,10 +458,10 @@ fun OmegaNavGraph(
                 todaystotalSeconds = uiState.todaysTotalSeconds,
                 sessionName = uiState.sessionNameInput,
                 activeSessionName=uiState.activeSessionName,
-                selectedEstimateMinutes =
-                    uiState.selectedEstimateMinutes,
                 onEstimateSelected =
                     viewModel::onEstimateSelected,
+                selectedEstimateMinutes =
+                    uiState.selectedEstimateMinutes,
                 onSessionNameChange =
                     viewModel::onSessionNameChanged,
 //               // onExpectedDurationChange =
@@ -458,14 +475,118 @@ fun OmegaNavGraph(
                 stopwatchSeconds =
                     uiState.stopwatchSeconds,
                 recentSessions = uiState.recentSessions,
-                onHistoryClick = {navController.navigate(Screen.DailyRecordHistory.route)}
+                onHistoryClick = {navController.navigate(Screen.DailyRecordHistory.route)},
+
+                // ---- To do List section  ----------------
+                todoItems = toDoUiState.items,
+                newTodoText = toDoUiState.newItemText,
+                onTodoTextChanged = toDoListViewModel::onNewItemTextChanged,
+                onAddTodo = toDoListViewModel::addItem,
+                onToggleTodo = toDoListViewModel::toggleCompleted,
+                onDeleteTodo = toDoListViewModel::deleteItem
             )
         }
 
         // ---------------- DailyRecordHistoryScreen --------------------
-        composable(route = Screen.DailyRecordHistory.route) {
+        composable(
+            route = Screen.DailyRecordHistory.route
+        ) {
 
-            DailyRecordHistoryScreen()
+            val context = LocalContext.current
+            val db = remember { DatabaseProvider.getDatabase(context) }
+
+            val repository = remember {
+                Omega_Repository(
+                    db.ProjectDao(),
+                    db.PhaseDao(),
+                    db.SessionDao(),
+                    dailyRecordDao = db.DailyRecordDao(),
+                    activeSessionDao = db.ActiveSessionDao(),
+                    todolistDao = db.ToDoListDao()
+                )
+            }
+
+            val viewModel = remember {
+                DailyRecordHistoryViewModel(repository)
+            }
+            val historyRecords by
+            viewModel.historyRecords.collectAsState()
+
+            DailyRecordHistoryScreen(
+
+                historyRecords = historyRecords,
+
+                onRecordClick = { record ->
+
+                    Log.d(
+                        "OMEGA",
+                        "Record clicked: $record"
+                    )
+
+                    navController.navigate(
+                        "daily_record_details/${record.recordId}/${record.recordDate}"
+                    )
+                }
+            )
         }
+
+
+        composable(
+            route = "daily_record_details/{recordId}/{recordDate}",
+            arguments = listOf(
+                navArgument("recordId") {
+                    type = NavType.LongType
+                },
+                navArgument("recordDate") {
+                    type = NavType.StringType
+                }
+            )
+        ) {
+            val context = LocalContext.current
+            val db = remember { DatabaseProvider.getDatabase(context) }
+
+            val repository = remember {
+                Omega_Repository(
+                    db.ProjectDao(),
+                    db.PhaseDao(),
+                    db.SessionDao(),
+                    dailyRecordDao = db.DailyRecordDao(),
+                    activeSessionDao = db.ActiveSessionDao(),
+                    todolistDao = db.ToDoListDao()
+                )
+            }
+
+            val recordId =
+                it.arguments?.getLong("recordId")
+                    ?: return@composable
+
+            val recordDate =
+                it.arguments?.getString("recordDate")
+                    ?: ""
+
+            Log.d(
+                "OMEGA",
+                "DETAIL SCREEN REACHED: $recordId"
+            )
+
+            val viewModel = remember {
+
+                DailyRecordDetailsViewModel(
+                    repository,
+                    recordId
+                )
+            }
+
+            val sessions by
+            viewModel.sessions.collectAsState()
+
+            DailyRecordDetailsScreen(
+                sessions = sessions,
+                recordDate = recordDate
+            )
+        }
+
+
+
     }
 }

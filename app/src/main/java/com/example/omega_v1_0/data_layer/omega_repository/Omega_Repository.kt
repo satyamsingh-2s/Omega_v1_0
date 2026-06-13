@@ -12,10 +12,16 @@ import com.example.omega_v1_0.models.Experience
 import com.example.omega_v1_0.models.PhaseType
 import com.example.omega_v1_0.models.SessionType
 import com.example.omega_v1_0.data_layer.dao.DailyRecordDao
+import com.example.omega_v1_0.data_layer.dao.ToDoListDao
 import com.example.omega_v1_0.data_layer.entites.ActiveSessionEntity
+import com.example.omega_v1_0.data_layer.entites.ToDoListEntity
 import com.example.omega_v1_0.models.SessionStatus
+import com.example.omega_v1_0.ui.model.DailyRecordHistoryUiModel
+import com.example.omega_v1_0.ui.model.DailyRecordSessionDetailsUiModel
+import com.example.omega_v1_0.ui.model.ToDoListUiModel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
 import java.time.LocalDate
 
 
@@ -25,7 +31,8 @@ class Omega_Repository (
     private val phaseDao: PhaseDao,
     private val sessionDao: SessionDao,
     private val dailyRecordDao: DailyRecordDao,
-    private val activeSessionDao: ActiveSessionDao
+    private val activeSessionDao: ActiveSessionDao,
+    private val todolistDao: ToDoListDao
 ){
 
     // ----- project related operations -----
@@ -331,6 +338,15 @@ class Omega_Repository (
             endTime = endTime,
             durationTime = durationSeconds
         )
+        val session =
+            sessionDao.getSessionById(
+                activeSession.sessionId
+            )
+
+        dailyRecordDao.updateDailySummary(
+            recordId = session.parentId,
+            durationSeconds = durationSeconds
+        )
 
         activeSessionDao.clear()
     }
@@ -435,7 +451,128 @@ class Omega_Repository (
         )
     }
 
+    //------------------------ DailyRecordHistory ----------------
+    suspend fun updateDailySummary(
+        recordId: Long,
+        durationSeconds: Int
+    ) {
 
+        dailyRecordDao.updateDailySummary(
+            recordId = recordId,
+            durationSeconds = durationSeconds
+        )
+    }
+
+    //---- here mapping the dailyrecordhistory ui state and dailyrecord history table data
+    fun getDailyRecordHistory():
+            Flow<List<DailyRecordHistoryUiModel>> {
+
+        return dailyRecordDao
+            .getAllRecords()
+            .map { records ->
+
+                records.map { record ->
+
+                    DailyRecordHistoryUiModel(
+
+                        recordId = record.id,
+
+                        recordDate = record.recordDate,
+
+                        totalDurationSeconds =
+                            record.totalDurationSeconds,
+
+                        totalSessionCount =
+                            record.totalSessionCount
+                    )
+                }
+            }
+    }
+
+    fun getSessionsForDailyRecord(
+        dailyRecordId: Long
+    ): Flow<List<DailyRecordSessionDetailsUiModel>> {
+        return sessionDao
+            .getSessionsForDailyRecord(
+                dailyRecordId,
+                SessionType.DAILY_RECORD
+            )
+            .map { sessions ->
+
+                sessions.map { session ->
+
+                    DailyRecordSessionDetailsUiModel(
+
+                        sessionId = session.id,
+
+                        sessionName = session.sessionName.toString(), // ---------⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️ - argumnet mismatch - converted forcefully to string ---------
+
+                        durationSeconds =
+                            session.durationSeconds,
+
+                        expectedDurationMinutes =
+                            session.expectedDurationMinutes
+                    )
+                }
+            }
+    }
+
+    //---------------------- ToDoList ---------------------------------------------------------------
+
+    suspend fun addToDoItem(
+        text: String
+    ) {
+// ----- here if the no. of items in list greater than 7 , simply stop taking the values
+        if (todolistDao.getItemCount() >= 7) {
+            return
+        }
+        todolistDao.insert(ToDoListEntity(text = text)
+        )
+    }
+
+    suspend fun updateToDoCompleted(
+        itemId: Long,
+        isCompleted: Boolean
+    ) {
+
+        todolistDao.updateCompleted(
+            itemId = itemId, isCompleted = isCompleted)
+    }
+
+    suspend fun deleteToDoItem(
+        itemId: Long
+    ) {
+
+        todolistDao.delete(itemId)
+    }
+
+//    if (todolistDao.getItemCount() >= 7) {
+//        return
+//    }
+// ------------------- mapping to the ui variable and data vairable -------------------
+    // 3 use cases - 1st map data entites to ui models(data variables to ui varaible)
+    // 2nd - provides ui model/data flow to the ui
+    // 3rd - its flow automatically emit value if underlying entites is updated
+fun getAllToDoItems(): Flow<List<ToDoListUiModel>> {
+
+    return todolistDao
+        .getAllFocusItems()
+        .map { items ->
+
+            items.map { item ->
+
+                ToDoListUiModel(
+
+                    id = item.id,
+
+                    text = item.text,
+
+                    isCompleted =
+                        item.isCompleted
+                )
+            }
+        }
+}
 
 
 

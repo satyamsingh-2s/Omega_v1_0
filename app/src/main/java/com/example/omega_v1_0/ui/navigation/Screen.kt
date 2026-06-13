@@ -24,7 +24,9 @@ sealed class Screen(val route:String) {
 
     object DailyRecord : Screen("daily_record")
 
-    object DailyRecordHistory : Screen("daily_record_history")
+    object DailyRecordHistory : Screen("daily_record_history/{recordId}")
+
+    object DailyRecordDetails : Screen("daily_record_details/{recordId}/{recordDate}")
 }
 
 // navigation done
