@@ -1,5 +1,6 @@
 package com.example.omega_v1_0.data_layer.omega_repository
 
+import com.example.omega_v1_0.data_layer.dao.ActiveBreakDao
 import com.example.omega_v1_0.data_layer.dao.ActiveSessionDao
 import com.example.omega_v1_0.data_layer.dao.PhaseDao
 import com.example.omega_v1_0.data_layer.dao.PlannedProjectDao
@@ -13,6 +14,7 @@ import com.example.omega_v1_0.models.PhaseType
 import com.example.omega_v1_0.models.SessionType
 import com.example.omega_v1_0.data_layer.dao.DailyRecordDao
 import com.example.omega_v1_0.data_layer.dao.ToDoListDao
+import com.example.omega_v1_0.data_layer.entites.ActiveBreakEntity
 import com.example.omega_v1_0.data_layer.entites.ActiveSessionEntity
 import com.example.omega_v1_0.data_layer.entites.ToDoListEntity
 import com.example.omega_v1_0.models.SessionStatus
@@ -32,7 +34,8 @@ class Omega_Repository (
     private val sessionDao: SessionDao,
     private val dailyRecordDao: DailyRecordDao,
     private val activeSessionDao: ActiveSessionDao,
-    private val todolistDao: ToDoListDao
+    private val todolistDao: ToDoListDao,
+    private val activeBreakDao: ActiveBreakDao
 ){
 
     // ----- project related operations -----
@@ -245,6 +248,13 @@ class Omega_Repository (
         if (sessionDao.getActiveSessionCount() > 0) {
             throw IllegalStateException(
                 "Another session is already running."
+            )
+        }
+        if (
+            activeBreakDao.getActiveBreak() != null
+        ) {
+            throw IllegalStateException(
+                "Cannot start work session while a break is running."
             )
         }
 
@@ -483,7 +493,9 @@ class Omega_Repository (
                             record.totalDurationSeconds,
 
                         totalSessionCount =
-                            record.totalSessionCount
+                            record.totalSessionCount,
+
+                        totalbreakseconds = record.totalBreakSeconds
                     )
                 }
             }
@@ -511,7 +523,9 @@ class Omega_Repository (
                             session.durationSeconds,
 
                         expectedDurationMinutes =
-                            session.expectedDurationMinutes
+                            session.expectedDurationMinutes,
+
+
                     )
                 }
             }
@@ -572,7 +586,75 @@ fun getAllToDoItems(): Flow<List<ToDoListUiModel>> {
                 )
             }
         }
-}
+    }
+
+    //============================== Break Timer ====================================
+
+    suspend fun startBreak() {
+
+        if (sessionDao.getActiveSessionCount() > 0
+            ) {
+            throw IllegalStateException("Cannot start break while a work session is running.")
+        }
+
+        if (activeBreakDao.getActiveBreak() != null
+        ) {
+            throw IllegalStateException("Break already running.")
+        }
+        // -------------------------- TODO ----------------------------------------------------
+        // later add catch exception in the code, so that app doen't crashes
+
+        activeBreakDao.insert(
+            ActiveBreakEntity(startTime = System.currentTimeMillis()
+            )
+        )
+    }
+
+    suspend fun stopBreak() {
+
+        val activeBreak =
+            activeBreakDao.getActiveBreak()
+                ?: throw IllegalStateException("No active break found."
+                )
+        val endTime = System.currentTimeMillis()
+        val durationSeconds = ((endTime - activeBreak.startTime)
+                            / 1000).toInt()
+
+        val todayRecordId = getOrCreateTodayRecord()
+
+        dailyRecordDao.updateBreakSummary(
+            recordId = todayRecordId,
+            durationSeconds = durationSeconds
+        )
+        activeBreakDao.clear()
+    }
+
+    suspend fun getActiveBreak(): ActiveBreakEntity? {
+        return activeBreakDao.getActiveBreak()
+    }
+
+    suspend fun getActiveBreakStartTime():
+            Long? {
+        return activeBreakDao.getActiveBreakStartTime()
+    }
+
+    suspend fun getTodayBreakSeconds():
+            Int {
+        return getOrCreateTodayRecord().let { recordId ->
+            dailyRecordDao
+                    .getRecordById(recordId)
+                    .totalBreakSeconds
+            }
+    }
+
+    suspend fun getTodayBreakCount():
+            Int {
+        return getOrCreateTodayRecord().let { recordId ->
+                dailyRecordDao
+                    .getRecordById(recordId)
+                    .totalBreakCount
+            }
+    }
 
 
 

@@ -10,5 +10,7 @@ data class DailyRecordHistoryUiModel(
 
     val totalDurationSeconds: Int,
 
-    val totalSessionCount: Int
+    val totalSessionCount: Int,
+
+    val totalbreakseconds: Int
 )

@@ -20,7 +20,11 @@ data class DailyRecordEntity(
     val createdAt: Long,
 
     val totalDurationSeconds: Int = 0,
-    val totalSessionCount: Int = 0
+    val totalSessionCount: Int = 0,
+
+
+    val totalBreakSeconds: Int = 0,
+    val totalBreakCount: Int = 0
 
     // 📛📛 1. record date -use local date not string - only con - need a type convertor, with string - switching back and forth
     // 2. logic to lock is if (record date<today date) ....

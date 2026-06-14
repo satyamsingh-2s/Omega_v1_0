@@ -94,15 +94,35 @@ private fun DailyRecordHistoryCard(
             Spacer(
                 modifier = Modifier.height(8.dp)
             )
+            Spacer(Modifier.height(4.dp))
 
             Text(
-                text = formatDuration(
+                text = "total working time = "+formatDuration(
                     record.totalDurationSeconds
                 )
             )
+            Spacer(Modifier.height(4.dp))
 
             Text(
-                text = "${record.totalSessionCount} Sessions"
+                text = "total sessions = ${record.totalSessionCount}"
+            )
+            Spacer(Modifier.height(4.dp))
+
+            Text(
+                text = "total recovery time =  "+formatDuration(
+                    record.totalbreakseconds
+                )
+            )
+            Spacer(Modifier.height(4.dp))
+            Log.d("⭕⭕⭕⭕⭕⭕⭕⭕⭕⭕⭕",
+                "${record.totalDurationSeconds}  ----  ${record.totalbreakseconds} ---- ${record.totalDurationSeconds / record.totalbreakseconds}" )
+
+            Text(
+                text = "total work ratio = ${if(record.totalbreakseconds==0)
+                                     { "1" }
+                            else { (record.totalDurationSeconds / record.totalbreakseconds)}
+                    } : 1"
+
             )
         }
     }

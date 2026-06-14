@@ -49,5 +49,18 @@ interface DailyRecordDao{
         durationSeconds: Int
     )
 
+    // ------------------- break fucntion qurey -------------------
+    @Query("""
+    UPDATE daily_records
+    SET totalBreakSeconds =totalBreakSeconds + :durationSeconds,
+    totalBreakCount =totalBreakCount + 1
+    WHERE id = :recordId
+""")
+    suspend fun updateBreakSummary(
+        recordId: Long,
+        durationSeconds: Int
+    )
+
+
 }
 

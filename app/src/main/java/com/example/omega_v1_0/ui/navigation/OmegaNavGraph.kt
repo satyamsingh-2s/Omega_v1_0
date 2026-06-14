@@ -103,7 +103,8 @@ fun OmegaNavGraph(
                     db.SessionDao(),
                     dailyRecordDao= db.DailyRecordDao(),
                     activeSessionDao = db.ActiveSessionDao(),
-                    todolistDao = db.ToDoListDao()
+                    todolistDao = db.ToDoListDao(),
+                    activeBreakDao = db.ActiveBreakDao()
                 )
             }
 
@@ -238,7 +239,8 @@ fun OmegaNavGraph(
                     db.SessionDao(),
                     dailyRecordDao = db.DailyRecordDao(),
                     activeSessionDao = db.ActiveSessionDao(),
-                    todolistDao = db.ToDoListDao()
+                    todolistDao = db.ToDoListDao(),
+                    activeBreakDao = db.ActiveBreakDao()
                 )
             }
 
@@ -308,7 +310,8 @@ fun OmegaNavGraph(
                     db.SessionDao(),
                     dailyRecordDao = db.DailyRecordDao(),
                     activeSessionDao = db.ActiveSessionDao(),
-                    todolistDao = db.ToDoListDao()
+                    todolistDao = db.ToDoListDao(),
+                    activeBreakDao = db.ActiveBreakDao()
                 )
             }
 
@@ -375,7 +378,8 @@ fun OmegaNavGraph(
                     db.SessionDao(),
                     dailyRecordDao = db.DailyRecordDao(),
                     activeSessionDao = db.ActiveSessionDao(),
-                    todolistDao = db.ToDoListDao()
+                    todolistDao = db.ToDoListDao(),
+                    activeBreakDao = db.ActiveBreakDao()
                 )
             }
 
@@ -430,7 +434,8 @@ fun OmegaNavGraph(
                     db.SessionDao(),
                     dailyRecordDao= db.DailyRecordDao(),
                     activeSessionDao = db.ActiveSessionDao(),
-                    todolistDao = db.ToDoListDao()
+                    todolistDao = db.ToDoListDao(),
+                    activeBreakDao = db.ActiveBreakDao()
                 )
             }
 
@@ -453,7 +458,6 @@ fun OmegaNavGraph(
                 viewModel.loadRecentSessions()
 
             }
-
             DailyRecordScreen(
                 todaystotalSeconds = uiState.todaysTotalSeconds,
                 sessionName = uiState.sessionNameInput,
@@ -483,7 +487,15 @@ fun OmegaNavGraph(
                 onTodoTextChanged = toDoListViewModel::onNewItemTextChanged,
                 onAddTodo = toDoListViewModel::addItem,
                 onToggleTodo = toDoListViewModel::toggleCompleted,
-                onDeleteTodo = toDoListViewModel::deleteItem
+                onDeleteTodo = toDoListViewModel::deleteItem,
+
+                //------------- break section
+                isBreakRunning = uiState.isBreakRunning,
+                currentBreakSeconds = uiState.currentBreakSeconds,
+                todaysBreakSeconds = uiState.todaysBreakSeconds,
+                todaysBreakCount = uiState.todaysBreakCount,
+                onEndBreak = viewModel::endBreak,
+                onStartBreak = viewModel::startBreak
             )
         }
 
@@ -502,7 +514,8 @@ fun OmegaNavGraph(
                     db.SessionDao(),
                     dailyRecordDao = db.DailyRecordDao(),
                     activeSessionDao = db.ActiveSessionDao(),
-                    todolistDao = db.ToDoListDao()
+                    todolistDao = db.ToDoListDao(),
+                    activeBreakDao = db.ActiveBreakDao()
                 )
             }
 
@@ -552,7 +565,8 @@ fun OmegaNavGraph(
                     db.SessionDao(),
                     dailyRecordDao = db.DailyRecordDao(),
                     activeSessionDao = db.ActiveSessionDao(),
-                    todolistDao = db.ToDoListDao()
+                    todolistDao = db.ToDoListDao(),
+                    activeBreakDao = db.ActiveBreakDao()
                 )
             }
 

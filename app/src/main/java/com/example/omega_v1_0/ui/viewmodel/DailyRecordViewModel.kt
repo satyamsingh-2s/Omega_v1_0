@@ -26,11 +26,16 @@ class DailyRecordViewModel(
     val uiState: StateFlow<DailyRecordUiState> =
         _uiState.asStateFlow()
 
-    private val estimateOptions = listOf(5, 15, 30, null, 45, 60, 90, 105, 120
-    )
+    private val estimateOptions = listOf(5, 15, 30, null, 45, 60, 90, 105, 120)
 
+    //---------- break section ------------------------
+    init {
+        loadTodaysBreakData()
+        recoverActiveBreak()
+    }
+
+//------------ stopwatch ticker -------------------------------
     private var stopwatchJob: Job? = null
-
     private fun startStopwatchTicker() {
 
         stopwatchJob?.cancel()
@@ -240,13 +245,10 @@ class DailyRecordViewModel(
     fun onEstimateSelected(
         minutes: Int?
     ) {
-
         _uiState.update {
-
             it.copy(
                 selectedEstimateMinutes =
-                    if (
-                        it.selectedEstimateMinutes == minutes
+                    if (it.selectedEstimateMinutes == minutes
                     ) {
                         null
                     } else {
@@ -256,11 +258,8 @@ class DailyRecordViewModel(
         }
         // here updating the moment it is selected
         viewModelScope.launch {
-            val sessionName =
-                uiState.value.sessionNameInput.trim()
-
+            val sessionName = uiState.value.sessionNameInput.trim()
             val expectedMinutes = uiState.value.selectedEstimateMinutes
-
             Log.d("⭕⭕⭕⭕⭕",
                 "Session name = $sessionName")
 
@@ -273,6 +272,87 @@ class DailyRecordViewModel(
                     _uiState.value.activeSessionName.toString(),
                     expectedMinutes
                 )
+            }
+        }
+    }
+
+    // ========================== Break Section ======================================================
+
+    private var breakTickerJob: Job? = null
+    private fun startBreakTicker() {
+
+        breakTickerJob?.cancel()
+        breakTickerJob = viewModelScope.launch {
+
+            while (true) {
+                val startTime = repository.getActiveBreakStartTime()
+                if (startTime == null) {
+                    break
+                }
+                val seconds = (System.currentTimeMillis()
+                        - startTime) / 1000
+                    .toInt()
+
+                _uiState.update {
+                    it.copy(currentBreakSeconds = seconds)
+                }
+
+                delay(1000)
+            }
+        }
+    }
+
+    fun startBreak() {
+        viewModelScope.launch {
+            repository.startBreak()
+            loadTodaysBreakData()
+
+            _uiState.update {
+                it.copy(isBreakRunning = true
+                )
+            }
+            startBreakTicker()
+        }
+    }
+
+    fun endBreak() {
+        viewModelScope.launch {
+            repository.stopBreak()
+            loadTodaysBreakData()
+            _uiState.update {
+                it.copy(
+                    isBreakRunning = false,
+                    currentBreakSeconds = 0
+                )
+            }
+        }
+    }
+
+    private fun loadTodaysBreakData() {
+        viewModelScope.launch {
+            _uiState.update {
+                it.copy(
+                    todaysBreakSeconds = repository.getTodayBreakSeconds(),
+                    todaysBreakCount = repository.getTodayBreakCount()
+                )
+            }
+        }
+    }
+
+    private fun recoverActiveBreak() {
+        viewModelScope.launch {
+
+            loadTodaysBreakData()
+            val activeBreak = repository.getActiveBreak()
+
+            if (activeBreak != null) {
+                _uiState.update {
+                    it.copy(
+                        isBreakRunning = true
+                    )
+                }
+
+                startBreakTicker()
             }
         }
     }
