@@ -16,6 +16,7 @@ import com.example.omega_v1_0.data_layer.dao.ActiveBreakDao
 import com.example.omega_v1_0.data_layer.dao.ActiveSessionDao
 import com.example.omega_v1_0.data_layer.dao.DailyRecordDao
 import com.example.omega_v1_0.data_layer.dao.ToDoListDao
+import com.example.omega_v1_0.data_layer.dao.UnplannedProjectDao
 import com.example.omega_v1_0.data_layer.entites.ActiveSessionEntity
 import com.example.omega_v1_0.data_layer.entites.ToDoListEntity
 import com.example.omega_v1_0.data_layer.entites.ActiveBreakEntity
@@ -47,6 +48,7 @@ abstract class OmegaDatabase: RoomDatabase() {
     abstract fun ActiveSessionDao(): ActiveSessionDao
     abstract fun ToDoListDao(): ToDoListDao
     abstract fun ActiveBreakDao(): ActiveBreakDao
+    abstract fun UnplannedProjectDao(): UnplannedProjectDao
 }
 
 /**

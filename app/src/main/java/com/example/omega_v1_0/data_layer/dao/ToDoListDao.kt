@@ -4,6 +4,7 @@ import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.Query
 import com.example.omega_v1_0.data_layer.entites.ToDoListEntity
+import com.example.omega_v1_0.models.TodoCategory
 import kotlinx.coroutines.flow.Flow
 
 @Dao
@@ -35,7 +36,17 @@ interface ToDoListDao {
     @Query("""
     SELECT COUNT(*)
     FROM todolist_entity
+    WHERE category = :category
 """)
-    suspend fun getItemCount(): Int
+    suspend fun getItemCountCategory(category: TodoCategory): Int
+
+    @Query("""
+SELECT *
+FROM todolist_entity
+WHERE category = :category
+ORDER BY id ASC
+""")
+    fun getTodosByCategory(category: TodoCategory
+    ): Flow<List<ToDoListEntity>>
     
 }

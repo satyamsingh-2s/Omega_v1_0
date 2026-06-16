@@ -1,5 +1,6 @@
 package com.example.omega_v1_0.ui.screens
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -11,6 +12,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Card
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -29,61 +31,66 @@ fun DailyRecordDetailsScreen(
             it.durationSeconds
         }
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp)
+    Surface(
+        modifier = Modifier.fillMaxSize()
+            .background(MaterialTheme.colorScheme.background)
     ) {
-        Spacer(
-            modifier = Modifier.height(26.dp)
-        )
-
-        Text(
-            text = "HISTORY",
-            style = MaterialTheme.typography.headlineMedium
-        )
-
-        Spacer(
-            modifier = Modifier.height(16.dp)
-        )
-
-        Text(
-            text = recordDate,
-            style = MaterialTheme.typography.headlineMedium
-        )
-
-        Spacer(
-            modifier = Modifier.height(16.dp)
-        )
-        Text(
-            text = "Total Time: ${
-                formatDuration(totalSeconds)
-            }",
-            style = MaterialTheme.typography.titleMedium
-        )
-        Spacer(
-            modifier = Modifier.height(16.dp)
-        )
-
-        Text(
-            text = "Total Sessions: ${sessions.size}",
-            style = MaterialTheme.typography.titleMedium
-        )
-
-        Spacer(
-            modifier = Modifier.height(16.dp)
-        )
-
-        LazyColumn(
-            verticalArrangement =
-                Arrangement.spacedBy(8.dp)
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(16.dp)
         ) {
+            Spacer(
+                modifier = Modifier.height(26.dp)
+            )
 
-            items(sessions) { session ->
+            Text(
+                text = "HISTORY",
+                style = MaterialTheme.typography.headlineMedium
+            )
 
-                SessionDetailsCard(
-                    session = session
-                )
+            Spacer(
+                modifier = Modifier.height(16.dp)
+            )
+
+            Text(
+                text = recordDate,
+                style = MaterialTheme.typography.headlineMedium
+            )
+
+            Spacer(
+                modifier = Modifier.height(16.dp)
+            )
+            Text(
+                text = "Total Time: ${
+                    formatDuration(totalSeconds)
+                }",
+                style = MaterialTheme.typography.titleMedium
+            )
+            Spacer(
+                modifier = Modifier.height(16.dp)
+            )
+
+            Text(
+                text = "Total Sessions: ${sessions.size}",
+                style = MaterialTheme.typography.titleMedium
+            )
+
+            Spacer(
+                modifier = Modifier.height(16.dp)
+            )
+
+            LazyColumn(
+                verticalArrangement =
+                    Arrangement.spacedBy(8.dp)
+            ) {
+
+                items(sessions) { session ->
+
+                    SessionDetailsCard(
+                        session = session
+                    )
+                }
             }
         }
     }

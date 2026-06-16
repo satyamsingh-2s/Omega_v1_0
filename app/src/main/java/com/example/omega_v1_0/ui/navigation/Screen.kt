@@ -5,6 +5,9 @@ import com.example.omega_v1_0.models.Experience
 
 sealed class Screen(val route:String) {
 // here we define all the navigation routes as objects .
+
+    object Launcher : Screen("launcher")
+
     object MainScreen : Screen("main_screen")
 
     object CreateProject : Screen("create_project")

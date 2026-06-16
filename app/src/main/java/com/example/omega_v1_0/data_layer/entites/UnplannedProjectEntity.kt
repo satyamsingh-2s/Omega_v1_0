@@ -7,18 +7,49 @@ import java.time.LocalDate
 
 
 @Entity(
-    tableName = "Unplanned_projects"
+    tableName = "Unplanned_projects" ,// NodeEntity
+            indices = [
+        Index("parentNodeId")
+    ]
 )
+
 data class UnplannedProjectEntity(
 
     @PrimaryKey(autoGenerate = true)
-    val id: Long = 0L,
+    val nodeId: Long = 0L,
 
-    //val recordDate: LocalDate,
+    val parentNodeId: Long?,
 
-    val createdAt: Long
+    val title: String,
 
-    // 📛📛 1. record date -use local date not string - only con - need a type convertor, with string - switching back and forth
-    // 2. logic to lock is if (record date<today date) ....
-    // 📛📛
+    val sortOrder: Int,
+
+    val createdAt: Long,
+
+    // Leaf nodes only
+    val isCompleted: Boolean?,
+
+    // Leaf nodes only
+    val expectedDurationSeconds: Int?
 )
+
+
+// ---- rules----------
+//NodeEntity(
+//parentNodeId = null,
+//title = "Android",
+//isCompleted = null,
+//expectedDurationMinutes = null
+//)
+//
+//NodeEntity(
+//title = "Architecture",
+//isCompleted = null,
+//expectedDurationMinutes = null
+//)
+//
+//NodeEntity(
+//title = "MVVM",
+//isCompleted = false,
+//expectedDurationMinutes = 20
+//)

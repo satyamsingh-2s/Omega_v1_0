@@ -1,5 +1,6 @@
 package com.example.omega_v1_0.data_layer.omega_repository
 
+import android.util.Log
 import com.example.omega_v1_0.data_layer.dao.ActiveBreakDao
 import com.example.omega_v1_0.data_layer.dao.ActiveSessionDao
 import com.example.omega_v1_0.data_layer.dao.PhaseDao
@@ -14,10 +15,12 @@ import com.example.omega_v1_0.models.PhaseType
 import com.example.omega_v1_0.models.SessionType
 import com.example.omega_v1_0.data_layer.dao.DailyRecordDao
 import com.example.omega_v1_0.data_layer.dao.ToDoListDao
+import com.example.omega_v1_0.data_layer.dao.UnplannedProjectDao
 import com.example.omega_v1_0.data_layer.entites.ActiveBreakEntity
 import com.example.omega_v1_0.data_layer.entites.ActiveSessionEntity
 import com.example.omega_v1_0.data_layer.entites.ToDoListEntity
 import com.example.omega_v1_0.models.SessionStatus
+import com.example.omega_v1_0.models.TodoCategory
 import com.example.omega_v1_0.ui.model.DailyRecordHistoryUiModel
 import com.example.omega_v1_0.ui.model.DailyRecordSessionDetailsUiModel
 import com.example.omega_v1_0.ui.model.ToDoListUiModel
@@ -35,7 +38,8 @@ class Omega_Repository (
     private val dailyRecordDao: DailyRecordDao,
     private val activeSessionDao: ActiveSessionDao,
     private val todolistDao: ToDoListDao,
-    private val activeBreakDao: ActiveBreakDao
+    private val activeBreakDao: ActiveBreakDao,
+    private val unplannedProjectDao: UnplannedProjectDao
 ){
 
     // ----- project related operations -----
@@ -353,10 +357,17 @@ class Omega_Repository (
                 activeSession.sessionId
             )
 
-        dailyRecordDao.updateDailySummary(
-            recordId = session.parentId,
-            durationSeconds = durationSeconds
-        )
+        // adding restriction for span sessions
+        if(durationSeconds<90)
+        {
+            sessionDao.deleteSession(session.id)
+        }
+else {
+            dailyRecordDao.updateDailySummary(
+                recordId = session.parentId,
+                durationSeconds = durationSeconds
+            )
+        }
 
         activeSessionDao.clear()
     }
@@ -534,13 +545,19 @@ class Omega_Repository (
     //---------------------- ToDoList ---------------------------------------------------------------
 
     suspend fun addToDoItem(
-        text: String
+        text: String,
+        category: TodoCategory
     ) {
 // ----- here if the no. of items in list greater than 7 , simply stop taking the values
-        if (todolistDao.getItemCount() >= 7) {
-            return
-        }
-        todolistDao.insert(ToDoListEntity(text = text)
+//        if (todolistDao.getItemCountCategory(TodoCategory.TODAY) >= 5) {
+//            return
+//        }
+//        todolistDao.insert(ToDoListEntity(text = text, category = category)
+//        )
+//        if (todolistDao.getItemCountCategory(TodoCategory.FUTURE) >= 7) {
+//            return
+//        }
+        todolistDao.insert(ToDoListEntity(text = text, category = category)
         )
     }
 
@@ -560,17 +577,15 @@ class Omega_Repository (
         todolistDao.delete(itemId)
     }
 
-//    if (todolistDao.getItemCount() >= 7) {
-//        return
-//    }
 // ------------------- mapping to the ui variable and data vairable -------------------
     // 3 use cases - 1st map data entites to ui models(data variables to ui varaible)
     // 2nd - provides ui model/data flow to the ui
     // 3rd - its flow automatically emit value if underlying entites is updated
-fun getAllToDoItems(): Flow<List<ToDoListUiModel>> {
+fun getAllToDoItems(category: TodoCategory
+): Flow<List<ToDoListUiModel>> {
 
     return todolistDao
-        .getAllFocusItems()
+        .getTodosByCategory(category)
         .map { items ->
 
             items.map { item ->
@@ -622,10 +637,13 @@ fun getAllToDoItems(): Flow<List<ToDoListUiModel>> {
 
         val todayRecordId = getOrCreateTodayRecord()
 
-        dailyRecordDao.updateBreakSummary(
-            recordId = todayRecordId,
-            durationSeconds = durationSeconds
-        )
+        // restriction for spam break sessions, spam session is considered < 25 seconds
+        if(durationSeconds>25){
+            dailyRecordDao.updateBreakSummary(
+                recordId = todayRecordId,
+                durationSeconds = durationSeconds
+            )
+        }
         activeBreakDao.clear()
     }
 

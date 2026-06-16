@@ -120,6 +120,13 @@ interface SessionDao{
 """)
     suspend fun deleteSessionForPhase(parentId: Long, parentType: SessionType)
 
+    // function to delete the session manually of from its session id
+    @Query("""
+    DELETE FROM sessions
+    WHERE id = :sessionId
+""")
+    suspend fun deleteSession(sessionId: Long)
+
 
     // -------- mainly used by dailyrecord... to for session1, session2, session3 automatically-----------------------
 
@@ -182,6 +189,16 @@ interface SessionDao{
     fun getSessionsForDailyRecord(
         dailyRecordId: Long,
         parentType: SessionType
+    ): Flow<List<SessionEntity>>
+
+    // -------------------- unplannedproject sections--------------------------------
+    @Query("""
+    SELECT *
+    FROM sessions
+    WHERE parentType = :sessionType
+""")
+    fun getSessionsByType(
+        sessionType: SessionType
     ): Flow<List<SessionEntity>>
 
 

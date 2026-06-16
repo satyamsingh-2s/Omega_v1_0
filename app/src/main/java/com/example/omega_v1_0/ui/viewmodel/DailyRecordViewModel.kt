@@ -136,12 +136,21 @@ class DailyRecordViewModel(
                 uiState.value.sessionNameInput.trim()
             val expectedMinutes= uiState.value.selectedEstimateMinutes
 
-            if (sessionName.isNotBlank()) {
-                repository.updateDailySessionName(sessionName,expectedMinutes)
-            }
             // ---- it is updateing, only issue in the session name
-            if(expectedMinutes!=null) {
+            if(expectedMinutes==null && sessionName.isNotBlank()) {
+                repository.updateDailySessionName(sessionName, expectedMinutes)
+            }
+            else if(expectedMinutes==null && sessionName.isBlank())
+            {
                 repository.updateDailySessionName(_uiState.value.activeSessionName.toString(), expectedMinutes)
+            }
+            else if(expectedMinutes!=null && sessionName.isBlank())
+            {
+                repository.updateDailySessionName(_uiState.value.activeSessionName.toString(), expectedMinutes)
+            }
+            else
+            {
+                repository.updateDailySessionName(sessionName, expectedMinutes)
             }
 
             repository.stopDailySession()
@@ -242,6 +251,7 @@ class DailyRecordViewModel(
     }
 
     // ----- selection handler for estimated miutes -------
+    // ---- it is useful when app is crashed in midway -----------
     fun onEstimateSelected(
         minutes: Int?
     ) {
@@ -260,19 +270,18 @@ class DailyRecordViewModel(
         viewModelScope.launch {
             val sessionName = uiState.value.sessionNameInput.trim()
             val expectedMinutes = uiState.value.selectedEstimateMinutes
-            Log.d("⭕⭕⭕⭕⭕",
-                "Session name = $sessionName")
 
             if (sessionName.isNotBlank()) {
-                repository.updateDailySessionName(sessionName, expectedMinutes)
-            }
-            // ---- it is updateing, only issue in the session name
-            if (expectedMinutes != null) {
                 repository.updateDailySessionName(
-                    _uiState.value.activeSessionName.toString(),
+                    sessionName,
                     expectedMinutes
                 )
             }
+            else
+             {
+                repository.updateDailySessionName(_uiState.value.activeSessionName.toString(), expectedMinutes)
+            }
+            // ---- it is updateing, only issue in the session name
         }
     }
 

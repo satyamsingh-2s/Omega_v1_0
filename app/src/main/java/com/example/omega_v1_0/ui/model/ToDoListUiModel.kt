@@ -7,5 +7,7 @@ data class ToDoListUiModel(
 
     val text: String,
 
-    val isCompleted: Boolean
+    val isCompleted: Boolean,
+
+
 )

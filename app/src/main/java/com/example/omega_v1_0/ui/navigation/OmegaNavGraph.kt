@@ -1,11 +1,15 @@
 package com.example.omega_v1_0.ui.navigation
 
 import android.util.Log
+import android.widget.Toast
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.darkColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
@@ -20,9 +24,11 @@ import com.example.omega_v1_0.ui.screens.DailyRecordDetailsScreen
 import com.example.omega_v1_0.ui.screens.DailyRecordHistoryScreen
 import com.example.omega_v1_0.ui.screens.DailyRecordScreen
 import com.example.omega_v1_0.ui.screens.EstimateScreen
+import com.example.omega_v1_0.ui.screens.LauncherScreen
 import com.example.omega_v1_0.ui.screens.MainScreen
 import com.example.omega_v1_0.ui.screens.PhaseTimerScreen
 import com.example.omega_v1_0.ui.screens.ProjectDashboardScreen
+import com.example.omega_v1_0.ui.theme.OmegaDarkTheme
 import com.example.omega_v1_0.ui.viewmodel.CreateProjectViewModel
 import com.example.omega_v1_0.ui.viewmodel.DailyRecordDetailsViewModel
 import com.example.omega_v1_0.ui.viewmodel.DailyRecordHistoryViewModel
@@ -51,29 +57,56 @@ fun OmegaNavGraph(
 ) {
     NavHost(
         navController = navController,
-        startDestination = Screen.MainScreen.route
+        startDestination = Screen.Launcher.route
     ) {
 
         // here the entry point of the app to mainScreen
+        composable(
+            route = Screen.Launcher.route
+        ) {
+            val context = LocalContext.current
+            val db = remember { DatabaseProvider.getDatabase(context) }
+//            val db = remember {
+//                Room.databaseBuilder(
+//                    context,
+//                    OmegaDatabase:: class.java,
+//                    "omega_db"
+//                ).build()
+//            }
+
+
+            val repository = remember {
+                Omega_Repository(
+                    db.ProjectDao(),
+                    db.PhaseDao(),
+                    db.SessionDao(),
+                    dailyRecordDao = db.DailyRecordDao(),
+                    activeSessionDao = db.ActiveSessionDao(),
+                    todolistDao = db.ToDoListDao(),
+                    activeBreakDao = db.ActiveBreakDao(),
+                    unplannedProjectDao = db.UnplannedProjectDao()
+                )
+            }
+            OmegaDarkTheme {
+                LauncherScreen(repository, navController)
+            }
+        }
+
         composable(Screen.MainScreen.route) {
 
-            MainScreen(
-
-                onPlannedWorkClick = {
-                    navController.navigate(
-                        Screen.CreateProject.route
-                    )
-                },
-
-                onUnplannedWorkClick = {
-                    // Placeholder for now
-                },
-
-                onDailyRecordClick = {
-                    navController.navigate(
-                        Screen.DailyRecord.route)
-                }
-            )
+            OmegaDarkTheme {
+                MainScreen(
+                    onPlannedWorkClick = {
+                        navController.navigate(Screen.CreateProject.route)
+                    },
+                    onUnplannedWorkClick = {
+                        // Placeholder for now
+                    },
+                    onDailyRecordClick = {
+                        navController.navigate(Screen.DailyRecord.route)
+                    }
+                )
+            }
         }
 
         composable(Screen.CreateProject.route)    // jab yeah wala composable ka call karnege, tab ek hi value dena hoaga -> route
@@ -104,7 +137,8 @@ fun OmegaNavGraph(
                     dailyRecordDao= db.DailyRecordDao(),
                     activeSessionDao = db.ActiveSessionDao(),
                     todolistDao = db.ToDoListDao(),
-                    activeBreakDao = db.ActiveBreakDao()
+                    activeBreakDao = db.ActiveBreakDao(),
+                    unplannedProjectDao= db.UnplannedProjectDao()
                 )
             }
 
@@ -240,7 +274,8 @@ fun OmegaNavGraph(
                     dailyRecordDao = db.DailyRecordDao(),
                     activeSessionDao = db.ActiveSessionDao(),
                     todolistDao = db.ToDoListDao(),
-                    activeBreakDao = db.ActiveBreakDao()
+                    activeBreakDao = db.ActiveBreakDao(),
+                    unplannedProjectDao = db.UnplannedProjectDao()
                 )
             }
 
@@ -311,7 +346,8 @@ fun OmegaNavGraph(
                     dailyRecordDao = db.DailyRecordDao(),
                     activeSessionDao = db.ActiveSessionDao(),
                     todolistDao = db.ToDoListDao(),
-                    activeBreakDao = db.ActiveBreakDao()
+                    activeBreakDao = db.ActiveBreakDao(),
+                    unplannedProjectDao = db.UnplannedProjectDao()
                 )
             }
 
@@ -379,7 +415,8 @@ fun OmegaNavGraph(
                     dailyRecordDao = db.DailyRecordDao(),
                     activeSessionDao = db.ActiveSessionDao(),
                     todolistDao = db.ToDoListDao(),
-                    activeBreakDao = db.ActiveBreakDao()
+                    activeBreakDao = db.ActiveBreakDao(),
+                    unplannedProjectDao = db.UnplannedProjectDao()
                 )
             }
 
@@ -432,10 +469,11 @@ fun OmegaNavGraph(
                     db.ProjectDao(),
                     db.PhaseDao(),
                     db.SessionDao(),
-                    dailyRecordDao= db.DailyRecordDao(),
+                    dailyRecordDao = db.DailyRecordDao(),
                     activeSessionDao = db.ActiveSessionDao(),
                     todolistDao = db.ToDoListDao(),
-                    activeBreakDao = db.ActiveBreakDao()
+                    activeBreakDao = db.ActiveBreakDao(),
+                    unplannedProjectDao = db.UnplannedProjectDao()
                 )
             }
 
@@ -450,6 +488,27 @@ fun OmegaNavGraph(
             val toDoUiState by
             toDoListViewModel.uiState.collectAsState()
 
+            val selectedTodoCategory by
+            toDoListViewModel.todoCategory.collectAsState()
+
+            val toastMessage by
+            toDoListViewModel.showMaxLimitToast.collectAsState()
+
+            toastMessage?.let {
+
+                Toast.makeText(
+
+                    context,
+
+                    it,
+
+                    Toast.LENGTH_SHORT
+
+                ).show()
+
+                toDoListViewModel.onToastShown()
+            }
+
 
 
             LaunchedEffect(Unit) {
@@ -458,47 +517,74 @@ fun OmegaNavGraph(
                 viewModel.loadRecentSessions()
 
             }
-            DailyRecordScreen(
-                todaystotalSeconds = uiState.todaysTotalSeconds,
-                sessionName = uiState.sessionNameInput,
-                activeSessionName=uiState.activeSessionName,
-                onEstimateSelected =
-                    viewModel::onEstimateSelected,
-                selectedEstimateMinutes =
-                    uiState.selectedEstimateMinutes,
-                onSessionNameChange =
-                    viewModel::onSessionNameChanged,
+            // ===== temp theme ==========
+//            MaterialTheme(
+//                colorScheme = darkColorScheme(
+//
+//                    // Accent
+//                    primary = Color(0xFF8B7FBF),
+//
+//                    // Backgrounds
+//                    background = Color(0xFF141414),
+//                    surface = Color(0xFF1B1B1B),
+//                    surfaceVariant = Color(0xFF232323),
+//
+//                    // Text colors
+//                    onPrimary = Color(0xFFE4E4E4),
+//                    onBackground = Color(0xFFE4E4E4),
+//                    onSurface = Color(0xFFE4E4E4),
+//                    onSurfaceVariant = Color(0xFF9D9D9D),
+//
+//                    // Optional extras
+//                    outline = Color(0xFF2A2A2A)
+//                )
+//            )
+            OmegaDarkTheme()
+            { // =================== temp them ======================
+                DailyRecordScreen(
+                    todaystotalSeconds = uiState.todaysTotalSeconds,
+                    sessionName = uiState.sessionNameInput,
+                    activeSessionName = uiState.activeSessionName,
+                    onEstimateSelected =
+                        viewModel::onEstimateSelected,
+                    selectedEstimateMinutes =
+                        uiState.selectedEstimateMinutes,
+                    onSessionNameChange =
+                        viewModel::onSessionNameChanged,
 //               // onExpectedDurationChange =
 //                    viewModel::onExpectedDurationChanged,
-                onStartSession =
-                    viewModel::startSession,
-                sessionStatus = uiState.sessionStatus,
-                onPauseSession = viewModel::pauseSession,
-                onResumeSession = viewModel::resumeSession,
-                onStopSession = viewModel::stopSession,
-                stopwatchSeconds =
-                    uiState.stopwatchSeconds,
-                recentSessions = uiState.recentSessions,
-                onHistoryClick = {navController.navigate(Screen.DailyRecordHistory.route)},
+                    onStartSession =
+                        viewModel::startSession,
+                    sessionStatus = uiState.sessionStatus,
+                    onPauseSession = viewModel::pauseSession,
+                    onResumeSession = viewModel::resumeSession,
+                    onStopSession = viewModel::stopSession,
+                    stopwatchSeconds =
+                        uiState.stopwatchSeconds,
+                    recentSessions = uiState.recentSessions,
+                    onHistoryClick = { navController.navigate(Screen.DailyRecordHistory.route) },
 
-                // ---- To do List section  ----------------
-                todoItems = toDoUiState.items,
-                newTodoText = toDoUiState.newItemText,
-                onTodoTextChanged = toDoListViewModel::onNewItemTextChanged,
-                onAddTodo = toDoListViewModel::addItem,
-                onToggleTodo = toDoListViewModel::toggleCompleted,
-                onDeleteTodo = toDoListViewModel::deleteItem,
+                    // ---- To do List section  ----------------
+                    todoItems = toDoUiState.items,
+                    newTodoText = toDoUiState.newItemText,
+                    onTodoTextChanged = toDoListViewModel::onNewItemTextChanged,
+                    onAddTodo = toDoListViewModel::addItem,
+                    onToggleTodo = toDoListViewModel::toggleCompleted,
+                    onDeleteTodo = toDoListViewModel::deleteItem,
+                    selectedTodoCategory = selectedTodoCategory,
+                    onTodoCategoryChanged = toDoListViewModel::changeCategory,
 
-                //------------- break section
-                isBreakRunning = uiState.isBreakRunning,
-                currentBreakSeconds = uiState.currentBreakSeconds,
-                todaysBreakSeconds = uiState.todaysBreakSeconds,
-                todaysBreakCount = uiState.todaysBreakCount,
-                onEndBreak = viewModel::endBreak,
-                onStartBreak = viewModel::startBreak
-            )
+
+                    //------------- break section
+                    isBreakRunning = uiState.isBreakRunning,
+                    currentBreakSeconds = uiState.currentBreakSeconds,
+                    todaysBreakSeconds = uiState.todaysBreakSeconds,
+                    todaysBreakCount = uiState.todaysBreakCount,
+                    onEndBreak = viewModel::endBreak,
+                    onStartBreak = viewModel::startBreak
+                )
+            }
         }
-
         // ---------------- DailyRecordHistoryScreen --------------------
         composable(
             route = Screen.DailyRecordHistory.route
@@ -515,7 +601,8 @@ fun OmegaNavGraph(
                     dailyRecordDao = db.DailyRecordDao(),
                     activeSessionDao = db.ActiveSessionDao(),
                     todolistDao = db.ToDoListDao(),
-                    activeBreakDao = db.ActiveBreakDao()
+                    activeBreakDao = db.ActiveBreakDao(),
+                    unplannedProjectDao = db.UnplannedProjectDao()
                 )
             }
 
@@ -525,24 +612,17 @@ fun OmegaNavGraph(
             val historyRecords by
             viewModel.historyRecords.collectAsState()
 
-            DailyRecordHistoryScreen(
-
-                historyRecords = historyRecords,
-
-                onRecordClick = { record ->
-
-                    Log.d(
-                        "OMEGA",
-                        "Record clicked: $record"
-                    )
-
-                    navController.navigate(
-                        "daily_record_details/${record.recordId}/${record.recordDate}"
-                    )
-                }
-            )
+            OmegaDarkTheme {
+                DailyRecordHistoryScreen(
+                    historyRecords = historyRecords,
+                    onRecordClick = { record ->
+                        navController.navigate(
+                            "daily_record_details/${record.recordId}/${record.recordDate}"
+                        )
+                    }
+                )
+            }
         }
-
 
         composable(
             route = "daily_record_details/{recordId}/{recordDate}",
@@ -566,7 +646,8 @@ fun OmegaNavGraph(
                     dailyRecordDao = db.DailyRecordDao(),
                     activeSessionDao = db.ActiveSessionDao(),
                     todolistDao = db.ToDoListDao(),
-                    activeBreakDao = db.ActiveBreakDao()
+                    activeBreakDao = db.ActiveBreakDao(),
+                    unplannedProjectDao = db.UnplannedProjectDao()
                 )
             }
 
@@ -594,10 +675,12 @@ fun OmegaNavGraph(
             val sessions by
             viewModel.sessions.collectAsState()
 
-            DailyRecordDetailsScreen(
-                sessions = sessions,
-                recordDate = recordDate
-            )
+            OmegaDarkTheme {
+                DailyRecordDetailsScreen(
+                    sessions = sessions,
+                    recordDate = recordDate
+                )
+            }
         }
 
 

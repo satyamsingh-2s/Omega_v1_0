@@ -9,6 +9,7 @@ import androidx.compose.material3.dynamicDarkColorScheme
 import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 
 private val DarkColorScheme = darkColorScheme(
@@ -32,6 +33,36 @@ private val LightColorScheme = lightColorScheme(
     onSurface = Color(0xFF1C1B1F),
     */
 )
+
+// ------- MY DARK THEMES ======================
+private val OmegaDarkColorScheme = darkColorScheme(
+
+    // Accent
+    primary = Color(0xFF8B7FBF),
+    // Backgrounds
+    background = Color(0xFF141414),
+    surface = Color(0xFF1B1B1B),
+    surfaceVariant = Color(0xFF232323),
+    // Text
+    onPrimary = Color(0xFFE4E4E4),
+    onBackground = Color(0xFFE4E4E4),
+    onSurface = Color(0xFFE4E4E4),
+    onSurfaceVariant = Color(0xFF9D9D9D),
+    // Extras
+    outline = Color(0xFF2A2A2A)
+)
+
+@Composable
+fun OmegaDarkTheme(
+    content: @Composable () -> Unit
+) {
+    MaterialTheme(
+        colorScheme = OmegaDarkColorScheme,
+        content = content
+
+    )
+}
+// xxxxxxxxxxxxxxx end xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 
 @Composable
 fun Omega_v1_0Theme(
