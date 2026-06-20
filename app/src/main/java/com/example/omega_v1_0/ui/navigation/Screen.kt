@@ -6,7 +6,7 @@ import com.example.omega_v1_0.models.Experience
 sealed class Screen(val route:String) {
 // here we define all the navigation routes as objects .
 
-    object Launcher : Screen("launcher")
+    object OmegaSplashScreen : Screen("omega_splash_screen")
 
     object MainScreen : Screen("main_screen")
 
@@ -25,7 +25,15 @@ sealed class Screen(val route:String) {
         fun createRoute(phaseId: Long) = "phase_timer/$phaseId"
     }
 
+    //----------- unplanned part ------------------------
+    object UnplannedProjectEntryScreen : Screen("unplanned_project_entry")
+
+    object UnplannedProject : Screen("unplanned_project")
+
+
     object DailyRecord : Screen("daily_record")
+
+    object DeskOmega : Screen("desk_omega")
 
     object DailyRecordHistory : Screen("daily_record_history/{recordId}")
 

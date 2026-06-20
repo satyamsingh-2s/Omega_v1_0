@@ -6,6 +6,7 @@ import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import androidx.room.Update
 import com.example.omega_v1_0.data_layer.entites.ActiveSessionEntity
+import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface ActiveSessionDao {
@@ -22,4 +23,12 @@ interface ActiveSessionDao {
 
     @Query("DELETE FROM active_session")
     suspend fun clear()
+
+    @Query("""
+SELECT *
+FROM active_session
+LIMIT 1
+""")
+    fun observeActiveSession(): Flow<ActiveSessionEntity?>
+
 }

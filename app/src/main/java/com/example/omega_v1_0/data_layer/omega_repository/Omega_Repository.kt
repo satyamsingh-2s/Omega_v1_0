@@ -19,11 +19,14 @@ import com.example.omega_v1_0.data_layer.dao.UnplannedProjectDao
 import com.example.omega_v1_0.data_layer.entites.ActiveBreakEntity
 import com.example.omega_v1_0.data_layer.entites.ActiveSessionEntity
 import com.example.omega_v1_0.data_layer.entites.ToDoListEntity
+import com.example.omega_v1_0.data_layer.entites.UnplannedProjectEntity
+import com.example.omega_v1_0.data_layer.imports.OmegaImport
 import com.example.omega_v1_0.models.SessionStatus
 import com.example.omega_v1_0.models.TodoCategory
 import com.example.omega_v1_0.ui.model.DailyRecordHistoryUiModel
 import com.example.omega_v1_0.ui.model.DailyRecordSessionDetailsUiModel
 import com.example.omega_v1_0.ui.model.ToDoListUiModel
+import com.example.omega_v1_0.ui.model.UnplannedProjectUiModel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
@@ -41,6 +44,9 @@ class Omega_Repository (
     private val activeBreakDao: ActiveBreakDao,
     private val unplannedProjectDao: UnplannedProjectDao
 ){
+
+    private val sessionRepository = SessionRepository(sessionDao,activeSessionDao)
+    private val unplannedProjectRepository = UnplannedProjectRepository(unplannedProjectDao, sessionDao)
 
     // ----- project related operations -----
 
@@ -302,13 +308,9 @@ class Omega_Repository (
         activeSessionDao.insert(
             ActiveSessionEntity(
                 id = 1, // Singleton row: only one active session allowed globally
-
                 sessionId = sessionId,
-
                 status = SessionStatus.RUNNING,
-
                 currentStartTime = now,
-
                 accumulatedDurationSeconds = 0
             )
         )
@@ -674,6 +676,116 @@ fun getAllToDoItems(category: TodoCategory
             }
     }
 
+    // ⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️
+    // ------------------- from here it is becoming coordination repository ------ ----------------------------------
+    // ----- here just we are calling functions from both repository by their objects
 
+    fun getUnplannedTree(): Flow<List<UnplannedProjectUiModel>> {
+        return unplannedProjectRepository.getUnplannedTree()
+    }
+
+    suspend fun createRootNode(title: String)
+    {
+        unplannedProjectRepository
+            .createRootNode(title)
+    }
+    suspend fun createChildNode(parentNodeId: Long, title: String
+    ) {
+
+        unplannedProjectRepository
+            .createChildNode(parentNodeId, title)
+    }
+
+    suspend fun renameNode(nodeId: Long, newTitle: String
+    ) {
+        unplannedProjectRepository
+            .renameNode(nodeId, newTitle)
+    }
+
+    suspend fun updateExpectedDuration(
+        nodeId: Long,
+        expectedDurationSeconds: Int?
+
+    ) {
+        unplannedProjectRepository
+            .updateExpectedDuration(nodeId, expectedDurationSeconds)
+    }
+
+    suspend fun markNodeCompleted(nodeId: Long
+    ) {
+
+        unplannedProjectRepository.markNodeCompleted(nodeId)
+    }
+
+    suspend fun markNodeIncomplete(nodeId: Long
+    ) {
+
+        unplannedProjectRepository.markNodeIncomplete(nodeId)
+    }
+
+    suspend fun startUnplannedSession(
+        nodeId: Long,
+        sessionName: String?,
+        expectedDurationMinutes: Int?
+
+    ) {
+        if (
+            !unplannedProjectRepository.canStartSession(nodeId)
+        ) {
+            throw IllegalStateException("Sessions can only be started on leaf nodes.")
+        }
+        sessionRepository.startSession(
+            parentId = nodeId,
+            parentType = SessionType.UNPLANNED,
+            sessionName = sessionName,
+            expectedDurationMinutes = expectedDurationMinutes
+        )
+    }
+
+    suspend fun stopUnplannedSession() {
+        sessionRepository.stopSession()
+    }
+
+    suspend fun pauseUnplannedSession() {
+        sessionRepository.pauseSession()
+    }
+
+    suspend fun resumeUnplannedSession() {
+        sessionRepository.resumeSession()
+    }
+
+    suspend fun getSessionsForNode(nodeId: Long
+    ): List<SessionEntity> {
+
+        return sessionRepository.getSessionsForParent(
+                parentId = nodeId,
+                parentType = SessionType.UNPLANNED
+            )
+    }
+
+    // ---- this is used for get running node id
+
+    fun observeActiveSession() =
+        sessionRepository.observeActiveSession()
+
+
+    suspend fun getRunningNodeId(): Long
+    {
+        val activeSession =
+            activeSessionDao.getActiveSession()
+                ?: throw IllegalStateException(
+                    "No active daily session found."
+                )
+        return activeSession.sessionId
+    }
+
+    suspend fun importStructure(
+        omegaImport: OmegaImport
+    ) {
+
+        unplannedProjectRepository.importStructure(
+            omegaImport
+        )
+    }
 
 }

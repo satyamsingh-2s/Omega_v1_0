@@ -24,8 +24,11 @@ data class DailyRecordUiState(
     val currentStartTime: Long? = null,
 //-------------- break section ------------------
     val isBreakRunning: Boolean = false,
-    val currentBreakSeconds: Long = 0,
+    val currentBreakSeconds: Int = 0,
     val todaysBreakSeconds: Int = 0,
-    val todaysBreakCount: Int = 0
+    val todaysBreakCount: Int = 0,
+
+    //---------------------------------------
+    val selectedBreakMinutes: Int? = null,
 
     )

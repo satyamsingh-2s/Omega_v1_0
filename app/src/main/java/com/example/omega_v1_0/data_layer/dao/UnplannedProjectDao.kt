@@ -41,8 +41,20 @@ interface UnplannedProjectDao {
     FROM Unplanned_projects
     WHERE parentNodeId = :nodeId
 """)
-    suspend fun getChildCount(
-        nodeId: Long
-    ): Int
+    suspend fun getChildCount(nodeId: Long): Int
+
+    @Query("""
+SELECT COALESCE(MAX(sortOrder), -1)
+FROM Unplanned_projects
+WHERE parentNodeId IS NULL
+""")
+    suspend fun getMaxRootSortOrder(): Int
+
+    @Query("""
+SELECT COALESCE(MAX(sortOrder), -1)
+FROM Unplanned_projects
+WHERE parentNodeId = :parentId
+""")
+    suspend fun getMaxChildSortOrder(parentId: Long): Int
 
 }

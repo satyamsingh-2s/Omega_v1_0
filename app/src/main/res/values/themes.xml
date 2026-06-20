@@ -2,4 +2,21 @@
 <resources>
 
     <style name="Theme.Omega_v1_0" parent="android:Theme.Material.Light.NoActionBar" />
+
+    <style
+        name="Theme.Omega.Splash"
+        parent="Theme.SplashScreen">
+
+        <item name="windowSplashScreenBackground">#000000</item>
+
+        <item name="windowSplashScreenAnimatedIcon">
+            @drawable/omega_logo
+        </item>
+
+        <item name="postSplashScreenTheme">
+            @style/Theme.Omega_v1_0
+        </item>
+
+    </style>
+
 </resources>

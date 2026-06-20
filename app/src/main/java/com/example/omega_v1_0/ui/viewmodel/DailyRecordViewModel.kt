@@ -3,6 +3,8 @@ package com.example.omega_v1_0.ui.viewmodel
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.omega_v1_0.data_layer.omega_repository.BreakReminderManager
+import com.example.omega_v1_0.data_layer.omega_repository.SessionReminderManager
 import com.example.omega_v1_0.data_layer.omega_repository.Omega_Repository
 import com.example.omega_v1_0.models.SessionStatus
 import com.example.omega_v1_0.ui.model.DailyRecordRecentsSessionUiModel
@@ -28,6 +30,9 @@ class DailyRecordViewModel(
 
     private val estimateOptions = listOf(5, 15, 30, null, 45, 60, 90, 105, 120)
 
+    // here notification manager part
+    private val sessionReminderManager = SessionReminderManager()
+    private val breaknotificationManager = BreakReminderManager()
     //---------- break section ------------------------
     init {
         loadTodaysBreakData()
@@ -45,7 +50,6 @@ class DailyRecordViewModel(
             while (isActive) {
 
                 val state = uiState.value
-
                 if (
                     state.sessionStatus != SessionStatus.RUNNING ||
                     state.currentStartTime == null
@@ -53,10 +57,7 @@ class DailyRecordViewModel(
                     break
                 }
 
-                val runningSeconds =
-                    ((System.currentTimeMillis()
-                            - state.currentStartTime) / 1000)
-                        .toInt()
+                val runningSeconds = ((System.currentTimeMillis() - state.currentStartTime) / 1000).toInt()
 
                 _uiState.update {
                     it.copy(
@@ -65,6 +66,12 @@ class DailyRecordViewModel(
                                     runningSeconds
                     )
                 }
+                sessionReminderManager.checkNotifications(
+                    currentDurationSeconds =
+                        _uiState.value.stopwatchSeconds,
+                    expectedDurationSeconds =
+                        _uiState.value.selectedEstimateMinutes?.times(60)
+                )
 
                 delay(1000)
             }
@@ -113,6 +120,7 @@ class DailyRecordViewModel(
                     uiState.value.selectedEstimateMinutes
             )
             syncActiveSession()
+            sessionReminderManager.reset()
         }
     }
 
@@ -152,6 +160,8 @@ class DailyRecordViewModel(
             {
                 repository.updateDailySessionName(sessionName, expectedMinutes)
             }
+
+            sessionReminderManager.reset()
 
             repository.stopDailySession()
             loadTodaysTotal()
@@ -298,13 +308,19 @@ class DailyRecordViewModel(
                 if (startTime == null) {
                     break
                 }
-                val seconds = (System.currentTimeMillis()
-                        - startTime) / 1000
-                    .toInt()
+                val seconds = ((System.currentTimeMillis() - startTime) / 1000).toInt()
 
                 _uiState.update {
                     it.copy(currentBreakSeconds = seconds)
                 }
+
+                breaknotificationManager.checkNotifications(
+                    currentBreakSeconds = _uiState.value.currentBreakSeconds,
+                    expectedBreakSeconds = _uiState.value.selectedBreakMinutes?.times(60)
+                )
+                Log.d("in stopwatch ticekr⚠️⚠️⚠️",
+                    "value = ${_uiState.value.currentBreakSeconds} ${_uiState.value.selectedBreakMinutes}   ")
+
 
                 delay(1000)
             }
@@ -334,6 +350,7 @@ class DailyRecordViewModel(
                     currentBreakSeconds = 0
                 )
             }
+            breaknotificationManager.reset()
         }
     }
 
@@ -347,6 +364,17 @@ class DailyRecordViewModel(
             }
         }
     }
+
+    // --------------------- BREAK  chips part -----------------------------------------
+    fun onBreakDurationSelected(minutes: Int?) {
+        _uiState.update {
+            it.copy(selectedBreakMinutes = minutes)
+
+        }
+        Log.d("from viewmodel ⭕⭕⭕",
+            "VALUE UPDATED ${_uiState.value.selectedBreakMinutes}")
+    }
+
 
     private fun recoverActiveBreak() {
         viewModelScope.launch {

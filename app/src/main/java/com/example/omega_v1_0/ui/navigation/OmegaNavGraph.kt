@@ -2,8 +2,6 @@ package com.example.omega_v1_0.ui.navigation
 
 import android.util.Log
 import android.widget.Toast
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.darkColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -23,11 +21,13 @@ import com.example.omega_v1_0.ui.screens.CreateProjectScreen
 import com.example.omega_v1_0.ui.screens.DailyRecordDetailsScreen
 import com.example.omega_v1_0.ui.screens.DailyRecordHistoryScreen
 import com.example.omega_v1_0.ui.screens.DailyRecordScreen
+import com.example.omega_v1_0.ui.screens.DeskOmegaScreen
 import com.example.omega_v1_0.ui.screens.EstimateScreen
-import com.example.omega_v1_0.ui.screens.LauncherScreen
 import com.example.omega_v1_0.ui.screens.MainScreen
 import com.example.omega_v1_0.ui.screens.PhaseTimerScreen
 import com.example.omega_v1_0.ui.screens.ProjectDashboardScreen
+import com.example.omega_v1_0.ui.screens.UnplannedProjectScreen
+import com.example.omega_v1_0.ui.screens.UnplannedProjectEntryScreen
 import com.example.omega_v1_0.ui.theme.OmegaDarkTheme
 import com.example.omega_v1_0.ui.viewmodel.CreateProjectViewModel
 import com.example.omega_v1_0.ui.viewmodel.DailyRecordDetailsViewModel
@@ -37,6 +37,10 @@ import com.example.omega_v1_0.ui.viewmodel.DashboardViewModel
 import com.example.omega_v1_0.ui.viewmodel.EstimateScreenViewModel
 import com.example.omega_v1_0.ui.viewmodel.PhaseTimerViewModel
 import com.example.omega_v1_0.ui.viewmodel.ToDoListViewModel
+import com.example.omega_v1_0.ui.viewmodel.UnplannedProjectEntryScreenViewModel
+import com.example.omega_v1_0.ui.viewmodel.UnplannedProjectViewModel
+import com.example.omega_v1_0.ui.deskOmega.DeskOmegaSkin
+import com.example.omega_v1_0.ui.screens.OmegaSplashScreen
 
 /**
  * NavHost = container
@@ -50,46 +54,43 @@ import com.example.omega_v1_0.ui.viewmodel.ToDoListViewModel
 i am not injecting hilt dependecy injection, as we are manually creating viewmodel , repositroy every time and wiring them,
 in v2 I will use them
  */
-
 @Composable
 fun OmegaNavGraph(
     navController: NavHostController
 ) {
+
+
+    val context = LocalContext.current
+    val db = remember { DatabaseProvider.getDatabase(context) }
+
+    val repository = remember {
+        Omega_Repository(
+            db.ProjectDao(),
+            db.PhaseDao(),
+            db.SessionDao(),
+            dailyRecordDao = db.DailyRecordDao(),
+            activeSessionDao = db.ActiveSessionDao(),
+            todolistDao = db.ToDoListDao(),
+            activeBreakDao = db.ActiveBreakDao(),
+            unplannedProjectDao = db.UnplannedProjectDao()
+        )
+    }
+    // this viewmodel is created for the 2 screen,1. for dailyrecordscreen 2. deskomegascreen
+    val viewModel = remember {
+        DailyRecordViewModel(repository)
+    }
+
     NavHost(
         navController = navController,
-        startDestination = Screen.Launcher.route
+        startDestination = Screen.OmegaSplashScreen.route
     ) {
 
-        // here the entry point of the app to mainScreen
-        composable(
-            route = Screen.Launcher.route
-        ) {
+// ------------------------ SplashScreen part ----------------
+        composable(Screen.OmegaSplashScreen.route) {
+
             val context = LocalContext.current
-            val db = remember { DatabaseProvider.getDatabase(context) }
-//            val db = remember {
-//                Room.databaseBuilder(
-//                    context,
-//                    OmegaDatabase:: class.java,
-//                    "omega_db"
-//                ).build()
-//            }
 
-
-            val repository = remember {
-                Omega_Repository(
-                    db.ProjectDao(),
-                    db.PhaseDao(),
-                    db.SessionDao(),
-                    dailyRecordDao = db.DailyRecordDao(),
-                    activeSessionDao = db.ActiveSessionDao(),
-                    todolistDao = db.ToDoListDao(),
-                    activeBreakDao = db.ActiveBreakDao(),
-                    unplannedProjectDao = db.UnplannedProjectDao()
-                )
-            }
-            OmegaDarkTheme {
-                LauncherScreen(repository, navController)
-            }
+            OmegaSplashScreen(repository, navController)
         }
 
         composable(Screen.MainScreen.route) {
@@ -100,6 +101,7 @@ fun OmegaNavGraph(
                         navController.navigate(Screen.CreateProject.route)
                     },
                     onUnplannedWorkClick = {
+                        navController.navigate(Screen.UnplannedProjectEntryScreen.route)
                         // Placeholder for now
                     },
                     onDailyRecordClick = {
@@ -111,36 +113,36 @@ fun OmegaNavGraph(
 
         composable(Screen.CreateProject.route)    // jab yeah wala composable ka call karnege, tab ek hi value dena hoaga -> route
         {
-        // ------------------- performing temporary wiring, as not using DI-------------------
+            // ------------------- performing temporary wiring, as not using DI-------------------
             /**
              * here we created database name omega_db
              * created the repository or connected it to
              * connected OmeganNavGraph to the CreateProjectViewModel and
              * viewModel to repositroy
              * */
-            val context = LocalContext.current
-            val db = remember { DatabaseProvider.getDatabase(context) }
-//            val db = remember {
-//                Room.databaseBuilder(
-//                    context,
-//                    OmegaDatabase:: class.java,
-//                    "omega_db"
-//                ).build()
+//            val context = LocalContext.current
+//            val db = remember { DatabaseProvider.getDatabase(context) }
+////            val db = remember {
+////                Room.databaseBuilder(
+////                    context,
+////                    OmegaDatabase:: class.java,
+////                    "omega_db"
+////                ).build()
+////            }
+//
+//
+//            val repository = remember {
+//                Omega_Repository(
+//                    db.ProjectDao(),
+//                    db.PhaseDao(),
+//                    db.SessionDao(),
+//                    dailyRecordDao= db.DailyRecordDao(),
+//                    activeSessionDao = db.ActiveSessionDao(),
+//                    todolistDao = db.ToDoListDao(),
+//                    activeBreakDao = db.ActiveBreakDao(),
+//                    unplannedProjectDao= db.UnplannedProjectDao()
+//                )
 //            }
-
-
-            val repository = remember {
-                Omega_Repository(
-                    db.ProjectDao(),
-                    db.PhaseDao(),
-                    db.SessionDao(),
-                    dailyRecordDao= db.DailyRecordDao(),
-                    activeSessionDao = db.ActiveSessionDao(),
-                    todolistDao = db.ToDoListDao(),
-                    activeBreakDao = db.ActiveBreakDao(),
-                    unplannedProjectDao= db.UnplannedProjectDao()
-                )
-            }
 
             val viewModel = remember {
                 CreateProjectViewModel(repository)
@@ -166,12 +168,12 @@ fun OmegaNavGraph(
             val projectToDelete by viewModel.projectToDelete.collectAsState()
 
 
-            CreateProjectScreen (       // here we create the onCreateClicked function, and call CreateProjectScreen with the parameter of OnCreateClicked.
+            CreateProjectScreen(       // here we create the onCreateClicked function, and call CreateProjectScreen with the parameter of OnCreateClicked.
                 recentProjects = recentProjects,
                 activeSession = activeSession,
                 allProjects = allProjects,
-                onCreateClicked = {name, experience ->
-                viewModel.createProject(name,experience)
+                onCreateClicked = { name, experience ->
+                    viewModel.createProject(name, experience)
                 },
                 onRecentProjectClicked = { projectId ->
                     navController.navigate(
@@ -204,16 +206,16 @@ fun OmegaNavGraph(
              * then excutes the block & launchedeffect is used to run the block when the key changes/
              * if not use, then block will run in every composition , so launched effect saves.
              */
-            projectId?.let {id ->
+            projectId?.let { id ->
                 // purpose of line is to get the value of experince from creatprojectscreenviewmodel.
                 val experience = viewModel.getLatestExperience() ?: return@let
 
                 LaunchedEffect(id) {
                     // navigate to estimate screen with projectId -----
                     navController.navigate(
-                        Screen.Estimate.createRoute(id,experience)
-                   )
-                //                    {
+                        Screen.Estimate.createRoute(id, experience)
+                    )
+                    //                    {
 //
 //                        // ❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌ checking it is created or not
 //                        Log.d("OMEGA_DB", "⭕⭕⭕⭕⭕⭕⭕⭕Project created with id=$projectId")
@@ -226,7 +228,6 @@ fun OmegaNavGraph(
 //                    }
                 }
             }
-
 
 
         }
@@ -253,6 +254,7 @@ fun OmegaNavGraph(
                 } catch (e: IllegalArgumentException) {
                     return@composable
                 }
+
             /**
              * above 2 lines, backStackEntry - holds the trace of reaching this screen, by keeping the stack of previous screeesns with arugumesnt(data)
              * basically it gives the argumets to the val projectId of the last screen*/
@@ -266,18 +268,19 @@ fun OmegaNavGraph(
 //                ).build()
 //            }
 
-            val repository = remember {   // again line for creates repository. but by remeber it won't create again and agian safe from recompostion or change of composables
-                Omega_Repository(
-                    db.ProjectDao(),
-                    db.PhaseDao(),
-                    db.SessionDao(),
-                    dailyRecordDao = db.DailyRecordDao(),
-                    activeSessionDao = db.ActiveSessionDao(),
-                    todolistDao = db.ToDoListDao(),
-                    activeBreakDao = db.ActiveBreakDao(),
-                    unplannedProjectDao = db.UnplannedProjectDao()
-                )
-            }
+            val repository =
+                remember {   // again line for creates repository. but by remeber it won't create again and agian safe from recompostion or change of composables
+                    Omega_Repository(
+                        db.ProjectDao(),
+                        db.PhaseDao(),
+                        db.SessionDao(),
+                        dailyRecordDao = db.DailyRecordDao(),
+                        activeSessionDao = db.ActiveSessionDao(),
+                        todolistDao = db.ToDoListDao(),
+                        activeBreakDao = db.ActiveBreakDao(),
+                        unplannedProjectDao = db.UnplannedProjectDao()
+                    )
+                }
 
             val viewModel = remember {  // again line for viewModel creation,
                 EstimateScreenViewModel(repository)
@@ -303,21 +306,21 @@ fun OmegaNavGraph(
                 }
             )
 
-            if(navigate) {
+            if (navigate) {
                 LaunchedEffect(Unit) {
                     navController.navigate(
                         Screen.Dashboard.createRoute(projectId)
-                    ){
-                            popUpTo(Screen.Estimate.route) {
-                                inclusive = true
-                            }
+                    ) {
+                        popUpTo(Screen.Estimate.route) {
+                            inclusive = true
                         }
+                    }
                 }
             }
         }
 
 // -----------------------------DASHBOARD SCREEN PART---------------------------------------------------------------------------
-    // here we did the navigation setup with 3 screens, not define the routes strings.
+        // here we did the navigation setup with 3 screens, not define the routes strings.
         composable(
             route = Screen.Dashboard.route,
             // “This screen requires a value called projectId, and it must be a Long.”
@@ -363,7 +366,7 @@ fun OmegaNavGraph(
                 viewModel.syncRunningState()
 
             }
-    // ---------------- fro project name, automatically called if projdect id is change to give automatic recomposition
+            // ---------------- fro project name, automatically called if projdect id is change to give automatic recomposition
             LaunchedEffect(projectId) {
                 viewModel.loadProject(projectId)
             }
@@ -393,10 +396,10 @@ fun OmegaNavGraph(
             arguments = listOf(
                 navArgument("phaseId") { type = NavType.LongType }
             )
-        ) {backStackEntry ->
+        ) { backStackEntry ->
 
-        val phaseId =
-            backStackEntry.arguments?.getLong("phaseId") ?: return@composable
+            val phaseId =
+                backStackEntry.arguments?.getLong("phaseId") ?: return@composable
 
             val context = LocalContext.current
             val db = remember { DatabaseProvider.getDatabase(context) }
@@ -420,9 +423,10 @@ fun OmegaNavGraph(
                 )
             }
 
-            val viewModel = remember {                      // here the view model is created and it is told to use the repository,
-                PhaseTimerViewModel(repository)
-            }
+            val viewModel =
+                remember {                      // here the view model is created and it is told to use the repository,
+                    PhaseTimerViewModel(repository)
+                }
 
             // --- State collection ---
             val uiState by viewModel.uiState.collectAsState()
@@ -460,26 +464,9 @@ fun OmegaNavGraph(
 
         // -------------------- DailyRecordScreen part ------------------
         composable(Screen.DailyRecord.route) {
+            // --- the creating repository part is done on top, so we don't have to create multiple times
 
-            val context = LocalContext.current
-            val db = remember { DatabaseProvider.getDatabase(context) }
 
-            val repository = remember {
-                Omega_Repository(
-                    db.ProjectDao(),
-                    db.PhaseDao(),
-                    db.SessionDao(),
-                    dailyRecordDao = db.DailyRecordDao(),
-                    activeSessionDao = db.ActiveSessionDao(),
-                    todolistDao = db.ToDoListDao(),
-                    activeBreakDao = db.ActiveBreakDao(),
-                    unplannedProjectDao = db.UnplannedProjectDao()
-                )
-            }
-
-            val viewModel = remember {
-                DailyRecordViewModel(repository)
-            }
             val uiState by viewModel.uiState.collectAsState()
 
             val toDoListViewModel = remember {
@@ -563,6 +550,9 @@ fun OmegaNavGraph(
                         uiState.stopwatchSeconds,
                     recentSessions = uiState.recentSessions,
                     onHistoryClick = { navController.navigate(Screen.DailyRecordHistory.route) },
+                    navigateToDeskOmega = {
+                        navController.navigate(Screen.DeskOmega.route)
+                    },
 
                     // ---- To do List section  ----------------
                     todoItems = toDoUiState.items,
@@ -581,10 +571,34 @@ fun OmegaNavGraph(
                     todaysBreakSeconds = uiState.todaysBreakSeconds,
                     todaysBreakCount = uiState.todaysBreakCount,
                     onEndBreak = viewModel::endBreak,
-                    onStartBreak = viewModel::startBreak
+                    onStartBreak = viewModel::startBreak,
+
+                    onBreakDurationSelected = viewModel::onBreakDurationSelected,
+                    selectedBreakMinutes = uiState.selectedBreakMinutes
                 )
             }
         }
+
+        //------------------ DeskOmegaScreen--------------------------------------
+        composable(Screen.DeskOmega.route) {
+
+//            val viewModel = remember {
+//                DailyRecordViewModel(repository)
+//            }
+            val uiState by viewModel.uiState.collectAsState()
+
+            DeskOmegaScreen(
+                stopwatchSeconds = uiState.stopwatchSeconds,
+                activeSessionName = uiState.activeSessionName,
+                expectedDurationMinutes = uiState.selectedEstimateMinutes,
+                sessionStatus = uiState.sessionStatus,
+                onPauseSession = viewModel::pauseSession,
+                onResumeSession = viewModel::resumeSession,
+
+                skin = DeskOmegaSkin.AOD
+                )
+        }
+
         // ---------------- DailyRecordHistoryScreen --------------------
         composable(
             route = Screen.DailyRecordHistory.route
@@ -624,8 +638,9 @@ fun OmegaNavGraph(
             }
         }
 
+// ---------------------------- dailyrecordhistorydetails screeen -----------------------------------
         composable(
-            route = "daily_record_details/{recordId}/{recordDate}",
+            Screen.DailyRecordDetails.route,
             arguments = listOf(
                 navArgument("recordId") {
                     type = NavType.LongType
@@ -635,21 +650,6 @@ fun OmegaNavGraph(
                 }
             )
         ) {
-            val context = LocalContext.current
-            val db = remember { DatabaseProvider.getDatabase(context) }
-
-            val repository = remember {
-                Omega_Repository(
-                    db.ProjectDao(),
-                    db.PhaseDao(),
-                    db.SessionDao(),
-                    dailyRecordDao = db.DailyRecordDao(),
-                    activeSessionDao = db.ActiveSessionDao(),
-                    todolistDao = db.ToDoListDao(),
-                    activeBreakDao = db.ActiveBreakDao(),
-                    unplannedProjectDao = db.UnplannedProjectDao()
-                )
-            }
 
             val recordId =
                 it.arguments?.getLong("recordId")
@@ -665,15 +665,13 @@ fun OmegaNavGraph(
             )
 
             val viewModel = remember {
-
                 DailyRecordDetailsViewModel(
                     repository,
                     recordId
                 )
             }
 
-            val sessions by
-            viewModel.sessions.collectAsState()
+            val sessions by viewModel.sessions.collectAsState()
 
             OmegaDarkTheme {
                 DailyRecordDetailsScreen(
@@ -683,7 +681,68 @@ fun OmegaNavGraph(
             }
         }
 
+            // ---------------- UnplannedProjectScreen part ----------------------------------
+
+        composable(
+            Screen.UnplannedProjectEntryScreen.route
+        ) {
+            val viewModel = remember { UnplannedProjectEntryScreenViewModel(repository) }
 
 
+            UnplannedProjectEntryScreen(
+                viewModel =viewModel,
+                onSkip = {
+                    navController.navigate(Screen.UnplannedProject.route) },
+                navigateToWorkspace = {
+                    navController.navigate(Screen.UnplannedProject.route
+                    )
+                }
+            )
+        }
+
+
+            composable(
+                Screen.UnplannedProject.route
+            ) {
+                val viewModel = remember { UnplannedProjectViewModel(repository) }
+                val uiState by viewModel.uiState.collectAsState()
+
+             //   OmegaDarkTheme {
+                UnplannedProjectScreen(
+                    uiState = uiState,
+                    onAddRoot = {
+                        viewModel.showAddRootDialog()
+                    },
+                    onAddChild = { nodeId ->
+                        viewModel.showAddChildDialog(nodeId)
+                    },
+                    onToggleCompleted = { nodeId,
+                            isCompleted ->
+                        viewModel.toggleCompleted(nodeId, isCompleted)
+                    },
+
+                    onDialogInputChanged = viewModel::onDialogInputChanged,
+                    onDismissRootDialog = viewModel::hideAddRootDialog,
+                    onDismissChildDialog = viewModel::hideAddChildDialog,
+                    onConfirmRoot = viewModel::confirmAddRoot,
+                    onConfirmChild = viewModel::confirmAddChild,
+
+                    onStartSession = { nodeId ->
+                        viewModel.startSession(
+                            nodeId,
+                            sessionName = null,
+                            expectedDurationMinutes = null
+                        )
+                    },
+                    onPauseSession = viewModel::pauseSession,
+                    onResumeSession = viewModel::resumeSession,
+                    onStopSession = viewModel::stopSession,
+                    runningNodeId = uiState.runningNodeId,
+                    onNodeClick = viewModel::onNodeClick
+                )
+            //}
+
+
+        }
     }
 }

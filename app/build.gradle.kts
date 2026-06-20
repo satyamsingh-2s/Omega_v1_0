@@ -4,6 +4,7 @@ plugins {
     alias(libs.plugins.kotlin.compose)
 
     id("com.google.devtools.ksp")
+    alias(libs.plugins.kotlin.serialization)
 
 }
 
@@ -67,12 +68,12 @@ dependencies {
     // Room dependencies
     implementation(libs.androidx.room.runtime)
     implementation(libs.androidx.room.ktx)
-    implementation(libs.androidx.compose.foundation)
-    implementation(libs.androidx.compose.ui.tooling.preview)
     implementation(libs.androidx.compose.material3)
-    implementation(libs.androidx.compose.ui.graphics)
-    debugImplementation(libs.androidx.compose.ui.tooling)
+    implementation(libs.androidx.runtime)
     ksp(libs.androidx.room.compiler)
+
+    // Kotlinx Serialization
+    implementation(libs.kotlinx.serialization.json)
 
     implementation(libs.androidx.navigation.runtime.android)
 
@@ -86,5 +87,7 @@ dependencies {
 
     debugImplementation(libs.androidx.ui.tooling)
     debugImplementation(libs.androidx.ui.test.manifest)
+
+    implementation("androidx.core:core-splashscreen:1.0.1")
 
 }
