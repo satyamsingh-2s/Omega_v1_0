@@ -21,7 +21,35 @@ data class UnplannedProjectUiState (
     val dialogInput: String = "",
 
     // -------- session part ----
-    val sessionStatus: SessionStatus? = null,
-    val runningNodeId: Long? = null
+//    val sessionStatus: SessionStatus? = null,
+//    val runningNodeId: Long? = null,
+
+    // -------- expected durations part -----
+    val showExpectedDurationDialog: Boolean = false,
+    val selectedExpectedDurationNodeId: Long? = null,
+    val expectedDurationInput: String = "",
+
+    // ------------- rename part
+    val showRenameDialog: Boolean = false,
+    val selectedRenameNodeId: Long? = null,
+    val renameInput: String = "",
+
+    // ------------- delete part ---------
+    val showDeleteDialog: Boolean = false,
+    val selectedDeleteNodeId: Long? = null,
+
+    val showStatsDialog: Boolean = false,
+    val selectedStatsNode: UnplannedProjectUiModel? = null,
+
+    // --- for remebering last open node
+    val expandedNodeIds: Set<Long> = emptySet(),
+
+//    val activeNodeTitle: String? = null,
+//    val activeExpectedDuration: Int? = null,
+//    val activeCurrentDuration: Int? = null,
+//    val stopwatchSeconds: Int = 0
+
+    val showSessionAlreadyRunningDialog: Boolean = false,
+    val pendingSessionNodeId: Long? = null,
 
 )

@@ -58,7 +58,8 @@ fun OmegaDarkTheme(
 ) {
     MaterialTheme(
         colorScheme = OmegaDarkColorScheme,
-        content = content
+        content = content,
+        typography = Typography
 
     )
 }

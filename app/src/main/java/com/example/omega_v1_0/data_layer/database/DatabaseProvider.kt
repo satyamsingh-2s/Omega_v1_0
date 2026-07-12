@@ -3,6 +3,7 @@ package com.example.omega_v1_0.data_layer.database
 import android.content.Context
 import androidx.room.Room
 import com.example.omega_v1_0.data_layer.database.OmegaDatabase
+import com.example.omega_v1_0.data_layer.database.migrations.MIGRATION_6_7
 
 object DatabaseProvider {
 
@@ -15,7 +16,9 @@ object DatabaseProvider {
                 context.applicationContext,
                 OmegaDatabase::class.java,
                 "omega_db"
-            ).build()
+            )
+                .addMigrations(MIGRATION_6_7)
+                .build()
             INSTANCE = instance
             instance
         }

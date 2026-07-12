@@ -1,6 +1,7 @@
 package com.example.omega_v1_0.data_layer.convertor
 
 import androidx.room.TypeConverter
+import com.example.omega_v1_0.estimation.pomodoro_engine.PomodoroPhase
 import com.example.omega_v1_0.models.Complexity
 import com.example.omega_v1_0.models.Experience
 import com.example.omega_v1_0.models.PhaseType
@@ -55,6 +56,16 @@ class EnumConvertors {
     @TypeConverter
     fun toLocalDate(dateString: String?): LocalDate? {
         return dateString?.let { LocalDate.parse(it) }
+    }
+
+    // ---------- type convertor for pomodoro phase -----
+    @TypeConverter
+    fun fromPomodoroPhase(value: PomodoroPhase): String {
+        return value.name
+    }
+    @TypeConverter
+    fun toPomodoroPhase(value: String): PomodoroPhase {
+        return PomodoroPhase.valueOf(value)
     }
 
 

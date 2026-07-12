@@ -4,10 +4,9 @@ import android.util.Log
 import androidx.compose.ui.platform.LocalContext
 import com.example.omega_v1_0.notification.OmegaNotificationManager
 
-class SessionReminderManager {
+class SessionReminderManager(private val omegaNotificationManager: OmegaNotificationManager) {
 
     private var hasExpectedReminderFired = false
-  //  private val omegaNotificationManager = OmegaNotificationManager(LocalContext.current)
 
     fun checkNotifications(
         currentDurationSeconds: Int,
@@ -34,10 +33,11 @@ class SessionReminderManager {
 
     private fun sendExpectedNotification() {
 
-//        omegaNotificationManager.showNotification(
-//            title = "Omega",
-//            message = "Expected duration reached."
-
- //       )
+        omegaNotificationManager.showNotification(
+            title = "SESSION REMINDER",
+            message = "Expected Duration Reached"
+        )
+        //omegaNotificationManager.playTimedSound()
     }
 }
+

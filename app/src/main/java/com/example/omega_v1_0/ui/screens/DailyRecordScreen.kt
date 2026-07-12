@@ -1,5 +1,7 @@
 package com.example.omega_v1_0.ui.screens
 
+import android.app.Activity
+import android.content.pm.ActivityInfo
 import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -23,12 +25,14 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowForwardIos
 import androidx.compose.material.icons.filled.Computer
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Stop
+import androidx.compose.material.icons.outlined.AccessTime
 import androidx.compose.material.icons.outlined.BarChart
 import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material3.Button
@@ -57,6 +61,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
@@ -112,7 +117,7 @@ fun DailyRecordScreen(
     selectedBreakMinutes: Int? = null,
     onBreakDurationSelected: (Int?) -> Unit = {},
 
-) {
+    ) {
 
     val focusManager = LocalFocusManager.current
 
@@ -137,6 +142,13 @@ fun DailyRecordScreen(
         } else {
             null
         }
+
+    //-------------------------- Lock portrait---TODO------------------------------------------
+    val view = LocalView.current
+    val activity = view.context as Activity
+    activity.requestedOrientation =
+        ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
+
 
     // ---------------- variables for todo list ----------------
     var showFocusSheet by remember {
@@ -512,50 +524,120 @@ fun DailyRecordScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .weight(1f)
-                        .padding(horizontal = 16.dp, vertical = 8.dp)
+                        .padding(horizontal = 24.dp, vertical = 16.dp)
                 ) {
+                    // Category Toggle
                     Row(
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
+                        horizontalArrangement = Arrangement.Center,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        TextButton(
+                        FilterChip(
+                            selected = selectedTodoCategory == TodoCategory.TODAY,
                             onClick = { onTodoCategoryChanged(TodoCategory.TODAY) },
-                            enabled = selectedTodoCategory == TodoCategory.FUTURE
-                        ) { Text(text = "← TODAY") }
-                        TextButton(
+                            label = { Text("Today") }
+                        )
+                        Spacer(modifier = Modifier.width(12.dp))
+                        FilterChip(
+                            selected = selectedTodoCategory == TodoCategory.FUTURE,
                             onClick = { onTodoCategoryChanged(TodoCategory.FUTURE) },
-                            enabled = selectedTodoCategory == TodoCategory.TODAY
-                        ) { Text(text = "FUTURE →") }
+                            label = { Text("Future") }
+                        )
                     }
+
+                    Spacer(modifier = Modifier.height(20.dp))
+
+                    // Add Todo Input
                     Row(
-                        modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
+                        modifier = Modifier.fillMaxWidth(),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        TextField(
+                        OutlinedTextField(
                             value = newTodoText,
                             onValueChange = onTodoTextChanged,
-                            modifier = Modifier.weight(1f).padding(end = 12.dp),
+                            modifier = Modifier.weight(1f),
+                            placeholder = { Text("Add a new task...", style = MaterialTheme.typography.bodyMedium) },
                             singleLine = true,
-                            label = { Text("🤨") }
+                            shape = MaterialTheme.shapes.large,
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedBorderColor = Color.Transparent,
+                                unfocusedBorderColor = Color.Transparent,
+                                focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+                                unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant
+                            )
                         )
-                        Button(
+                        Spacer(modifier = Modifier.width(12.dp))
+                        CircularIconButton(
                             onClick = onAddTodo,
-                            modifier = Modifier.height(56.dp)
-                        ) { Text("+") }
+                            icon = Icons.Default.Add,
+                            contentDescription = "Add Todo",
+                            backgroundColor = MaterialTheme.colorScheme.primary,
+                            iconTint = MaterialTheme.colorScheme.onPrimary,
+                            size = 52.dp
+                        )
                     }
+
+                    Spacer(modifier = Modifier.height(20.dp))
+
+                    // Todo List
                     LazyColumn(
-                        modifier = Modifier.fillMaxWidth().weight(1f)
+                        modifier = Modifier.fillMaxWidth().weight(1f),
+                        verticalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
                         items(todoItems) { item ->
-                            Row(
-                                modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
-                                verticalAlignment = Alignment.CenterVertically
+                            val checkboxColor = if (item.isCompleted) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline
+                            val checkmarkColor = MaterialTheme.colorScheme.onPrimary
+                            val textColor = if (item.isCompleted) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface
+                            val deleteColor = MaterialTheme.colorScheme.error
+
+                            Card(
+                                modifier = Modifier.fillMaxWidth()
                             ) {
-                                Checkbox(checked = item.isCompleted, onCheckedChange = { onToggleTodo(item) })
-                                Text(text = item.text, modifier = Modifier.weight(1f))
-                                IconButton(onClick = { onDeleteTodo(item.id) }) {
-                                    Icon(imageVector = Icons.Default.Delete, contentDescription = "Delete")
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(16.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    // Checkbox
+                                    androidx.compose.foundation.Canvas(
+                                        modifier = Modifier
+                                            .size(24.dp)
+                                            .clickable { onToggleTodo(item) },
+                                        onDraw = {
+                                            drawCircle(
+                                                color = checkboxColor,
+                                                radius = size.minDimension / 2
+                                            )
+                                            if (item.isCompleted) {
+                                                drawCircle(
+                                                    color = checkmarkColor,
+                                                    radius = size.minDimension / 4
+                                                )
+                                            }
+                                        }
+                                    )
+                                    Spacer(modifier = Modifier.width(14.dp))
+                                    // Todo Text
+                                    Text(
+                                        text = item.text,
+                                        style = MaterialTheme.typography.bodyLarge,
+                                        color = textColor,
+                                        modifier = Modifier.weight(1f)
+                                    )
+                                    Spacer(modifier = Modifier.width(14.dp))
+                                    // Delete Button
+                                    IconButton(
+                                        onClick = { onDeleteTodo(item.id) },
+                                        modifier = Modifier.size(32.dp)
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.Delete,
+                                            contentDescription = "Delete",
+                                            tint = deleteColor,
+                                            modifier = Modifier.size(20.dp)
+                                        )
+                                    }
                                 }
                             }
                         }
@@ -609,6 +691,8 @@ fun RecentSessionItem(
         verticalAlignment = Alignment.CenterVertically
     ) {
         Text(
+            modifier = Modifier.weight(1f),
+            maxLines = 1,
             text = session.sessionName,
             style = MaterialTheme.typography.bodyMedium
         )

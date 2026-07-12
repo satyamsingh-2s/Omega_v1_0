@@ -1,6 +1,7 @@
 package com.example.omega_v1_0.ui.screens
 
 import android.app.Activity
+import android.content.pm.ActivityInfo
 import android.util.Log
 import androidx.compose.foundation.layout.Column
 import androidx.compose.runtime.Composable
@@ -59,6 +60,9 @@ fun DeskOmegaScreen(
 
     DisposableEffect(Unit) {
 
+        val activity =
+            view.context as Activity
+
         val window =
             (view.context as Activity).window
 
@@ -67,6 +71,11 @@ fun DeskOmegaScreen(
                 window,
                 view
             )
+
+        // Lock portrait---------------TODO-----------------
+        activity.requestedOrientation =
+            ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
+
 
         // Hide status bar
         controller.systemBarsBehavior =

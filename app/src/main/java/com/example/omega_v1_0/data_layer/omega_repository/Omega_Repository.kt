@@ -1,6 +1,5 @@
 package com.example.omega_v1_0.data_layer.omega_repository
 
-import android.util.Log
 import com.example.omega_v1_0.data_layer.dao.ActiveBreakDao
 import com.example.omega_v1_0.data_layer.dao.ActiveSessionDao
 import com.example.omega_v1_0.data_layer.dao.PhaseDao
@@ -19,7 +18,6 @@ import com.example.omega_v1_0.data_layer.dao.UnplannedProjectDao
 import com.example.omega_v1_0.data_layer.entites.ActiveBreakEntity
 import com.example.omega_v1_0.data_layer.entites.ActiveSessionEntity
 import com.example.omega_v1_0.data_layer.entites.ToDoListEntity
-import com.example.omega_v1_0.data_layer.entites.UnplannedProjectEntity
 import com.example.omega_v1_0.data_layer.imports.OmegaImport
 import com.example.omega_v1_0.models.SessionStatus
 import com.example.omega_v1_0.models.TodoCategory
@@ -676,9 +674,13 @@ fun getAllToDoItems(category: TodoCategory
             }
     }
 
+
+
     // ⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️
     // ------------------- from here it is becoming coordination repository ------ ----------------------------------
     // ----- here just we are calling functions from both repository by their objects
+
+
 
     fun getUnplannedTree(): Flow<List<UnplannedProjectUiModel>> {
         return unplannedProjectRepository.getUnplannedTree()
@@ -769,14 +771,14 @@ fun getAllToDoItems(category: TodoCategory
         sessionRepository.observeActiveSession()
 
 
-    suspend fun getRunningNodeId(): Long
-    {
-        val activeSession =
-            activeSessionDao.getActiveSession()
-                ?: throw IllegalStateException(
-                    "No active daily session found."
-                )
-        return activeSession.sessionId
+    suspend fun getRunningNodeId(): Long? {
+        // - this will get from active session entity the session id which is active
+        // -  from the session id, we get teh parentid in the session table which links to the actual node id in the unplannedprojecttable
+
+        val activeSession = activeSessionDao.getActiveSession() ?: return null
+        val session = sessionDao.getSessionById(activeSession.sessionId)
+
+        return session.parentId
     }
 
     suspend fun importStructure(
@@ -786,6 +788,58 @@ fun getAllToDoItems(category: TodoCategory
         unplannedProjectRepository.importStructure(
             omegaImport
         )
+    }
+
+    // ------------- delete function ----------------
+    suspend fun deleteNode(
+        nodeId: Long
+    ) {
+        unplannedProjectRepository
+            .deleteNode(nodeId)
+    }
+
+    suspend fun getUnplannedProjectActiveSession(): ActiveSessionEntity? {
+        return activeSessionDao.getActiveSession()
+    }
+
+    suspend fun getCurrentSessionScreenData():
+            UnplannedProjectSessionScreenData {
+
+        val nodeId =
+            getSelectedNode()
+                ?: getRunningNodeId()
+                ?: return UnplannedProjectSessionScreenData(
+                    projectName = "",
+                    breadcrumb = "",
+                    currentDurationSeconds = 0,
+                    expectedDurationSeconds = 0,
+                    totalSessions = 0,
+                    recentSessions = emptyList()
+                )
+
+        return unplannedProjectRepository
+            .getSessionScreenData(nodeId)
+    }
+
+
+    // ---------------- Temporary Selected Node ----------------
+
+    // ---------------- Selected Node ----------------
+
+    private var selectedNodeId: Long? = null
+
+    fun setSelectedNode(
+        nodeId: Long
+    ) {
+        selectedNodeId = nodeId
+    }
+
+    fun getSelectedNode(): Long? {
+        return selectedNodeId
+    }
+
+    fun clearSelectedNode() {
+        selectedNodeId = null
     }
 
 }

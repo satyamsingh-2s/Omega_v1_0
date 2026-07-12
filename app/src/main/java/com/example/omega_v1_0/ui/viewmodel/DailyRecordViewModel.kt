@@ -7,6 +7,7 @@ import com.example.omega_v1_0.data_layer.omega_repository.BreakReminderManager
 import com.example.omega_v1_0.data_layer.omega_repository.SessionReminderManager
 import com.example.omega_v1_0.data_layer.omega_repository.Omega_Repository
 import com.example.omega_v1_0.models.SessionStatus
+import com.example.omega_v1_0.notification.OmegaNotificationManager
 import com.example.omega_v1_0.ui.model.DailyRecordRecentsSessionUiModel
 import com.example.omega_v1_0.ui.uistate.DailyRecordUiState
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -19,7 +20,8 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 
 class DailyRecordViewModel(
-    private val repository: Omega_Repository
+    private val repository: Omega_Repository,
+    private val omegaNotificationManager: OmegaNotificationManager
 ) : ViewModel() {
 
     private val _uiState =
@@ -31,8 +33,9 @@ class DailyRecordViewModel(
     private val estimateOptions = listOf(5, 15, 30, null, 45, 60, 90, 105, 120)
 
     // here notification manager part
-    private val sessionReminderManager = SessionReminderManager()
-    private val breaknotificationManager = BreakReminderManager()
+    // here dailyrecordviewmodel acts only as bridge between omeganavgraph and sessionreminder manager, if sessionremindermanager grows then simply define it to omeganavgraph
+    private val sessionReminderManager = SessionReminderManager(omegaNotificationManager)
+    private val breaknotificationManager = BreakReminderManager(omegaNotificationManager)
     //---------- break section ------------------------
     init {
         loadTodaysBreakData()

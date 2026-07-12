@@ -1,12 +1,15 @@
 package com.example.omega_v1_0.ui.screens
 
 import android.util.Log
-import androidx.compose.animation.animateContentSize
-import androidx.compose.animation.core.Spring
-import androidx.compose.animation.core.spring
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -25,26 +28,29 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.Lightbulb
-import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
-import androidx.compose.material.icons.filled.Stop
+import androidx.compose.material.icons.filled.Timer
 import androidx.compose.material.icons.outlined.BarChart
-import androidx.compose.material3.Button
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Divider
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
@@ -56,13 +62,13 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import com.example.omega_v1_0.models.SessionStatus
+import androidx.compose.ui.unit.sp
 import com.example.omega_v1_0.ui.model.UnplannedProjectUiModel
 import com.example.omega_v1_0.ui.uistate.UnplannedProjectUiState
 import java.util.Locale
@@ -79,16 +85,27 @@ fun UnplannedProjectScreen(
     onDismissChildDialog: () -> Unit,
     onConfirmRoot: () -> Unit,
     onConfirmChild: () -> Unit,
-    onStartSession: (Long) -> Unit,
-    onPauseSession: () -> Unit,
-    onResumeSession: () -> Unit,
-    onStopSession: () -> Unit,
-    runningNodeId: Long?,
-    onNodeClick: (Long) -> Unit
+    onOpenSession: () -> Unit,
+    onEndSession: () -> Unit,
+    onDismissSessionDialog: () -> Unit,
+    onNodeClick: (Long) -> Unit,
+    onAddExpectedDuration: (Long) -> Unit,
+    onExpectedDurationChanged: (String) -> Unit,
+    onDismissExpectedDuration: () -> Unit,
+    onConfirmExpectedDuration: () -> Unit,
+    onRename: (Long, String) -> Unit,
+    onRenameChanged: (String) -> Unit,
+    onDismissRename: () -> Unit,
+    onConfirmRename: () -> Unit,
+    onDelete: (Long) -> Unit,
+    onDismissDelete: () -> Unit,
+    onConfirmDelete: () -> Unit,
+    onShowStats: (UnplannedProjectUiModel) -> Unit,
+    onDismissStats: () -> Unit,
+    expandedNodeIds: Set<Long> = emptySet(),
+    onToggelExpand: (Long) -> Unit = {},
+    onNavigateToSession: (Long) -> Unit,
 ) {
-
-
-
     Scaffold(
         topBar = {
             TopAppBar(
@@ -100,41 +117,39 @@ fun UnplannedProjectScreen(
                             color = MaterialTheme.colorScheme.onSurface
                         )
                         Text(
-                            text = "Organize and track unplanned tasks and ideas",
+                            text = "Organize tasks, ideas and learning paths",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
                 },
                 actions = {
-                    Button(
+                    TextButton(
                         onClick = onAddRoot,
-                        shape = RoundedCornerShape(12.dp),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
+                        shape = RoundedCornerShape(20.dp),
+                        colors = ButtonDefaults.textButtonColors(
                             contentColor = MaterialTheme.colorScheme.primary
                         ),
                         modifier = Modifier.padding(end = 8.dp)
                     ) {
-                        Icon(Icons.Default.Add, contentDescription = "Add Root")
+                        Icon(Icons.Default.Add, contentDescription = "New", modifier = Modifier.size(18.dp))
                         Spacer(modifier = Modifier.width(4.dp))
-                        Text("Add Root")
+                        Text("New", fontSize = 12.sp)
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Color.White
+                    containerColor = MaterialTheme.colorScheme.surface
                 )
             )
         },
-        containerColor = Color.White // Pure white background for the screen
     ) { paddingValues ->
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
                 .padding(horizontal = 16.dp)
-                .padding(top = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+                .padding(top = 8.dp),
+            verticalArrangement = Arrangement.spacedBy(0.dp)
         ) {
             items(uiState.tree) { node ->
                 UnplannedProjectNodeItem(
@@ -142,15 +157,15 @@ fun UnplannedProjectScreen(
                     depth = 0,
                     onAddChild = onAddChild,
                     onToggleCompleted = onToggleCompleted,
-                    onStartSession = onStartSession,
-                    onPauseSession = onPauseSession,
-                    onResumeSession = onResumeSession,
-                    onStopSession = onStopSession,
-                    sessionStatus = uiState.sessionStatus,
-                    runningNodeId = runningNodeId,
-                    onNodeClick = onNodeClick
+                    onNodeClick = onNodeClick,
+                    onAddExpectedDuration = onAddExpectedDuration,
+                    onRename = onRename,
+                    onDelete = onDelete,
+                    onShowStats = onShowStats,
+                    expandedNodeIds = expandedNodeIds,
+                    onToggleExpand = onToggelExpand,
+                    onNavigateToSession = onNavigateToSession
                 )
-                val sessioncontrol = runningNodeId == null || runningNodeId == node.nodeId
             }
 
             item {
@@ -169,14 +184,153 @@ fun UnplannedProjectScreen(
         }
 
         if (uiState.showAddChildDialog) {
+            val parentNode = uiState.selectedNodeId?.let { findNodeById(uiState.tree, it) }
             NodeInputDialog(
                 title = "Add Child Node".uppercase(Locale.getDefault()),
+                nodeName = parentNode?.title,
                 value = uiState.dialogInput,
                 onValueChange = onDialogInputChanged,
                 onDismiss = onDismissChildDialog,
                 onConfirm = onConfirmChild
             )
         }
+
+        if (uiState.showExpectedDurationDialog) {
+            val targetNode = uiState.selectedExpectedDurationNodeId?.let { findNodeById(uiState.tree, it) }
+            NodeInputDialog(
+                title = "Expected Duration (min)",
+                nodeName = targetNode?.title,
+                value = uiState.expectedDurationInput,
+                onValueChange = onExpectedDurationChanged,
+                onDismiss = onDismissExpectedDuration,
+                onConfirm = onConfirmExpectedDuration
+            )
+        }
+
+        if (uiState.showRenameDialog) {
+            val targetNode = uiState.selectedRenameNodeId?.let { findNodeById(uiState.tree, it) }
+            NodeInputDialog(
+                title = "Rename Node",
+                nodeName = targetNode?.title,
+                value = uiState.renameInput,
+                onValueChange = onRenameChanged,
+                onDismiss = onDismissRename,
+                onConfirm = onConfirmRename
+            )
+        }
+
+        if (uiState.showDeleteDialog) {
+            val targetNode = uiState.selectedDeleteNodeId?.let { findNodeById(uiState.tree, it) }
+            AlertDialog(
+                onDismissRequest = onDismissDelete,
+                shape = RoundedCornerShape(16.dp),
+                title = {
+                    Column {
+                        Text("Delete Node", style = MaterialTheme.typography.titleSmall)
+                        if (targetNode != null) {
+                            Text(
+                                text = targetNode.title,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                                modifier = Modifier.padding(top = 4.dp)
+                            )
+                        }
+                    }
+                },
+                text = { Text("Delete this node and all its children?", style = MaterialTheme.typography.bodyMedium) },
+                confirmButton = {
+                    TextButton(onClick = onConfirmDelete) {
+                        Text("Delete", style = MaterialTheme.typography.labelLarge)
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = onDismissDelete) {
+                        Text("Cancel", style = MaterialTheme.typography.labelLarge)
+                    }
+                }
+            )
+        }
+
+        if (uiState.showSessionAlreadyRunningDialog) {
+            AlertDialog(
+                onDismissRequest = onDismissSessionDialog,
+                shape = RoundedCornerShape(16.dp),
+                title = { Text("Session Running", style = MaterialTheme.typography.titleSmall) },
+                text = { Text("A session is already running.", style = MaterialTheme.typography.bodyMedium) },
+                confirmButton = {
+                    TextButton(onClick = onOpenSession) {
+                        Text("Open Session", style = MaterialTheme.typography.labelLarge)
+                    }
+                },
+                dismissButton = {
+                    Row {
+                        TextButton(onClick = onEndSession) {
+                            Text("End Session", style = MaterialTheme.typography.labelLarge)
+                        }
+                        TextButton(onClick = onDismissSessionDialog) {
+                            Text("Cancel", style = MaterialTheme.typography.labelLarge)
+                        }
+                    }
+                }
+            )
+        }
+
+        if (uiState.showStatsDialog) {
+            val node = uiState.selectedStatsNode
+            if (node != null) {
+                AlertDialog(
+                    onDismissRequest = onDismissStats,
+                    shape = RoundedCornerShape(16.dp),
+                    title = {
+                        Column {
+                            Text("Node Stats", style = MaterialTheme.typography.titleSmall)
+                            Text(
+                                text = node.title,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                                modifier = Modifier.padding(top = 4.dp)
+                            )
+                        }
+                    },
+                    text = {
+                        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                            Text("Current: ${formatShortDuration(node.currentDurationSeconds)}", style = MaterialTheme.typography.bodyMedium)
+                            Text("Expected: ${formatShortDuration(node.expectedDurationSeconds)}", style = MaterialTheme.typography.bodyMedium)
+                            val progress = if (node.expectedDurationSeconds == 0) {
+                                0
+                            } else {
+                                (node.currentDurationSeconds * 100 / node.expectedDurationSeconds)
+                            }
+                            Text("Progress: $progress%", style = MaterialTheme.typography.bodyMedium)
+                            Text(
+                                if (node.isCompleted) "Status: Completed" else "Status: In Progress",
+                                style = MaterialTheme.typography.bodyMedium
+                            )
+                        }
+                    },
+                    confirmButton = {
+                        TextButton(onClick = onDismissStats) {
+                            Text("Close", style = MaterialTheme.typography.labelLarge)
+                        }
+                    }
+                )
+            }
+        }
+    }
+}
+
+// Helper to calculate indentation per depth
+private fun getIndentation(depth: Int): Int {
+    return when (depth) {
+        0 -> 0
+        1 -> 16
+        2 -> 28
+        3 -> 36
+        else -> 40
     }
 }
 
@@ -186,135 +340,469 @@ fun UnplannedProjectNodeItem(
     depth: Int,
     onAddChild: (Long) -> Unit,
     onToggleCompleted: (Long, Boolean) -> Unit,
-    sessionStatus: SessionStatus?,
-    onStartSession: (Long) -> Unit,
-    onPauseSession: () -> Unit,
-    onResumeSession: () -> Unit,
-    onStopSession: () -> Unit,
-    runningNodeId: Long?,
-    onNodeClick: (Long) -> Unit
+    onNodeClick: (Long) -> Unit,
+    onAddExpectedDuration: (Long) -> Unit,
+    onRename: (Long, String) -> Unit,
+    onDelete: (Long) -> Unit,
+    onShowStats: (UnplannedProjectUiModel) -> Unit,
+    expandedNodeIds: Set<Long>,
+    onToggleExpand: (Long) -> Unit = {},
+    onNavigateToSession: (Long) -> Unit
 ) {
-    var expanded by remember { mutableStateOf(true) } // Nodes are expanded by default
+    val isExpanded = expandedNodeIds.contains(node.nodeId)
+    Log.d("EXPAND_UI", "node=${node.nodeId} expanded=$isExpanded set=$expandedNodeIds")
 
-    Column {
-        Row(
+    var showDropdownMenu by remember { mutableStateOf(false) }
+
+    val indent = getIndentation(depth).dp
+    val progress = if (node.expectedDurationSeconds == 0) {
+        0f
+    } else {
+        (node.currentDurationSeconds.toFloat() / node.expectedDurationSeconds).coerceAtMost(1f)
+    }
+
+    if (depth == 0) {
+        // Root project as a card
+        Card(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(IntrinsicSize.Min) // Allows children to match parent height
-        ) {
-            // Vertical connection line
-            if (depth > 0) {
-                Box(
-                    modifier = Modifier
-                        .padding(start = ((depth - 1) * 20 + 8).dp) // Adjust based on depth
-                        .width(2.dp)
-                        .fillMaxHeight()
-                        .background(MaterialTheme.colorScheme.outline.copy(alpha = 0.6f))
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-            }
-
-            Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .animateContentSize(animationSpec = spring(dampingRatio = Spring.DampingRatioLowBouncy, stiffness = Spring.StiffnessLow))
-                    .padding(start = if (depth == 0) 0.dp else 0.dp) // Indentation for the card itself
-                    .clickable { onNodeClick(node.nodeId) },
-                shape = RoundedCornerShape(12.dp),
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.05f) // Light lavender
+                .padding(bottom = 28.dp)
+                .combinedClickable(
+                    onClick = {
+                        if (node.children.isNotEmpty()) {
+                            onToggleExpand(node.nodeId)
+                        } else {
+                            onNodeClick(node.nodeId)
+                        }
+                    },
+                    onLongClick = { showDropdownMenu = true }
                 ),
-                elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
-            ) {
-                Column(modifier = Modifier.padding(16.dp)) {
+            shape = RoundedCornerShape(18.dp),
+            border = androidx.compose.foundation.BorderStroke(
+                width = 1.dp,
+                color = MaterialTheme.colorScheme.outline.copy(alpha = 0.12f)
+            ),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+            elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+        ) {
+            Column {
+                // Root content
+                Column(modifier = Modifier.padding(20.dp)) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically,
+                        verticalAlignment = Alignment.Top,
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            if (node.children.isNotEmpty()) {
-                                IconButton(
-                                    onClick = { expanded = !expanded },
-                                    modifier = Modifier.size(24.dp) // Smaller icon button
-                                ) {
-                                    Icon(
-                                        imageVector = if (expanded) Icons.Filled.KeyboardArrowDown else Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                                        contentDescription = if (expanded) "Collapse" else "Expand",
-                                        tint = MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
-                                }
-                            } else {
-                                Spacer(modifier = Modifier.width(24.dp)) // Maintain alignment for leaf nodes
-                            }
-                            Spacer(modifier = Modifier.width(8.dp))
+                        Column(modifier = Modifier.weight(1f)) {
                             Text(
                                 text = node.title,
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.Medium,
+                                fontSize = 18.sp,
+                                fontWeight = FontWeight.SemiBold,
                                 color = MaterialTheme.colorScheme.onSurface
+                            )
+
+                            Spacer(modifier = Modifier.height(8.dp))
+
+                            if (node.expectedDurationSeconds > 0) {
+                                Text(
+                                    text = "Estimated: ${formatShortDuration(node.expectedDurationSeconds)}",
+                                    fontSize = 13.sp,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+
+                                Spacer(modifier = Modifier.height(8.dp))
+
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    LinearProgressIndicator(
+                                        progress = progress,
+                                        modifier = Modifier
+                                            .weight(1f)
+                                            .height(3.dp),
+                                        color = MaterialTheme.colorScheme.primary,
+                                        trackColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                                    )
+
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text(
+                                        text = "${(progress * 100).toInt()}%",
+                                        fontSize = 13.sp,
+                                        color = MaterialTheme.colorScheme.primary
+                                    )
+                                }
+                            }
+
+                            if (node.children.isNotEmpty()) {
+                                Spacer(modifier = Modifier.height(8.dp))
+                                IconButton(
+                                    onClick = { onToggleExpand(node.nodeId) },
+                                    modifier = Modifier.size(24.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.KeyboardArrowDown,
+                                        contentDescription = if (isExpanded) "Collapse" else "Expand",
+                                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        modifier = Modifier.rotate(if (isExpanded) 0f else -90f)
+                                    )
+                                }
+                            }
+                        }
+
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            if (node.children.isEmpty()) {
+                                NodeCompletionToggle(
+                                    isCompleted = node.isCompleted,
+                                    onToggle = { onToggleCompleted(node.nodeId, node.isCompleted) }
+                                )
+                                Spacer(modifier = Modifier.width(4.dp))
+                                IconButton(
+                                    onClick = { onNavigateToSession(node.nodeId) },
+                                    modifier = Modifier.size(28.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.PlayArrow,
+                                        contentDescription = "Play",
+                                        tint = MaterialTheme.colorScheme.primary
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // Root expanded content
+                AnimatedVisibility(
+                    visible = isExpanded,
+                    enter = fadeIn(animationSpec = tween(200)) + expandVertically(animationSpec = tween(200)),
+                    exit = fadeOut(animationSpec = tween(200)) + shrinkVertically(animationSpec = tween(200))
+                ) {
+                    Column {
+                        if (node.children.isNotEmpty()) {
+                            // Thicker divider parent → child
+                            Divider(
+                                color = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f),
+                                thickness = 1.2.dp
+                            )
+
+                            // Section header
+                            Text(
+                                text = "${node.children.size} Children",
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Medium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp)
                             )
                         }
 
-                        NodeCompletionToggle(
-                            isCompleted = node.isCompleted,
-                            onToggle = { onToggleCompleted(node.nodeId, node.isCompleted) }
-                        )
-                    }
+                        node.children.forEachIndexed { index, child ->
+                            UnplannedProjectNodeItem(
+                                node = child,
+                                depth = depth + 1,
+                                onAddChild = onAddChild,
+                                onToggleCompleted = onToggleCompleted,
+                                onNodeClick = onNodeClick,
+                                onAddExpectedDuration = onAddExpectedDuration,
+                                onRename = onRename,
+                                onDelete = onDelete,
+                                onShowStats = onShowStats,
+                                expandedNodeIds = expandedNodeIds,
+                                onToggleExpand = onToggleExpand,
+                                onNavigateToSession = onNavigateToSession
+                            )
+                            if (index != node.children.lastIndex) {
+                                Divider(
+                                    color = MaterialTheme.colorScheme.outline.copy(alpha = 0.15f),
+                                    thickness = 0.5.dp,
+                                    modifier = Modifier.padding(start = 36.dp)
+                                )
+                            }
+                        }
 
-                    Spacer(modifier = Modifier.height(4.dp))
-
-                    Text(
-                        text = formatDuration(node.currentDurationSeconds) + " / " + formatDuration(node.expectedDurationSeconds),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(start = if (node.children.isNotEmpty()) 40.dp else 32.dp) // Adjust for icon space
-                    )
-
-                    if (node.children.isEmpty() && expanded) { // Show session controls only for leaf nodes when expanded
-                        Spacer(modifier = Modifier.height(16.dp))
-                        SessionControls(
-                            sessionStatus = sessionStatus,
-                            onStart = { onStartSession(node.nodeId) },
-                            onPause = onPauseSession,
-                            onResume = onResumeSession,
-                            onStop = onStopSession,
-                            isNodeRunning = runningNodeId == node.nodeId,
-                            runningNodeId = runningNodeId,
-                            node = node // Pass the node to SessionControls
-                        )
-                    }
-             // Add Child button for nodes
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(start = 36.dp, top = 8.dp, bottom = 8.dp),
+                            horizontalArrangement = Arrangement.Start
+                        ) {
                             TextButton(
                                 onClick = { onAddChild(node.nodeId) },
                                 colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.primary)
                             ) {
-                                Text("Add Child")
+                                Icon(Icons.Default.Add, contentDescription = "Add", modifier = Modifier.size(16.dp))
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text(text = "Add", fontSize = 12.sp)
                             }
                         }
+
+                        // Thick divider after add button for root
+                        Divider(
+                            color = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f),
+                            thickness = 1.2.dp,
+                            modifier = Modifier.
+                            padding(horizontal = 20.dp, vertical = 12.dp)
+                        )
+                    }
                 }
             }
         }
-
-        if (expanded) {
-            node.children.forEach { child ->
-                UnplannedProjectNodeItem(
-                    node = child,
-                    depth = depth + 1,
-                    onAddChild = onAddChild,
-                    onToggleCompleted = onToggleCompleted,
-                    onStartSession = onStartSession,
-                    onPauseSession = onPauseSession,
-                    onResumeSession = onResumeSession,
-                    onStopSession = onStopSession,
-                    sessionStatus = sessionStatus,
-                    runningNodeId = runningNodeId,
-                    onNodeClick = onNodeClick
+    } else {
+        // Non-root as row
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .combinedClickable(
+                    onClick = {
+                        if (node.children.isNotEmpty()) {
+                            onToggleExpand(node.nodeId)
+                        } else {
+                            onNodeClick(node.nodeId)
+                        }
+                    },
+                    onLongClick = { showDropdownMenu = true }
                 )
+        ) {
+            // Tree connectors
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(IntrinsicSize.Min)
+            ) {
+                Box(
+                    modifier = Modifier
+                        .padding(start = indent)
+                        .width(1.dp)
+                        .fillMaxHeight()
+                        .background(MaterialTheme.colorScheme.outline.copy(alpha = 0.1f))
+                )
+                Box(
+                    modifier = Modifier
+                        .padding(start = indent, top = 16.dp)
+                        .width(12.dp)
+                        .height(1.dp)
+                        .background(MaterialTheme.colorScheme.outline.copy(alpha = 0.1f))
+                )
+
+                // Row content
+                Row(
+                    modifier = Modifier
+                        .weight(1f)
+                        .padding(start = 12.dp, top = 12.dp, bottom = 12.dp, end = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = node.title,
+                            fontSize = 15.sp,
+                            fontWeight = FontWeight.Medium,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+
+                        if (node.expectedDurationSeconds > 0) {
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Text(
+                                    text = "Estimated: ${formatShortDuration(node.expectedDurationSeconds)}",
+                                    fontSize = 12.sp,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                LinearProgressIndicator(
+                                    progress = progress,
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .height(2.dp),
+                                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f),
+                                    trackColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
+                                )
+                            }
+                        }
+                    }
+
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        if (node.children.isNotEmpty()) {
+                            IconButton(
+                                onClick = { onToggleExpand(node.nodeId) },
+                                modifier = Modifier.size(24.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.KeyboardArrowDown,
+                                    contentDescription = if (isExpanded) "Collapse" else "Expand",
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.rotate(if (isExpanded) 0f else -90f)
+                                )
+                            }
+                        }
+
+                        if (node.children.isEmpty()) {
+                            NodeCompletionToggle(
+                                isCompleted = node.isCompleted,
+                                onToggle = { onToggleCompleted(node.nodeId, node.isCompleted) }
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
+                            IconButton(
+                                onClick = { onNavigateToSession(node.nodeId) },
+                                modifier = Modifier.size(24.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.PlayArrow,
+                                    contentDescription = "Play",
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Expanded content for non-root
+            AnimatedVisibility(
+                visible = isExpanded,
+                enter = fadeIn(animationSpec = tween(200)) + expandVertically(animationSpec = tween(200)),
+                exit = fadeOut(animationSpec = tween(200)) + shrinkVertically(animationSpec = tween(200))
+            ) {
+                Column {
+                    if (node.children.isNotEmpty()) {
+                        // Thicker divider parent → child
+                        Divider(
+                            color = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f),
+                            thickness = 1.2.dp,
+                            modifier = Modifier.padding(start = indent + 12.dp)
+                        )
+
+                        // Section header
+                        Text(
+                            text = "${node.children.size} Children",
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Medium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(start = indent + 12.dp + 12.dp, top = 8.dp, bottom = 8.dp)
+                        )
+                    }
+
+                    node.children.forEachIndexed { index, child ->
+                        UnplannedProjectNodeItem(
+                            node = child,
+                            depth = depth + 1,
+                            onAddChild = onAddChild,
+                            onToggleCompleted = onToggleCompleted,
+                            onNodeClick = onNodeClick,
+                            onAddExpectedDuration = onAddExpectedDuration,
+                            onRename = onRename,
+                            onDelete = onDelete,
+                            onShowStats = onShowStats,
+                            expandedNodeIds = expandedNodeIds,
+                            onToggleExpand = onToggleExpand,
+                            onNavigateToSession = onNavigateToSession
+                        )
+                        if (index != node.children.lastIndex) {
+                            Divider(
+                                color = MaterialTheme.colorScheme.outline.copy(alpha = 0.15f),
+                                thickness = 0.5.dp,
+                                modifier = Modifier.padding(start = (getIndentation(depth + 1) + 12).dp)
+                            )
+                        }
+                    }
+
+                    // Add button row with vertical connector
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(IntrinsicSize.Min)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .padding(start = (getIndentation(depth)).dp)
+                                .width(1.dp)
+                                .fillMaxHeight()
+                                .background(MaterialTheme.colorScheme.outline.copy(alpha = 0.1f))
+                        )
+                        Box(
+                            modifier = Modifier
+                                .padding(start = (getIndentation(depth)).dp, top = 0.dp)
+                                .width(12.dp)
+                                .height(1.dp)
+                                .background(MaterialTheme.colorScheme.outline.copy(alpha = 0.1f))
+                        )
+                        Row(
+                            modifier = Modifier
+                                .weight(1f)
+                                .padding(start = 12.dp, top = 8.dp, bottom = 12.dp),
+                            horizontalArrangement = Arrangement.Start
+                        ) {
+                            TextButton(
+                                onClick = { onAddChild(node.nodeId) },
+                                colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.primary)
+                            ) {
+                                Icon(Icons.Default.Add, contentDescription = "Add", modifier = Modifier.size(16.dp))
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text(text = "Add", fontSize = 12.sp)
+                            }
+                        }
+                    }
+
+                    // Thick divider after add button
+                    if (depth > 0) {
+                        Divider(
+                            color = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f),
+                            thickness = 1.2.dp,
+                            modifier = Modifier.padding(start = (getIndentation(depth) + 12).dp)
+                        )
+                    }
+                }
             }
         }
+    }
+
+    // Dropdown menu
+    DropdownMenu(
+        expanded = showDropdownMenu,
+        onDismissRequest = { showDropdownMenu = false },
+        shape = RoundedCornerShape(16.dp)
+    ) {
+        DropdownMenuItem(
+            text = { Text("Add Child", style = MaterialTheme.typography.bodyMedium) },
+            leadingIcon = { Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(20.dp)) },
+            onClick = {
+                onAddChild(node.nodeId)
+                showDropdownMenu = false
+            }
+        )
+        DropdownMenuItem(
+            text = { Text("Rename", style = MaterialTheme.typography.bodyMedium) },
+            leadingIcon = { Icon(Icons.Default.Edit, contentDescription = null, modifier = Modifier.size(20.dp)) },
+            onClick = {
+                onRename(node.nodeId, node.title)
+                showDropdownMenu = false
+            }
+        )
+        DropdownMenuItem(
+            text = { Text("Estimated Minutes", style = MaterialTheme.typography.bodyMedium) },
+            leadingIcon = { Icon(Icons.Default.Timer, contentDescription = null, modifier = Modifier.size(20.dp)) },
+            onClick = {
+                onAddExpectedDuration(node.nodeId)
+                showDropdownMenu = false
+            }
+        )
+        DropdownMenuItem(
+            text = { Text("Show Statistics", style = MaterialTheme.typography.bodyMedium) },
+            leadingIcon = { Icon(Icons.Outlined.BarChart, contentDescription = null, modifier = Modifier.size(20.dp)) },
+            onClick = {
+                onShowStats(node)
+                showDropdownMenu = false
+            }
+        )
+        DropdownMenuItem(
+            text = { Text("Delete", style = MaterialTheme.typography.bodyMedium) },
+            leadingIcon = { Icon(Icons.Default.Delete, contentDescription = null, modifier = Modifier.size(20.dp)) },
+            onClick = {
+                onDelete(node.nodeId)
+                showDropdownMenu = false
+            }
+        )
     }
 }
 
@@ -325,26 +813,22 @@ fun NodeCompletionToggle(
 ) {
     IconButton(
         onClick = onToggle,
-        modifier = Modifier.size(32.dp) // Adjust size as needed
+        modifier = Modifier.size(28.dp)
     ) {
         if (isCompleted) {
             Icon(
                 imageVector = Icons.Default.Check,
                 contentDescription = "Completed",
-                tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier
-                    .fillMaxSize()
-                    .clip(CircleShape)
-                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f))
-                    .padding(4.dp) // Padding for the checkmark
+                tint = Color(0xFF4CAF50),
+                modifier = Modifier.size(20.dp)
             )
         } else {
             Box(
                 modifier = Modifier
-                    .size(24.dp)
+                    .size(18.dp)
                     .border(
-                        width = 2.dp,
-                        color = MaterialTheme.colorScheme.primary,
+                        width = 1.5.dp,
+                        color = MaterialTheme.colorScheme.outline,
                         shape = CircleShape
                     )
             )
@@ -355,193 +839,64 @@ fun NodeCompletionToggle(
 @Composable
 fun NodeInputDialog(
     title: String,
+    nodeName: String? = null,
     value: String,
     onValueChange: (String) -> Unit,
     onDismiss: () -> Unit,
     onConfirm: () -> Unit
 ) {
-    androidx.compose.material3.AlertDialog(
+    AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(text = title) },
+        shape = RoundedCornerShape(16.dp),
+        title = {
+            Column {
+                Text(text = title, style = MaterialTheme.typography.titleSmall)
+                if (nodeName != null) {
+                    Text(
+                        text = nodeName,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.padding(top = 4.dp)
+                    )
+                }
+            }
+        },
         text = {
             OutlinedTextField(
                 value = value,
                 onValueChange = onValueChange,
                 singleLine = true,
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier.fillMaxWidth(),
+                textStyle = MaterialTheme.typography.bodyMedium
             )
         },
         confirmButton = {
             TextButton(onClick = onConfirm) {
-                Text("Add")
+                Text("Add", style = MaterialTheme.typography.labelLarge)
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("Cancel")
+                Text("Cancel", style = MaterialTheme.typography.labelLarge)
             }
         }
     )
 }
 
 @Composable
-fun SessionControls(
-    sessionStatus: SessionStatus?,
-    onStart: () -> Unit,
-    onPause: () -> Unit,
-    onResume: () -> Unit,
-    onStop: () -> Unit,
-
-    isNodeRunning: Boolean,
-    runningNodeId: Long?,
-    node: UnplannedProjectUiModel // Added node as a parameter
-) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        when (sessionStatus) {
-
-            null -> {
-                Button(
-                    onClick = onStart,
-                    modifier = Modifier.weight(1f),
-                    enabled = !isNodeRunning, // Disable if another node is running
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.primary,
-                        contentColor = MaterialTheme.colorScheme.onPrimary
-                    ),
-                    shape = RoundedCornerShape(12.dp)
-                ) {
-                    Icon(Icons.Filled.PlayArrow, contentDescription = "Start")
-                    Text("Start")
-                }
-            }
-
-            SessionStatus.RUNNING -> {
-
-                if (runningNodeId==node.nodeId) { // Only show pause/stop for the currently running node
-                    Button(
-                        onClick = onPause,
-                        modifier = Modifier.weight(1f),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
-                            contentColor = MaterialTheme.colorScheme.primary
-                        ),
-                        shape = RoundedCornerShape(12.dp)
-                    ) {
-                        Icon(Icons.Filled.Pause, contentDescription = "Pause")
-                        Text("Pause")
-                    }
-                    Button(
-                        onClick = onStop,
-                        modifier = Modifier.weight(1f),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = MaterialTheme.colorScheme.primary,
-                            contentColor = MaterialTheme.colorScheme.onPrimary
-                        ),
-                        shape = RoundedCornerShape(12.dp)
-                    ) {
-                        Icon(Icons.Filled.Stop, contentDescription = "Stop")
-                        Text("Stop")
-                    }
-                }
-                else
-                {
-//                    // Show disabled start button for other nodes if one is running
-//                    Button(
-//                        onClick = { /* Do nothing */ },
-//                        modifier = Modifier.weight(1f),
-//                        enabled = false,
-//                        colors = ButtonDefaults.buttonColors(
-//                            containerColor = MaterialTheme.colorScheme.surfaceVariant,
-//                            contentColor = MaterialTheme.colorScheme.onSurfaceVariant
-//                        ),
-//                        shape = RoundedCornerShape(12.dp)
-//                    ) {
-//                        Icon(Icons.Filled.PlayArrow, contentDescription = "Start")
-//                        Text("Start")
-//                    }
-                }
-            }
-
-            SessionStatus.PAUSED -> {
-                if (runningNodeId==node.nodeId) { // Only show resume/stop for the currently paused node
-                    Button(
-                        onClick = onResume,
-                        modifier = Modifier.weight(1f),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = MaterialTheme.colorScheme.primary,
-                            contentColor = MaterialTheme.colorScheme.onPrimary
-                        ),
-                        shape = RoundedCornerShape(12.dp)
-                    ) {
-                        Icon(Icons.Filled.PlayArrow, contentDescription = "Resume")
-                        Text("Resume")
-                    }
-                    Button(
-                        onClick = onStop,
-                        modifier = Modifier.weight(1f),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = MaterialTheme.colorScheme.primary,
-                            contentColor = MaterialTheme.colorScheme.onPrimary
-                        ),
-                        shape = RoundedCornerShape(12.dp)
-                    ) {
-                        Icon(Icons.Filled.Stop, contentDescription = "Stop")
-                        Text("Stop")
-                    }
-                } else {
-                    // Show disabled start button for other nodes if one is paused
-//                    Button(
-//                        onClick = { /* Do nothing */ },
-//                        modifier = Modifier.weight(1f),
-//                        enabled = false,
-//                        colors = ButtonDefaults.buttonColors(
-//                            containerColor = MaterialTheme.colorScheme.surfaceVariant,
-//                            contentColor = MaterialTheme.colorScheme.onSurfaceVariant
-//                        ),
-//                        shape = RoundedCornerShape(12.dp)
-//                    ) {
-//                        Icon(Icons.Filled.PlayArrow, contentDescription = "Start")
-//                        Text("Start")
-//                    }
-                }
-            }
-        }
-
-        // Stats Button - Always visible for leaf nodes, but only if the node is running/paused or has children
-//        if (node.children.isEmpty()) { // Only show for leaf nodes
-//            Spacer(modifier = Modifier.width(8.dp))
-//            Button(
-//                onClick = { /* Handle stats click */ },
-//                modifier = Modifier.weight(1f),
-//                colors = ButtonDefaults.buttonColors(
-//                    containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
-//                    contentColor = MaterialTheme.colorScheme.primary
-//                ),
-//                shape = RoundedCornerShape(12.dp)
-//            ) {
-//                Icon(Icons.Outlined.BarChart, contentDescription = "Stats")
-//                Text("Stats")
-//            }
-//        }
-    }
-}
-
-@Composable
 fun TipCard() {
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(12.dp),
+        shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.05f) // Subtle purple tint
+            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
         ),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
         Row(
-            modifier = Modifier.padding(16.dp),
+            modifier = Modifier.padding(20.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Icon(
@@ -568,6 +923,25 @@ fun TipCard() {
     }
 }
 
+private fun formatShortDuration(seconds: Int): String {
+    val minutes = seconds / 60
+    if (minutes < 60) {
+        return "${minutes}m"
+    }
+    val hours = minutes / 60
+    val remainingMinutes = minutes % 60
+    return "${hours}h ${remainingMinutes}m"
+}
+
+private fun findNodeById(tree: List<UnplannedProjectUiModel>, nodeId: Long): UnplannedProjectUiModel? {
+    for (node in tree) {
+        if (node.nodeId == nodeId) return node
+        val foundInChildren = findNodeById(node.children, nodeId)
+        if (foundInChildren != null) return foundInChildren
+    }
+    return null
+}
+
 @Preview(showBackground = true, showSystemUi = true)
 @Composable
 fun UnplannedProjectScreenPreview() {
@@ -576,30 +950,30 @@ fun UnplannedProjectScreenPreview() {
             UnplannedProjectUiModel(
                 nodeId = 1L,
                 title = "Android Architecture",
-                currentDurationSeconds = 5720, // 01:35:20
-                expectedDurationSeconds = 7200, // 02:00:00
+                currentDurationSeconds = 5720,
+                expectedDurationSeconds = 7200,
                 isCompleted = false,
                 children = listOf(
                     UnplannedProjectUiModel(
                         nodeId = 2L,
                         title = "Learn MVVM",
-                        currentDurationSeconds = 2710, // 00:45:10
-                        expectedDurationSeconds = 3600, // 01:00:00
+                        currentDurationSeconds = 2710,
+                        expectedDurationSeconds = 3600,
                         isCompleted = true,
                         children = emptyList()
                     ),
                     UnplannedProjectUiModel(
                         nodeId = 3L,
                         title = "Dependency Injection",
-                        currentDurationSeconds = 1530, // 00:25:30
-                        expectedDurationSeconds = 1800, // 00:30:00
+                        currentDurationSeconds = 1530,
+                        expectedDurationSeconds = 1800,
                         isCompleted = false,
                         children = listOf(
                             UnplannedProjectUiModel(
                                 nodeId = 4L,
                                 title = "Hilt Implementation",
-                                currentDurationSeconds = 610, // 00:10:10
-                                expectedDurationSeconds = 900, // 00:15:00
+                                currentDurationSeconds = 610,
+                                expectedDurationSeconds = 900,
                                 isCompleted = false,
                                 children = emptyList()
                             )
@@ -630,30 +1004,43 @@ fun UnplannedProjectScreenPreview() {
                 expectedDurationSeconds = 2700,
                 isCompleted = false,
                 children = emptyList()
-            )
+            ),
         )
         UnplannedProjectScreen(
             uiState = UnplannedProjectUiState(
                 tree = sampleTree,
-                sessionStatus = SessionStatus.RUNNING,
                 dialogInput = "",
                 showAddRootDialog = false,
                 showAddChildDialog = false
             ),
-            onAddRoot = { /*TODO*/ },
-            onAddChild = { _ -> /*TODO*/ },
-            onToggleCompleted = { _, _ -> /*TODO*/ },
-            onDialogInputChanged = { _ -> /*TODO*/ },
-            onDismissRootDialog = { /*TODO*/ },
-            onDismissChildDialog = { /*TODO*/ },
-            onConfirmRoot = { /*TODO*/ },
-            onConfirmChild = { /*TODO*/ },
-            onStartSession = { _ -> /*TODO*/ },
-            onPauseSession = { /*TODO*/ },
-            onResumeSession = { /*TODO*/ },
-            onStopSession = { /*TODO*/ },
-            runningNodeId = 4L, // Example: Hilt Implementation is running
-            onNodeClick = { _ -> /*TODO*/ }
+            onAddRoot = {},
+            onAddChild = {},
+            onToggleCompleted = { _, _ -> },
+            onDialogInputChanged = {},
+            onDismissRootDialog = {},
+            onDismissChildDialog = {},
+            onConfirmRoot = {},
+            onConfirmChild = {},
+            onOpenSession = {},
+            onEndSession = {},
+            onDismissSessionDialog = {},
+            onNodeClick = {},
+            onExpectedDurationChanged = {},
+            onDismissExpectedDuration = {},
+            onConfirmExpectedDuration = {},
+            onAddExpectedDuration = {},
+            onRename = { _, _ -> },
+            onRenameChanged = {},
+            onDismissRename = {},
+            onConfirmRename = {},
+            onDelete = {},
+            onDismissDelete = {},
+            onConfirmDelete = {},
+            onShowStats = {},
+            onDismissStats = {},
+            onNavigateToSession = {}
         )
     }
 }
+
+// Screen Version 4

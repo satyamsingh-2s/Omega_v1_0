@@ -236,44 +236,142 @@ class UnplannedProjectRepository(
     }
 
     private suspend fun createNodeRecursively(
-
         parentId: Long,
         node: ImportNode
 
     ) {
-
         val nodeId =
-
             createChildNode(
-
                 parentId,
-
                 node.title
             )
-
         if (
-
             node.children.isEmpty()
-
         ) {
-
             updateExpectedDuration(
-
                 nodeId,
-
                 node.estimatedHours * 3600
             )
         }
-
         node.children.forEach {
-
             createNodeRecursively(
-
                 nodeId,
-
                 it
             )
         }
     }
+
+    suspend fun deleteNode(
+        nodeId: Long
+    ) {
+        val node =
+            getNodeById(nodeId)
+                ?: return
+        deleteSubtree(node.nodeId)
+    }
+
+    private suspend fun deleteSubtree(
+        nodeId: Long
+    ) {
+
+        val children = unplannedProjectDao
+                .getChildren(nodeId)
+        children.forEach {
+            deleteSubtree(
+                it.nodeId
+            )
+        }
+        unplannedProjectDao
+            .deleteNode(nodeId)
+    }
+
+
+    // ----------------------------helper function because of tree--------
+    private suspend fun buildSessionScreenData(
+        nodeId: Long
+    ): UnplannedProjectSessionScreenData {
+
+        val node = getNodeById(nodeId)
+            ?: return UnplannedProjectSessionScreenData(
+                projectName = "",
+                breadcrumb = "",
+                currentDurationSeconds = 0,
+                expectedDurationSeconds = 0,
+                totalSessions = 0,
+                recentSessions = emptyList()
+            )
+
+        // ======================================================
+        // Build breadcrumb
+        // ======================================================
+
+        val breadcrumbTitles = mutableListOf<String>()
+
+        var currentNode: UnplannedProjectEntity? = node
+
+        while (currentNode != null) {
+
+            breadcrumbTitles.add(currentNode.title)
+
+            currentNode =
+                currentNode.parentNodeId?.let {
+                    getNodeById(it)
+                }
+        }
+
+        breadcrumbTitles.reverse()
+
+        val breadcrumb =
+            breadcrumbTitles.joinToString(" > ")
+
+        val projectName =
+            breadcrumbTitles.firstOrNull() ?: ""
+
+        // ======================================================
+        // Session information
+        // ======================================================
+
+        val currentDurationSeconds =
+            sessionDao.getTotalDurationForParent(
+                parentId = nodeId,
+                parentType = SessionType.UNPLANNED
+            )
+
+        val totalSessions =
+            sessionDao.getSessionCountForParent(
+                parentId = nodeId,
+                parentType = SessionType.UNPLANNED
+            )
+
+        val recentSessions =
+            sessionDao.getRecentSessionsForParent(
+                parentId = nodeId,
+                parentType = SessionType.UNPLANNED
+            )
+
+        // ======================================================
+        // Return
+        // ======================================================
+
+        return UnplannedProjectSessionScreenData(
+
+            projectName = projectName,
+            breadcrumb = breadcrumb,
+            currentDurationSeconds = currentDurationSeconds,
+            expectedDurationSeconds =
+                node.expectedDurationSeconds ?: 0,
+            totalSessions = totalSessions,
+            recentSessions = recentSessions
+        )
+    }
+
+    suspend fun getSessionScreenData(
+        nodeId: Long
+    ): UnplannedProjectSessionScreenData {
+
+        return buildSessionScreenData(nodeId)
+    }
+
+
 
 }

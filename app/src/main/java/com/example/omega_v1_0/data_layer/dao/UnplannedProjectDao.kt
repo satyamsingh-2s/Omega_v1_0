@@ -57,4 +57,22 @@ WHERE parentNodeId = :parentId
 """)
     suspend fun getMaxChildSortOrder(parentId: Long): Int
 
+    @Query("""
+SELECT *
+FROM Unplanned_projects
+WHERE parentNodeId = :nodeId
+""")
+    suspend fun getChildren(
+        nodeId: Long
+    ): List<UnplannedProjectEntity>
+
+
+    @Query("""
+DELETE FROM Unplanned_projects
+WHERE nodeId = :nodeId
+""")
+    suspend fun deleteNode(
+        nodeId: Long
+    )
+
 }

@@ -1,8 +1,9 @@
 package com.example.omega_v1_0.data_layer.omega_repository
 
 import android.util.Log
+import com.example.omega_v1_0.notification.OmegaNotificationManager
 
-class BreakReminderManager {
+class BreakReminderManager(private val omegaNotificationManager: OmegaNotificationManager) {
     private var hasBreakReminderFired = false
 
     fun checkNotifications(
@@ -28,9 +29,11 @@ class BreakReminderManager {
     }
 
     private fun sendBreakNotification() {
-        Log.d(
-            "DailyRecord",
-            "Break Duration Reached"
+        omegaNotificationManager.showNotification(
+            title = "BREAK REMINDER",
+            message = "Recovery Session Ended"
         )
+        omegaNotificationManager.playTimedSound()
+
     }
 }

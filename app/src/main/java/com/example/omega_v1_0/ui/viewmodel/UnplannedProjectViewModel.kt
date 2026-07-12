@@ -4,8 +4,13 @@ import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.omega_v1_0.data_layer.omega_repository.Omega_Repository
+import com.example.omega_v1_0.ui.model.UnplannedProjectUiModel
+import com.example.omega_v1_0.ui.navigation.Screen
 import com.example.omega_v1_0.ui.uistate.UnplannedProjectUiState
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -17,9 +22,19 @@ class UnplannedProjectViewModel(
     private val _uiState = MutableStateFlow(UnplannedProjectUiState())  // used to change
     val uiState = _uiState.asStateFlow() // only access to read, so it is used by all to read the data
 
+    // using shared flow for one time events....
+    private val _navigateToSession = MutableSharedFlow<Unit>()
+
+    val navigateToSession: SharedFlow<Unit> =
+        _navigateToSession.asSharedFlow()
+
+
     init {
+        Log.d(
+            "UNPLANNED",
+            "viemodel recreated ")
         observeTree()
-        observeSession()
+      //  observeSession()
     }
 
     private fun observeTree() {
@@ -40,17 +55,12 @@ class UnplannedProjectViewModel(
     ) {
 
         viewModelScope.launch {
-
-            repository.createRootNode(
-                title
-            )
+            repository.createRootNode(title)
         }
     }
 
     fun createChildNode(
-
         parentId: Long,
-
         title: String
 
     ) {
@@ -58,31 +68,35 @@ class UnplannedProjectViewModel(
         viewModelScope.launch {
 
             repository.createChildNode(
+                parentId, title)
+        }
+    }
 
-                parentId,
+    fun renameNode(
+        nodeId: Long,
+        title: String
 
+    ) {
+        viewModelScope.launch {
+            repository.renameNode(
+                nodeId,
                 title
             )
         }
     }
 
-    fun renameNode(
-
-        nodeId: Long,
-
-        title: String
-
-    ) {
-
-        viewModelScope.launch {
-
-            repository.renameNode(
-
-                nodeId,
-
-                title
-            )
-        }
+    fun confirmRename() {
+        val nodeId =
+            uiState.value.selectedRenameNodeId
+                ?: return
+        val title =
+            uiState.value.renameInput
+        if(title.isBlank()) return
+        renameNode(
+            nodeId,
+            title
+        )
+        hideRenameDialog()
     }
 
     fun updateExpectedDuration(
@@ -121,43 +135,65 @@ class UnplannedProjectViewModel(
         }
     }
 
-    fun startSession(
-        nodeId: Long,
-        sessionName: String?,
-        expectedDurationMinutes: Int?
-
+    fun onNavigateToSession(
+        nodeId: Long
     ) {
 
         viewModelScope.launch {
-            repository.startUnplannedSession(
-                nodeId,
-                sessionName,
-                expectedDurationMinutes
-            )
+            repository.setSelectedNode(nodeId)
+            if (repository.hasActiveSession()) {
+                _uiState.update {
+                    it.copy(
+                        showSessionAlreadyRunningDialog = true
+                    )
+                }
+
+            } else {
+
+                _navigateToSession.emit(Unit)
+            }
         }
     }
 
-    fun pauseSession() {
+//    fun startSession(
+//        nodeId: Long,
+//        sessionName: String?,
+//        expectedDurationMinutes: Int?
+//
+//    ) {
+//
+//        viewModelScope.launch {
+//            repository.startUnplannedSession(
+//                nodeId,
+//                sessionName,
+//                expectedDurationMinutes
+//            )
+//          //  navController.navigate(Screen.UnplannedProjectSessionScreen.route)
+//        }
+//    }
+//
+//    fun pauseSession() {
+//
+//        viewModelScope.launch {
+//            repository.pauseUnplannedSession()
+//        }
+//    }
+//
+//    fun resumeSession() {
+//
+//        viewModelScope.launch {
+//            repository.resumeUnplannedSession()
+//        }
+//    }
+//
+//    fun stopSession() {
+//
+//        viewModelScope.launch {
+//            repository.stopUnplannedSession()
+//        }
+//    }
 
-        viewModelScope.launch {
-            repository.pauseUnplannedSession()
-        }
-    }
-
-    fun resumeSession() {
-
-        viewModelScope.launch {
-            repository.resumeUnplannedSession()
-        }
-    }
-
-    fun stopSession() {
-
-        viewModelScope.launch {
-            repository.stopUnplannedSession()
-        }
-    }
-
+    // ---------------- dialogue part -----------------------------------------------------
     // ------------- root dilagoue
     fun showAddRootDialog() {
 
@@ -181,7 +217,6 @@ class UnplannedProjectViewModel(
     fun showAddChildDialog(
         nodeId: Long
     ) {
-
         _uiState.update {
 
             it.copy(
@@ -193,7 +228,6 @@ class UnplannedProjectViewModel(
     }
 
     fun hideAddChildDialog() {
-
         _uiState.update {
             it.copy(
                 showAddChildDialog = false
@@ -201,20 +235,168 @@ class UnplannedProjectViewModel(
         }
     }
 
-    // ------------Input handelr --------------
+    // ------------Input handeler --------------
     fun onDialogInputChanged(
         value: String
     ) {
-
         _uiState.update {
             it.copy(
                 dialogInput = value
             )
         }
     }
+
+    // ----------- expected duration dialogue ----------------
+    fun showExpectedDurationDialog(
+        nodeId: Long
+    ) {
+        _uiState.update {
+            it.copy(
+                selectedExpectedDurationNodeId = nodeId,
+                showExpectedDurationDialog = true,
+                expectedDurationInput = ""
+            )
+        }
+    }
+
+    fun hideExpectedDurationDialog() {
+        _uiState.update {
+            it.copy(
+                showExpectedDurationDialog = false)
+        }
+    }
+
+    fun onExpectedDurationChanged(
+        value: String
+    ) {
+        _uiState.update {
+            it.copy(
+                expectedDurationInput = value)
+        }
+    }
+
+    fun confirmExpectedDuration() {
+        val nodeId =
+            uiState.value
+                .selectedExpectedDurationNodeId
+                ?: return
+        val seconds =
+            uiState.value
+                .expectedDurationInput
+                .toIntOrNull()
+                ?.times(60)
+                ?: return
+
+        updateExpectedDuration(nodeId, seconds)
+        hideExpectedDurationDialog()
+    }
+
+    // ---------- rename dialgoue --------
+    fun showRenameDialog(
+        nodeId: Long,
+        currentTitle: String
+    ) {
+        _uiState.update {
+            it.copy(
+                selectedRenameNodeId = nodeId,
+                showRenameDialog = true,
+                renameInput = currentTitle
+            )
+        }
+    }
+
+    fun hideRenameDialog() {
+        _uiState.update {
+            it.copy(
+                showRenameDialog = false)
+        }
+    }
+
+    fun onRenameChanged(
+        value: String
+    ) {
+        _uiState.update {
+            it.copy(
+                renameInput = value)
+        }
+    }
+
+    //---------------- delet dialogue part
+    fun showDeleteDialog(
+        nodeId: Long
+    ) {
+        _uiState.update {
+            it.copy(
+                selectedDeleteNodeId = nodeId,
+                showDeleteDialog = true
+            )
+        }
+    }
+
+    fun hideDeleteDialog() {
+        _uiState.update {
+            it.copy(
+                showDeleteDialog = false
+            )
+        }
+    }
+
+    // ---------- stats experimental pahse ------
+    fun showStatsDialog(
+        node: UnplannedProjectUiModel
+    ) {
+        _uiState.update {
+            it.copy(
+                showStatsDialog = true,
+                selectedStatsNode = node
+            )
+        }
+    }
+
+    fun hideStatsDialog() {
+
+        _uiState.update {
+            it.copy(
+                showStatsDialog = false,
+                selectedStatsNode = null
+            )
+        }
+    }
+
+    // ---------- session already running dialogue -----------------
+    fun hideSessionAlreadyRunningDialog() {
+        _uiState.update {
+            it.copy(
+                showSessionAlreadyRunningDialog = false
+            )
+        }
+    }
+
+    fun confirmEndRunningSession() {
+        viewModelScope.launch {
+            repository.stopUnplannedSession()
+            _uiState.update {
+                it.copy(
+                    showSessionAlreadyRunningDialog = false
+                )
+            }
+            _navigateToSession.emit(Unit)
+        }
+    }
+
+    fun openCurrentSession() {
+        viewModelScope.launch {
+            _uiState.update {
+                it.copy(
+                    showSessionAlreadyRunningDialog = false
+                )
+            }
+            _navigateToSession.emit(Unit)
+        }
+    }
+
 // ------------- confirm function -----------------
     fun confirmAddRoot() {
-
         val title = uiState.value.dialogInput
         if (title.isBlank()
         ) return
@@ -225,9 +407,7 @@ class UnplannedProjectViewModel(
     }
 
     fun confirmAddChild() {
-
         val parentId = uiState.value.selectedNodeId ?: return
-
         val title = uiState.value.dialogInput
         if (
             title.isBlank()
@@ -237,36 +417,75 @@ class UnplannedProjectViewModel(
         hideAddChildDialog()
     }
 
+    fun confirmDelete() {
+        val nodeId =
+            uiState.value
+                .selectedDeleteNodeId
+                ?: return
+        deleteNode(nodeId)
+        hideDeleteDialog()
+    }
+
+
     fun onNodeClick( nodeId: Long){
 
     }
 
-
-    private fun observeSession() {
-
+    fun deleteNode(
+        nodeId: Long
+    ) {
         viewModelScope.launch {
-
-            repository
-                .observeActiveSession()
-                .collect { activeSession ->
-
-                    if (activeSession == null) {
-                        _uiState.update {
-                            it.copy(
-                                sessionStatus = null,
-                                runningNodeId = null
-                            )
-                        }
-
-                    } else {
-                        _uiState.update {
-                            it.copy(
-                                sessionStatus = activeSession.status,
-                                runningNodeId = repository.getRunningNodeId()
-                            )
-                        }
-                    }
-                }
+            repository.deleteNode(
+                nodeId
+            )
         }
     }
+
+//    private fun observeSession() {
+//        viewModelScope.launch {
+//            repository
+//                .observeActiveSession()
+//                .collect { activeSession ->
+//
+//                    if (activeSession == null) {
+//                        _uiState.update {
+//                            it.copy(
+//                                sessionStatus = null,
+//                                runningNodeId = null
+//                            )
+//                        }
+//
+//                    } else {
+//                        _uiState.update {
+//                            it.copy(
+//                                sessionStatus = activeSession.status,
+//                                runningNodeId = repository.getRunningNodeId()
+//                            )
+//                        }
+//                    }
+//                }
+//        }
+//    }
+
+    // ----------- feature to remeber last open node -------
+    fun toggleExpandNode(
+        nodeId: Long
+    ) {
+        _uiState.update {
+            val updatedSet =
+                it.expandedNodeIds.toMutableSet()
+            if (
+                updatedSet.contains(nodeId)
+            ) {
+                updatedSet.remove(nodeId)
+            } else {
+                updatedSet.add(nodeId)
+            }
+            it.copy(
+                expandedNodeIds = updatedSet
+            )
+        }
+    }
+
+
 }

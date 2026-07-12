@@ -27,8 +27,8 @@ sealed class Screen(val route:String) {
 
     //----------- unplanned part ------------------------
     object UnplannedProjectEntryScreen : Screen("unplanned_project_entry")
-
     object UnplannedProject : Screen("unplanned_project")
+    object UnplannedProjectSessionScreen : Screen("unplanned_project_session_screen")
 
 
     object DailyRecord : Screen("daily_record")
