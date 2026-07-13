@@ -70,6 +70,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.omega_v1_0.ui.model.UnplannedProjectUiModel
+import com.example.omega_v1_0.ui.theme.AccentPalette
 import com.example.omega_v1_0.ui.uistate.UnplannedProjectUiState
 import java.util.Locale
 
@@ -360,6 +361,8 @@ fun UnplannedProjectNodeItem(
     } else {
         (node.currentDurationSeconds.toFloat() / node.expectedDurationSeconds).coerceAtMost(1f)
     }
+    val accentColor =
+        AccentPalette.getAccent(node.accentIndex)
 
     if (depth == 0) {
         // Root project as a card
@@ -386,6 +389,16 @@ fun UnplannedProjectNodeItem(
             elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
         ) {
             Column {
+
+                // -------- accent color
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(4.4.dp)
+                        .background(accentColor)
+                )
+
+
                 // Root content
                 Column(modifier = Modifier.padding(20.dp)) {
                     Row(
@@ -422,7 +435,9 @@ fun UnplannedProjectNodeItem(
                                             .weight(1f)
                                             .height(3.dp),
                                         color = MaterialTheme.colorScheme.primary,
-                                        trackColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                                        trackColor = MaterialTheme.colorScheme.surfaceVariant.copy(
+                                            alpha = 0.5f
+                                        )
                                     )
 
                                     Spacer(modifier = Modifier.width(8.dp))
@@ -475,8 +490,16 @@ fun UnplannedProjectNodeItem(
                 // Root expanded content
                 AnimatedVisibility(
                     visible = isExpanded,
-                    enter = fadeIn(animationSpec = tween(200)) + expandVertically(animationSpec = tween(200)),
-                    exit = fadeOut(animationSpec = tween(200)) + shrinkVertically(animationSpec = tween(200))
+                    enter = fadeIn(animationSpec = tween(200)) + expandVertically(
+                        animationSpec = tween(
+                            200
+                        )
+                    ),
+                    exit = fadeOut(animationSpec = tween(200)) + shrinkVertically(
+                        animationSpec = tween(
+                            200
+                        )
+                    )
                 ) {
                     Column {
                         if (node.children.isNotEmpty()) {
@@ -530,7 +553,11 @@ fun UnplannedProjectNodeItem(
                                 onClick = { onAddChild(node.nodeId) },
                                 colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.primary)
                             ) {
-                                Icon(Icons.Default.Add, contentDescription = "Add", modifier = Modifier.size(16.dp))
+                                Icon(
+                                    Icons.Default.Add,
+                                    contentDescription = "Add",
+                                    modifier = Modifier.size(16.dp)
+                                )
                                 Spacer(modifier = Modifier.width(4.dp))
                                 Text(text = "Add", fontSize = 12.sp)
                             }
@@ -540,10 +567,26 @@ fun UnplannedProjectNodeItem(
                         Divider(
                             color = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f),
                             thickness = 1.2.dp,
-                            modifier = Modifier.
-                            padding(horizontal = 20.dp, vertical = 12.dp)
+                            modifier = Modifier.padding(horizontal = 20.dp, vertical = 12.dp)
                         )
                     }
+                }
+                // -------- accent color
+                if (node.expectedDurationSeconds == 0) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(1.9.dp)
+                            .background(accentColor)
+                    )
+
+                } else {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(2.5.dp)
+                            .background(accentColor)
+                    )
                 }
             }
         }
@@ -946,32 +989,41 @@ private fun findNodeById(tree: List<UnplannedProjectUiModel>, nodeId: Long): Unp
 @Composable
 fun UnplannedProjectScreenPreview() {
     MaterialTheme {
+
         val sampleTree = listOf(
+
             UnplannedProjectUiModel(
                 nodeId = 1L,
                 title = "Android Architecture",
+                accentIndex = 0,
                 currentDurationSeconds = 5720,
                 expectedDurationSeconds = 7200,
                 isCompleted = false,
                 children = listOf(
+
                     UnplannedProjectUiModel(
                         nodeId = 2L,
                         title = "Learn MVVM",
+                        accentIndex = 0,
                         currentDurationSeconds = 2710,
                         expectedDurationSeconds = 3600,
                         isCompleted = true,
                         children = emptyList()
                     ),
+
                     UnplannedProjectUiModel(
                         nodeId = 3L,
                         title = "Dependency Injection",
+                        accentIndex = 0,
                         currentDurationSeconds = 1530,
                         expectedDurationSeconds = 1800,
                         isCompleted = false,
                         children = listOf(
+
                             UnplannedProjectUiModel(
                                 nodeId = 4L,
                                 title = "Hilt Implementation",
+                                accentIndex = 0,
                                 currentDurationSeconds = 610,
                                 expectedDurationSeconds = 900,
                                 isCompleted = false,
@@ -981,31 +1033,38 @@ fun UnplannedProjectScreenPreview() {
                     )
                 )
             ),
+
             UnplannedProjectUiModel(
                 nodeId = 5L,
                 title = "Personal Finance Tracker",
+                accentIndex = 3,
                 currentDurationSeconds = 1215,
                 expectedDurationSeconds = 3600,
                 isCompleted = false,
                 children = emptyList()
             ),
+
             UnplannedProjectUiModel(
                 nodeId = 6L,
                 title = "Reading List",
+                accentIndex = 6,
                 currentDurationSeconds = 915,
                 expectedDurationSeconds = 1800,
                 isCompleted = true,
                 children = emptyList()
             ),
+
             UnplannedProjectUiModel(
                 nodeId = 7L,
                 title = "Workout Plan",
+                accentIndex = 8,
                 currentDurationSeconds = 0,
                 expectedDurationSeconds = 2700,
                 isCompleted = false,
                 children = emptyList()
-            ),
+            )
         )
+
         UnplannedProjectScreen(
             uiState = UnplannedProjectUiState(
                 tree = sampleTree,
@@ -1038,6 +1097,8 @@ fun UnplannedProjectScreenPreview() {
             onConfirmDelete = {},
             onShowStats = {},
             onDismissStats = {},
+            expandedNodeIds = setOf(1L, 3L),
+            onToggelExpand = {},
             onNavigateToSession = {}
         )
     }

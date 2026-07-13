@@ -15,5 +15,7 @@ data class UnplannedProjectUiModel(
 
     val currentDurationSeconds: Int,
 
-    val isCompleted: Boolean
+    val isCompleted: Boolean,
+
+    val accentIndex: Int
 )

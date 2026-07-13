@@ -75,4 +75,17 @@ WHERE nodeId = :nodeId
         nodeId: Long
     )
 
+    // --- getting the list of parent having accent
+    @Query("""
+    SELECT accentIndex
+    FROM Unplanned_projects
+    WHERE parentNodeId IS NULL
+      AND accentIndex IS NOT NULL
+    ORDER BY createdAt DESC
+    LIMIT 10
+""")
+    suspend fun getRecentUsedAccentIndices(): List<Int>
+
+
+
 }

@@ -8,6 +8,7 @@ import com.example.omega_v1_0.data_layer.imports.ImportNode
 import com.example.omega_v1_0.data_layer.imports.OmegaImport
 import com.example.omega_v1_0.models.SessionType
 import com.example.omega_v1_0.ui.model.UnplannedProjectUiModel
+import com.example.omega_v1_0.ui.theme.AccentPalette
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 
@@ -56,7 +57,8 @@ class UnplannedProjectRepository(
             buildNode(
                 entity = root,
                 childrenByParent = childrenByParent,
-                sessionsByNode = sessionsByNode
+                sessionsByNode = sessionsByNode,
+                accentIndex = root.accentIndex ?: 0 // TODO ---> root.accentIndex!! --- understand it -> because app crahes
             )
         }
     }
@@ -67,7 +69,8 @@ class UnplannedProjectRepository(
 
         entity: UnplannedProjectEntity,
         childrenByParent: Map<Long?, List<UnplannedProjectEntity>>,
-        sessionsByNode: Map<Long, List<SessionEntity>>
+        sessionsByNode: Map<Long, List<SessionEntity>>,
+        accentIndex: Int,
     ): UnplannedProjectUiModel {
 
         // Get direct children entities
@@ -82,7 +85,8 @@ class UnplannedProjectRepository(
                 buildNode(
                     entity = it,
                     childrenByParent = childrenByParent,
-                    sessionsByNode = sessionsByNode
+                    sessionsByNode = sessionsByNode,
+                    accentIndex = accentIndex,
                 )
             }
 
@@ -100,7 +104,8 @@ class UnplannedProjectRepository(
                 children = emptyList(),
                 expectedDurationSeconds = expectedDurationSeconds,
                 currentDurationSeconds = currentDurationSeconds,
-                isCompleted = isCompleted
+                isCompleted = isCompleted,
+                accentIndex = accentIndex
             )
         }
 
@@ -124,7 +129,8 @@ class UnplannedProjectRepository(
             children = children,
             expectedDurationSeconds = expectedDurationSeconds,
             currentDurationSeconds = currentDurationSeconds,
-            isCompleted = isCompleted
+            isCompleted = isCompleted,
+            accentIndex = accentIndex
         )
     }
     // ------------------------- build node ---------------------------
@@ -140,7 +146,9 @@ class UnplannedProjectRepository(
                 sortOrder = sortOrder,
                 createdAt = System.currentTimeMillis(),
                 isCompleted = false,
-                expectedDurationSeconds = null
+                expectedDurationSeconds = null,
+
+            accentIndex = getNextAccentIndex(),
             )
      return unplannedProjectDao.insertNode(node)
     }
@@ -155,7 +163,8 @@ class UnplannedProjectRepository(
                 sortOrder = sortOrder,
                 createdAt = System.currentTimeMillis(),
                 isCompleted = false,
-                expectedDurationSeconds = null
+                expectedDurationSeconds = null,
+                accentIndex = null
             )
       return unplannedProjectDao.insertNode(node)
     }
@@ -370,6 +379,23 @@ class UnplannedProjectRepository(
     ): UnplannedProjectSessionScreenData {
 
         return buildSessionScreenData(nodeId)
+    }
+
+    // here we are getting accent list and deciding which accent to use
+    private suspend fun getNextAccentIndex(): Int {
+        val usedAccentIndices =
+            unplannedProjectDao
+                .getRecentUsedAccentIndices()
+                .toSet()
+
+        for (index in 0 until AccentPalette.PALETTE_SIZE) {
+            if (index !in usedAccentIndices) {
+                return index
+            }
+        }
+
+        // All 10 accents are already used by the most recent projects.
+        return 0
     }
 
 

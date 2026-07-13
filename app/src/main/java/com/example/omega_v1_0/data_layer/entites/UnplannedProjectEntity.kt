@@ -26,6 +26,9 @@ data class UnplannedProjectEntity(
 
     val createdAt: Long,
 
+    // Root projects only
+    val accentIndex: Int?,
+
     // Leaf nodes only
     val isCompleted: Boolean?,
 

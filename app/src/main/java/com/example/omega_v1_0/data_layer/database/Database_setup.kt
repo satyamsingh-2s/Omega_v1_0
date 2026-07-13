@@ -39,7 +39,7 @@ import com.example.omega_v1_0.data_layer.entites.PomodoroEntity
 
         PomodoroEntity::class
     ],
-    version = 7
+    version = 8
 )
 
 // here we are telling database that to use type convertors for enum
