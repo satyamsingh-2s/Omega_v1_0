@@ -39,6 +39,15 @@ fun OmegaSplashScreen(
 
         delay(1800)
 
+        navController.navigate(Screen.MainScreen.route)
+        {
+            popUpTo(
+                Screen.OmegaSplashScreen.route
+            )
+            {
+                inclusive = true
+            }
+        }
 
         val hasActiveSession =
             repository.getActiveSession() != null
@@ -46,31 +55,34 @@ fun OmegaSplashScreen(
         val hasActiveBreak =
             repository.getActiveBreak() != null
 
-        if (
-            hasActiveSession ||
-            hasActiveBreak
-        ) {
-
-            navController.navigate(Screen.DailyRecord.route
-            ){ popUpTo(
-                Screen.OmegaSplashScreen.route)
-            {
-                inclusive = true
-            }
-            }
-
-        } else {
-
-            navController.navigate(
-                Screen.MainScreen.route
-            ){
-                // below 4 line code - it navigates to main screen and remove laucher screen from backstack
-                popUpTo(
-                    Screen.OmegaSplashScreen.route) {
-                    inclusive = true
-                }
-            }
-        }
+//        if (
+//            hasActiveSession ||
+//            hasActiveBreak
+//        ) {
+//
+//            //navController.navigate(Screen.DailyRecord.route
+//            // currently changing it to main screen
+//                    navController.navigate(
+//                    Screen.MainScreen.route
+//            ){ popUpTo(
+//                Screen.OmegaSplashScreen.route)
+//            {
+//                inclusive = true
+//            }
+//            }
+//
+//        } else {
+//
+//            navController.navigate(
+//                Screen.MainScreen.route
+//            ){
+//                // below 4 line code - it navigates to main screen and remove laucher screen from backstack
+//                popUpTo(
+//                    Screen.OmegaSplashScreen.route) {
+//                    inclusive = true
+//                }
+//            }
+//        }
     }
 
     Column(

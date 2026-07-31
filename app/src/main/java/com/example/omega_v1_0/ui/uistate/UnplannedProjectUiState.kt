@@ -52,4 +52,9 @@ data class UnplannedProjectUiState (
     val showSessionAlreadyRunningDialog: Boolean = false,
     val pendingSessionNodeId: Long? = null,
 
+    // ---------- Navigation ----------
+    val focusedNode: UnplannedProjectUiModel? = null,
+    val visibleChildren: List<UnplannedProjectUiModel> = emptyList(),
+    val canNavigateBack: Boolean = false,
+
 )

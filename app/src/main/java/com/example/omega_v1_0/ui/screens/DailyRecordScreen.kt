@@ -57,7 +57,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalFocusManager
@@ -69,8 +71,14 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.omega_v1_0.models.SessionStatus
 import com.example.omega_v1_0.models.TodoCategory
+import com.example.omega_v1_0.ui.components.OmegaScreen
+import com.example.omega_v1_0.ui.components.common.CircularIconButton
 import com.example.omega_v1_0.ui.model.DailyRecordRecentsSessionUiModel
 import com.example.omega_v1_0.ui.model.ToDoListUiModel
+import com.example.omega_v1_0.ui.theme.OmegaDarkTheme
+import com.example.omega_v1_0.ui.theme.OmegaRedTheme
+import com.example.omega_v1_0.ui.theme.StopwatchTextStyle
+import com.example.omega_v1_0.ui.utils.formatDuration
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -150,7 +158,7 @@ fun DailyRecordScreen(
         ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
 
 
-    // ---------------- variables for todo list ----------------
+    // ---------------- variables for to-do list ----------------
     var showFocusSheet by remember {
         mutableStateOf(false)
     }
@@ -173,470 +181,321 @@ fun DailyRecordScreen(
         }
 
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(horizontal = 24.dp), // Only side padding for the main column
-            horizontalAlignment = Alignment.CenterHorizontally // Center content horizontally
-        ) {
-
-            // Zone 1: Header/Summary
+//        Surface(
+//            modifier = Modifier.fillMaxSize()
+//                .background(MaterialTheme.colorScheme.background)
+//        ) {//---- TODO -- expermiental just remove it
             Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .weight(0.25f),
-                verticalArrangement = Arrangement.Center, // Center content vertically within this zone
-                horizontalAlignment = Alignment.Start
-            ) {
-                if (sessionStatus == null) {
-                    Text(
-                        text = "Daily Record",
-                        style = MaterialTheme.typography.headlineMedium.copy(fontSize = 19.sp),
-                        color = MaterialTheme.colorScheme.onBackground
-                    )
-                }
-                Spacer(modifier = Modifier.height(8.dp)) // Small internal spacer
-                if (sessionStatus == null) {
-                    Text(
-                        text = "Today's Total time",
-                        style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.onBackground
-                    )
-
-                    Text(
-                        text = formatDuration(todaystotalSeconds),
-                        style = MaterialTheme.typography.displaySmall,
-                        color = MaterialTheme.colorScheme.onSurface // Apply purple color
-                    )
-                }
-            }
-
-            // Zone 2: Session Input & Estimates
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .weight(0.20f),
-                verticalArrangement = Arrangement.Center, // Center content vertically
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                OutlinedTextField(
-                    value = sessionName,
-                    onValueChange = onSessionNameChange,
-                    textStyle = MaterialTheme.typography.bodyMedium.copy(fontSize = 16.sp),
-                    placeholder = {
-                        Text(
-                            text = if (
-                                sessionStatus != null &&
-                                sessionName.isBlank()
-                            ) {
-                                activeSessionName ?: "Session Name"
-                            } else {
-                                "Session Name"
-                            },
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    },
-                    leadingIcon = {
-                        Icon(
-                            imageVector = Icons.Outlined.Edit,
-                            contentDescription = "Session Name",
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    },
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true,
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = Color.Transparent,
-                        unfocusedBorderColor = Color.Transparent,
-                        focusedContainerColor = MaterialTheme.colorScheme.background,
-                        unfocusedContainerColor = MaterialTheme.colorScheme.background,
-                    )
-                )
-
-                Spacer(modifier = Modifier.height(8.dp)) // Small internal spacer
-
-                LazyRow(
-                    state = listState,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    items(estimateOptions) { option ->
-                        FilterChip(
-                            selected = selectedEstimateMinutes == option,
-                            onClick = { onEstimateSelected(option) },
-                            label = { Text(text = option?.let { "${it}m" } ?: "○") }
-                        )
-                    }
-                }
-                if (selectedEstimateMinutes != null) {
-                    Text(
-                        text = "Expected Durations",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.fillMaxWidth(),
-                        textAlign = TextAlign.Center
-                    )
-                }
-            }
-
-            // Zone 3: Stopwatch Display
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .weight(0.20f),
-                verticalArrangement = Arrangement.Center,
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                Text(
-                    text = formatDuration(stopwatchSeconds),
-                    style = MaterialTheme.typography.displayLarge.copy(fontSize = 72.sp),
-                    textAlign = TextAlign.Center,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-                Text(
-                    text = "HH : MM : SS",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-
-            // Zone 4: Session Control Buttons
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .weight(0.15f),
-                horizontalArrangement = Arrangement.Center,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                when (sessionStatus) {
-                    null -> {
-                        CircularIconButton(
-                            onClick = onStartSession,
-                            icon = Icons.Filled.PlayArrow,
-                            contentDescription = "Start Session",
-                            backgroundColor = MaterialTheme.colorScheme.primary,
-                            iconTint = MaterialTheme.colorScheme.onPrimary,
-                            size = 64.dp
-                        )
-                    }
-                    SessionStatus.RUNNING -> {
-                        CircularIconButton(
-                            onClick = onPauseSession,
-                            icon = Icons.Filled.Pause,
-                            contentDescription = "Pause Session",
-                            backgroundColor = MaterialTheme.colorScheme.surfaceVariant,
-                            iconTint = MaterialTheme.colorScheme.onSurfaceVariant,
-                            size = 56.dp
-                        )
-                        Spacer(modifier = Modifier.width(86.dp))
-                        CircularIconButton(
-                            onClick = onStopSession,
-                            icon = Icons.Filled.Stop,
-                            contentDescription = "Stop Session",
-                            backgroundColor = MaterialTheme.colorScheme.primary,
-                            iconTint = MaterialTheme.colorScheme.onPrimary,
-                            size = 56.dp
-                        )
-                    }
-                    SessionStatus.PAUSED -> {
-                        CircularIconButton(
-                            onClick = onResumeSession,
-                            icon = Icons.Filled.PlayArrow,
-                            contentDescription = "Resume Session",
-                            backgroundColor = MaterialTheme.colorScheme.primary,
-                            iconTint = MaterialTheme.colorScheme.onPrimary,
-                            size = 56.dp
-                        )
-                        Spacer(modifier = Modifier.width(86.dp))
-                        CircularIconButton(
-                            onClick = onStopSession,
-                            icon = Icons.Filled.Stop,
-                            contentDescription = "Stop Session",
-                            backgroundColor = MaterialTheme.colorScheme.primary,
-                            iconTint = MaterialTheme.colorScheme.onPrimary,
-                            size = 56.dp
-                        )
-                    }
-                }
-            }
-
-            // Zone 5: Utility & Action Buttons
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .weight(0.13f),
-                verticalArrangement = Arrangement.SpaceEvenly // Distribute content evenly
-            ) {
-                if (sessionStatus == null) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable(onClick = onHistoryClick)
-                            .padding(vertical = 4.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Icon(
-                            imageVector = Icons.Outlined.BarChart,
-                            contentDescription = "View History",
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.size(16.dp)
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(
-                            text = "View History",
-                            style = MaterialTheme.typography.titleMedium.copy(fontSize = 12.sp),
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.weight(1f)
-                        )
-                        Icon(
-                            imageVector = Icons.Filled.ArrowForwardIos,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.size(16.dp)
-                        )
-                    }
-                }
-
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Box(
-                        modifier = Modifier.weight(1f).height(40.dp),
-                        contentAlignment = Alignment.CenterStart
-                    ) {
-                        if (
-                            !isBreakRunning &&
-                            sessionStatus == null
-                        ) {
-                            Button(
-                                onClick = onStartBreak,
-                            ) {
-                                Text("Start Break")
-                            }
-                        }
-                        if (sessionStatus != null) {
-                            IconButton(
-                                onClick = navigateToDeskOmega
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.Computer,
-                                    contentDescription = "Desk Mode",
-                                    tint = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            }
-                        }
-                    }
-                    Box(
-                        modifier = Modifier.weight(1f).height(40.dp),
-                        contentAlignment = Alignment.CenterEnd
-                    ) {
-                        Button(
-                            onClick = { showFocusSheet = true }
-                        ) {
-                            if (selectedTodoCategory == TodoCategory.TODAY)
-                                Text("TODY ($todayTasksLeft)")
-                            if (selectedTodoCategory == TodoCategory.FUTURE)
-                                Text("FUTY ($futureTasksLeft)")
-                        }
-                    }
-                }
-            }
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .weight(0.02f)
-            ) { }
-
-            // Zone 6: Recent Sessions List
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .weight(0.2f), // Fills remaining space proportionally
-
-            ) {
-                if (sessionStatus == null) {
-                    Text(
-                        text = "PAST SESSIONS",
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.weight(0.17f)
-                    )
-
-                    Surface(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .weight(1f) // Takes up remaining space in this zone
-                        ,
-                        color = MaterialTheme.colorScheme.background
-                    ) {
-                        LazyRow(
-                            horizontalArrangement = Arrangement.spacedBy(12.dp)
-                        ) {
-                            items(groupedSessions) { sessionGroup ->
-                                Column(
-                                    modifier = Modifier.width(groupWidth), // Use proportional width
-                                ) {
-                                    sessionGroup.forEach { session ->
-                                        RecentSessionItem(session = session)
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
-        // ============================ BREAK PART (Overlay) =================================
-        if (isBreakRunning) {
-            Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .background(Color.Black.copy(alpha = 0.70f))
-                    .pointerInput(Unit) { detectTapGestures { /* consume taps */ } },
-                contentAlignment = Alignment.Center
+                    .padding(horizontal = 24.dp), // Only side padding for the main column
+                horizontalAlignment = Alignment.CenterHorizontally // Center content horizontally
             ) {
-                ActiveBreakCard(
-                    currentBreakSeconds = currentBreakSeconds,
-                    todaysBreakSeconds = todaysBreakSeconds,
-                    todaysBreakCount = todaysBreakCount,
-                    onEndBreak = onEndBreak,
-                    onFocusClick = { showFocusSheet = true },
-                    selectedTodoCategory = selectedTodoCategory,
-                    todayTasksLeft = todayTasksLeft,
-                    futureTasksLeft = futureTasksLeft,
-                    listState = listState2,
-                    selectedBreakMinutes = selectedBreakMinutes,
-                    onBrakeSelected = onBreakDurationSelected,
-                    BreakOptions = breakOptions
-                )
-            }
-        }
 
-        // ============================ ToDoList Modal (Overlay) =================================
-        if (showFocusSheet) {
-            ModalBottomSheet(
-                onDismissRequest = { showFocusSheet = false }
-            ) {
+                // Zone 1: Header/Summary
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .weight(1f)
-                        .padding(horizontal = 24.dp, vertical = 16.dp)
+                        .weight(0.25f),
+                    verticalArrangement = Arrangement.Center, // Center content vertically within this zone
+                    horizontalAlignment = Alignment.Start
                 ) {
-                    // Category Toggle
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.Center,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        FilterChip(
-                            selected = selectedTodoCategory == TodoCategory.TODAY,
-                            onClick = { onTodoCategoryChanged(TodoCategory.TODAY) },
-                            label = { Text("Today") }
-                        )
-                        Spacer(modifier = Modifier.width(12.dp))
-                        FilterChip(
-                            selected = selectedTodoCategory == TodoCategory.FUTURE,
-                            onClick = { onTodoCategoryChanged(TodoCategory.FUTURE) },
-                            label = { Text("Future") }
+                    if (sessionStatus == null) {
+                        Text(
+                            text = "Daily Record",
+                            style = MaterialTheme.typography.headlineMedium.copy(fontSize = 19.sp),
+                            color = MaterialTheme.colorScheme.onBackground
                         )
                     }
-
-                    Spacer(modifier = Modifier.height(20.dp))
-
-                    // Add Todo Input
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        OutlinedTextField(
-                            value = newTodoText,
-                            onValueChange = onTodoTextChanged,
-                            modifier = Modifier.weight(1f),
-                            placeholder = { Text("Add a new task...", style = MaterialTheme.typography.bodyMedium) },
-                            singleLine = true,
-                            shape = MaterialTheme.shapes.large,
-                            colors = OutlinedTextFieldDefaults.colors(
-                                focusedBorderColor = Color.Transparent,
-                                unfocusedBorderColor = Color.Transparent,
-                                focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
-                                unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant
-                            )
+                    Spacer(modifier = Modifier.height(8.dp)) // Small internal spacer
+                    if (sessionStatus == null) {
+                        Text(
+                            text = "Today's Total time",
+                            style = MaterialTheme.typography.titleMedium,
+                            color = MaterialTheme.colorScheme.onBackground
                         )
-                        Spacer(modifier = Modifier.width(12.dp))
-                        CircularIconButton(
-                            onClick = onAddTodo,
-                            icon = Icons.Default.Add,
-                            contentDescription = "Add Todo",
-                            backgroundColor = MaterialTheme.colorScheme.primary,
-                            iconTint = MaterialTheme.colorScheme.onPrimary,
-                            size = 52.dp
+
+                        Text(
+                            text = formatDuration(todaystotalSeconds),
+                            style = MaterialTheme.typography.displaySmall,
+                            color = MaterialTheme.colorScheme.onSurface // Apply purple color
                         )
                     }
+                }
 
-                    Spacer(modifier = Modifier.height(20.dp))
-
-                    // Todo List
-                    LazyColumn(
-                        modifier = Modifier.fillMaxWidth().weight(1f),
-                        verticalArrangement = Arrangement.spacedBy(10.dp)
-                    ) {
-                        items(todoItems) { item ->
-                            val checkboxColor = if (item.isCompleted) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline
-                            val checkmarkColor = MaterialTheme.colorScheme.onPrimary
-                            val textColor = if (item.isCompleted) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface
-                            val deleteColor = MaterialTheme.colorScheme.error
-
-                            Card(
-                                modifier = Modifier.fillMaxWidth()
-                            ) {
-                                Row(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(16.dp),
-                                    verticalAlignment = Alignment.CenterVertically
+                // Zone 2: Session Input & Estimates
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(0.20f),
+                    verticalArrangement = Arrangement.Center, // Center content vertically
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    OutlinedTextField(
+                        value = sessionName,
+                        onValueChange = onSessionNameChange,
+                        textStyle = MaterialTheme.typography.bodyMedium.copy(fontSize = 16.sp),
+                        placeholder = {
+                            Text(
+                                text = if (
+                                    sessionStatus != null &&
+                                    sessionName.isBlank()
                                 ) {
-                                    // Checkbox
-                                    androidx.compose.foundation.Canvas(
-                                        modifier = Modifier
-                                            .size(24.dp)
-                                            .clickable { onToggleTodo(item) },
-                                        onDraw = {
-                                            drawCircle(
-                                                color = checkboxColor,
-                                                radius = size.minDimension / 2
-                                            )
-                                            if (item.isCompleted) {
-                                                drawCircle(
-                                                    color = checkmarkColor,
-                                                    radius = size.minDimension / 4
-                                                )
-                                            }
-                                        }
+                                    activeSessionName ?: "Session Name"
+                                } else {
+                                    "Session Name"
+                                },
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        },
+                        leadingIcon = {
+                            Icon(
+                                imageVector = Icons.Outlined.Edit,
+                                contentDescription = "Session Name",
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true,
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = Color.Transparent,
+                            unfocusedBorderColor = Color.Transparent,
+                            focusedContainerColor = Color.Transparent,
+                            unfocusedContainerColor = Color.Transparent,
+                        )
+                    )
+
+                    Spacer(modifier = Modifier.height(8.dp)) // Small internal spacer
+
+                    LazyRow(
+                        state = listState,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        items(estimateOptions) { option ->
+                            FilterChip(
+                                selected = selectedEstimateMinutes == option,
+                                onClick = { onEstimateSelected(option) },
+                                label = { Text(text = option?.let { "${it}m" } ?: "○") }
+                            )
+                        }
+                    }
+                    if (selectedEstimateMinutes != null) {
+                        Text(
+                            text = "Expected Durations",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.fillMaxWidth(),
+                            textAlign = TextAlign.Center
+                        )
+                    }
+                }
+
+                // Zone 3: Stopwatch Display
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(0.20f),
+                    verticalArrangement = Arrangement.Center,
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text(
+                        text = formatDuration(stopwatchSeconds),
+                        // style = MaterialTheme.typography.displayLarge.copy(fontSize = 72.sp),
+                        style = StopwatchTextStyle,
+                        textAlign = TextAlign.Center,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    Text(
+                        text = "HH : MM : SS",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+
+                // Zone 4: Session Control Buttons
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(0.15f),
+                    horizontalArrangement = Arrangement.Center,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    when (sessionStatus) {
+                        null -> {
+                            CircularIconButton(
+                                onClick = onStartSession,
+                                icon = Icons.Filled.PlayArrow,
+                                contentDescription = "Start Session",
+                                backgroundColor = MaterialTheme.colorScheme.primary,
+                                iconTint = MaterialTheme.colorScheme.onPrimary,
+                                size = 64.dp
+                            )
+                        }
+
+                        SessionStatus.RUNNING -> {
+                            CircularIconButton(
+                                onClick = onPauseSession,
+                                icon = Icons.Filled.Pause,
+                                contentDescription = "Pause Session",
+                                backgroundColor = MaterialTheme.colorScheme.surfaceVariant,
+                                iconTint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                size = 56.dp
+                            )
+                            Spacer(modifier = Modifier.width(86.dp))
+                            CircularIconButton(
+                                onClick = onStopSession,
+                                icon = Icons.Filled.Stop,
+                                contentDescription = "Stop Session",
+                                backgroundColor = MaterialTheme.colorScheme.primary,
+                                iconTint = MaterialTheme.colorScheme.onPrimary,
+                                size = 56.dp
+                            )
+                        }
+
+                        SessionStatus.PAUSED -> {
+                            CircularIconButton(
+                                onClick = onResumeSession,
+                                icon = Icons.Filled.PlayArrow,
+                                contentDescription = "Resume Session",
+                                backgroundColor = MaterialTheme.colorScheme.primary,
+                                iconTint = MaterialTheme.colorScheme.onPrimary,
+                                size = 56.dp
+                            )
+                            Spacer(modifier = Modifier.width(86.dp))
+                            CircularIconButton(
+                                onClick = onStopSession,
+                                icon = Icons.Filled.Stop,
+                                contentDescription = "Stop Session",
+                                backgroundColor = MaterialTheme.colorScheme.primary,
+                                iconTint = MaterialTheme.colorScheme.onPrimary,
+                                size = 56.dp
+                            )
+                        }
+                    }
+                }
+
+                // Zone 5: Utility & Action Buttons
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(0.13f),
+                    verticalArrangement = Arrangement.SpaceEvenly // Distribute content evenly
+                ) {
+                    if (sessionStatus == null) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable(onClick = onHistoryClick)
+                                .padding(vertical = 4.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                imageVector = Icons.Outlined.BarChart,
+                                contentDescription = "View History",
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.size(16.dp)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = "View History",
+                                style = MaterialTheme.typography.titleMedium.copy(fontSize = 12.sp),
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.weight(1f)
+                            )
+                            Icon(
+                                imageVector = Icons.Filled.ArrowForwardIos,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.size(16.dp)
+                            )
+                        }
+                    }
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Box(
+                            modifier = Modifier.weight(1f).height(40.dp),
+                            contentAlignment = Alignment.CenterStart
+                        ) {
+                            if (
+                                !isBreakRunning &&
+                                sessionStatus == null
+                            ) {
+                                Button(
+                                    onClick = onStartBreak,
+                                ) {
+                                    Text("Start Break")
+                                }
+                            }
+                            if (sessionStatus != null) {
+                                IconButton(
+                                    onClick = navigateToDeskOmega
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Computer,
+                                        contentDescription = "Desk Mode",
+                                        tint = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
-                                    Spacer(modifier = Modifier.width(14.dp))
-                                    // Todo Text
-                                    Text(
-                                        text = item.text,
-                                        style = MaterialTheme.typography.bodyLarge,
-                                        color = textColor,
-                                        modifier = Modifier.weight(1f)
-                                    )
-                                    Spacer(modifier = Modifier.width(14.dp))
-                                    // Delete Button
-                                    IconButton(
-                                        onClick = { onDeleteTodo(item.id) },
-                                        modifier = Modifier.size(32.dp)
+                                }
+                            }
+                        }
+                        Box(
+                            modifier = Modifier.weight(1f).height(40.dp),
+                            contentAlignment = Alignment.CenterEnd
+                        ) {
+                            Button(
+                                onClick = { showFocusSheet = true }
+                            ) {
+                                if (selectedTodoCategory == TodoCategory.TODAY)
+                                    Text("TODY ($todayTasksLeft)")
+                                if (selectedTodoCategory == TodoCategory.FUTURE)
+                                    Text("FUTY ($futureTasksLeft)")
+                            }
+                        }
+                    }
+                }
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(0.02f)
+                ) { }
+
+                // Zone 6: Recent Sessions List
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(0.2f), // Fills remaining space proportionally
+
+                ) {
+                    if (sessionStatus == null) {
+                        Text(
+                            text = "PAST SESSIONS",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.weight(0.17f)
+                        )
+
+                        Surface(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .weight(1f) // Takes up remaining space in this zone
+                            ,
+                            color = Color.Transparent
+                        ) {
+                            LazyRow(
+                                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                            ) {
+                                items(groupedSessions) { sessionGroup ->
+                                    Column(
+                                        modifier = Modifier.width(groupWidth), // Use proportional width
                                     ) {
-                                        Icon(
-                                            imageVector = Icons.Default.Delete,
-                                            contentDescription = "Delete",
-                                            tint = deleteColor,
-                                            modifier = Modifier.size(20.dp)
-                                        )
+                                        sessionGroup.forEach { session ->
+                                            RecentSessionItem(session = session)
+                                        }
                                     }
                                 }
                             }
@@ -644,39 +503,172 @@ fun DailyRecordScreen(
                     }
                 }
             }
-        }
-    }
-}
 
-@Composable
-fun CircularIconButton(
-    onClick: () -> Unit,
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
-    contentDescription: String,
-    backgroundColor: Color,
-    iconTint: Color,
-    size: Dp
-) {
-    IconButton(
-        onClick = onClick,
-        modifier = Modifier
-            .size(size)
-            .background(backgroundColor, CircleShape)
-    ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = contentDescription,
-            tint = iconTint,
-            modifier = Modifier.size(size / 2)
-        )
-    }
-}
+            // ============================ BREAK PART (Overlay) =================================
+            if (isBreakRunning) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(Color.Black.copy(alpha = 0.70f))
+                        .pointerInput(Unit) { detectTapGestures { /* consume taps */ } },
+                    contentAlignment = Alignment.Center
+                ) {
+                    ActiveBreakCard(
+                        currentBreakSeconds = currentBreakSeconds,
+                        todaysBreakSeconds = todaysBreakSeconds,
+                        todaysBreakCount = todaysBreakCount,
+                        onEndBreak = onEndBreak,
+                        onFocusClick = { showFocusSheet = true },
+                        selectedTodoCategory = selectedTodoCategory,
+                        todayTasksLeft = todayTasksLeft,
+                        futureTasksLeft = futureTasksLeft,
+                        listState = listState2,
+                        selectedBreakMinutes = selectedBreakMinutes,
+                        onBrakeSelected = onBreakDurationSelected,
+                        BreakOptions = breakOptions
+                    )
+                }
+            }
 
-fun formatDuration(totalSeconds: Int): String {
-    val hours = totalSeconds / 3600
-    val minutes = (totalSeconds % 3600) / 60
-    val seconds = totalSeconds % 60
-    return String.format("%02d:%02d:%02d", hours, minutes, seconds)
+            // ============================ ToDoList Modal (Overlay) =================================
+            if (showFocusSheet) {
+                ModalBottomSheet(
+                    onDismissRequest = { showFocusSheet = false }
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .weight(1f)
+                            .padding(horizontal = 24.dp, vertical = 16.dp)
+                    ) {
+                        // Category Toggle
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.Center,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            FilterChip(
+                                selected = selectedTodoCategory == TodoCategory.TODAY,
+                                onClick = { onTodoCategoryChanged(TodoCategory.TODAY) },
+                                label = { Text("Today") }
+                            )
+                            Spacer(modifier = Modifier.width(12.dp))
+                            FilterChip(
+                                selected = selectedTodoCategory == TodoCategory.FUTURE,
+                                onClick = { onTodoCategoryChanged(TodoCategory.FUTURE) },
+                                label = { Text("Future") }
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.height(20.dp))
+
+                        // Add Todo Input
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            OutlinedTextField(
+                                value = newTodoText,
+                                onValueChange = onTodoTextChanged,
+                                modifier = Modifier.weight(1f),
+                                placeholder = {
+                                    Text(
+                                        "Add a new task...",
+                                        style = MaterialTheme.typography.bodyMedium
+                                    )
+                                },
+                                singleLine = true,
+                                shape = MaterialTheme.shapes.large,
+                                colors = OutlinedTextFieldDefaults.colors(
+                                    focusedBorderColor = Color.Transparent,
+                                    unfocusedBorderColor = Color.Transparent,
+                                    focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+                                    unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant
+                                )
+                            )
+                            Spacer(modifier = Modifier.width(12.dp))
+                            CircularIconButton(
+                                onClick = onAddTodo,
+                                icon = Icons.Default.Add,
+                                contentDescription = "Add Todo",
+                                backgroundColor = MaterialTheme.colorScheme.primary,
+                                iconTint = MaterialTheme.colorScheme.onPrimary,
+                                size = 52.dp
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.height(20.dp))
+
+                        // Todo List
+                        LazyColumn(
+                            modifier = Modifier.fillMaxWidth().weight(1f),
+                            verticalArrangement = Arrangement.spacedBy(10.dp)
+                        ) {
+                            items(todoItems) { item ->
+                                val checkboxColor =
+                                    if (item.isCompleted) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline
+                                val checkmarkColor = MaterialTheme.colorScheme.onPrimary
+                                val textColor =
+                                    if (item.isCompleted) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface
+                                val deleteColor = MaterialTheme.colorScheme.error
+
+                                Card(
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    Row(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(16.dp),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        // Checkbox
+                                        androidx.compose.foundation.Canvas(
+                                            modifier = Modifier
+                                                .size(24.dp)
+                                                .clickable { onToggleTodo(item) },
+                                            onDraw = {
+                                                drawCircle(
+                                                    color = checkboxColor,
+                                                    radius = size.minDimension / 2
+                                                )
+                                                if (item.isCompleted) {
+                                                    drawCircle(
+                                                        color = checkmarkColor,
+                                                        radius = size.minDimension / 4
+                                                    )
+                                                }
+                                            }
+                                        )
+                                        Spacer(modifier = Modifier.width(14.dp))
+                                        // Todo Text
+                                        Text(
+                                            text = item.text,
+                                            style = MaterialTheme.typography.bodyLarge,
+                                            color = textColor,
+                                            modifier = Modifier.weight(1f)
+                                        )
+                                        Spacer(modifier = Modifier.width(14.dp))
+                                        // Delete Button
+                                        IconButton(
+                                            onClick = { onDeleteTodo(item.id) },
+                                            modifier = Modifier.size(32.dp)
+                                        ) {
+                                            Icon(
+                                                imageVector = Icons.Default.Delete,
+                                                contentDescription = "Delete",
+                                                tint = deleteColor,
+                                                modifier = Modifier.size(20.dp)
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            } // ---------- to do list bracket close
+        //}
+    }
 }
 
 @Composable
@@ -694,7 +686,8 @@ fun RecentSessionItem(
             modifier = Modifier.weight(1f),
             maxLines = 1,
             text = session.sessionName,
-            style = MaterialTheme.typography.bodyMedium
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
         )
         Text(
             text = formatDuration(session.durationSeconds),

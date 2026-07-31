@@ -3,9 +3,9 @@ package com.example.omega_v1_0.ui.viewmodel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.omega_v1_0.data_layer.omega_repository.Omega_Repository
-import com.example.omega_v1_0.estimation.pomodoro_engine.PomodoroConfig
-import com.example.omega_v1_0.estimation.pomodoro_engine.PomodoroEngine
-import com.example.omega_v1_0.estimation.pomodoro_engine.PomodoroEvent
+import com.example.omega_v1_0.omega_engines.pomodoro_engine.PomodoroConfig
+import com.example.omega_v1_0.omega_engines.pomodoro_engine.PomodoroEngine
+import com.example.omega_v1_0.omega_engines.pomodoro_engine.PomodoroEvent
 import com.example.omega_v1_0.models.SessionStatus
 import com.example.omega_v1_0.ui.model.UnplannedProjectRecentSessionUiModel
 import com.example.omega_v1_0.ui.uistate.UnplannedProjectSessionScreenUiState
@@ -23,6 +23,7 @@ class UnplannedProjectSessionViewModel(
 ): ViewModel() {
 
     init {
+        restorPomodoro()
         syncActiveSession()
         loadScreenData()
     }
@@ -255,31 +256,19 @@ class UnplannedProjectSessionViewModel(
 
     // ------ pomodoro engine part --------------------------
     private val pomodoroEngine = PomodoroEngine(
+        config = repository.getPomodoroConfig(),
 
-        config = PomodoroConfig(
-            workDurationSeconds = 25 * 60,
-            shortBreakDurationSeconds = 5 * 60,
-            longBreakDurationSeconds = 15 * 60,
-            workCyclesBeforeLongBreak = 4
-        ),// --- it updates ui
+        // --- it updates ui
         onStateChanged = { state ->
             _uiState.update {
                 it.copy(
-                    pomodoroPhase =
-                        state.phase,
-                    pomodoroRemainingSeconds =
-                        state.remainingSeconds,
-                    pomodoroCompletedWorkCycles =
-                        state.completedWorkCycles,
-                    isPomodoroRunning =
-                        state.isRunning,
-                    isPomodoroEnabled =
-                        state.isEnabled
+                    pomodoroState = state
                 )
             }
         },
     // ----- it performs actions
-        onEvent = { event ->
+
+        onEvent = { event,state,config ->
             when (event) {
                 PomodoroEvent.Tick -> {
                 }
@@ -288,17 +277,107 @@ class UnplannedProjectSessionViewModel(
                 PomodoroEvent.WorkCompleted -> {
                 }
                 PomodoroEvent.ShortBreakStarted -> {
+                    viewModelScope.launch {
+                        repository.savePomodoroRuntime(
+                            state = state,
+                            config = config,
+                            startedAt = System.currentTimeMillis()
+                        )
+
+                        repository.pauseUnplannedSession()
+                        syncActiveSession()
+                    }
                 }
+
                 PomodoroEvent.LongBreakStarted -> {
+
+                    viewModelScope.launch {
+                        repository.savePomodoroRuntime(
+                            state = state,
+                            config = config,
+                            startedAt = System.currentTimeMillis()
+                        )
+
+                        repository.pauseUnplannedSession()
+                        syncActiveSession()
+                    }
                 }
+
                 PomodoroEvent.BreakCompleted -> {
+                    viewModelScope.launch {
+                        repository.deletePomodoroRuntime()
+
+                        repository.resumeUnplannedSession()
+                        syncActiveSession()
+                    }
                 }
+
                 PomodoroEvent.BreakSkipped -> {
+                    viewModelScope.launch {
+                        repository.deletePomodoroRuntime()
+
+                        repository.resumeUnplannedSession()
+                        syncActiveSession()
+                    }
                 }
             }
         }
     )
+    fun skipBreak() {
+        pomodoroEngine.skipBreak()
+    }
 
+    private fun restorPomodoro() {
+        viewModelScope.launch {
+            val state =
+                repository.getPomodoroRuntimeState()
+            val config =
+                repository.getPomodoroRuntimeConfig()
+            if (state == null || config == null) {
+                return@launch
+            }
+            pomodoroEngine.restoreState(
+                state,
+                config
+            )
+        }
+    }
+
+    // ----- from daily record part -----------------------
+    // ----- selection handler for estimated miutes -------
+    // ---- it is useful when app is crashed in midway -----------
+    fun onEstimateSelected(
+        minutes: Int?
+    ) {
+        _uiState.update {
+            it.copy(
+                selectedEstimateMinutes =
+                    if (it.selectedEstimateMinutes == minutes
+                    ) {
+                        null
+                    } else {
+                        minutes
+                    }
+            )
+        }
+        // here updating the moment it is selected
+        viewModelScope.launch {
+            val sessionName = uiState.value.sessionNameInput.trim()
+            val expectedMinutes = uiState.value.selectedEstimateMinutes
+
+            if (sessionName.isNotBlank()) {
+                repository.updateDailySessionName(
+                    sessionName,
+                    expectedMinutes
+                )
+            }
+            else
+            {
+                repository.updateDailySessionName(_uiState.value.activeSessionName.toString(), expectedMinutes)
+            }
+            // ---- it is updateing, only issue in the session name
+        }
+    }
 
 
 

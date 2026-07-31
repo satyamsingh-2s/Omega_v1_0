@@ -32,6 +32,7 @@ import java.time.format.DateTimeFormatter
 import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.ui.tooling.preview.Preview
+import com.example.omega_v1_0.ui.utils.formatDuration
 import java.time.LocalDate
 
 @Composable
@@ -208,22 +209,6 @@ private fun DailyRecordHistoryCard(
     }
 }
 
-// Helper function for formatting duration
-private fun formatDuration1(
-    totalSeconds: Int
-): String {
-
-    val hours = totalSeconds / 3600
-    val minutes = (totalSeconds % 3600) / 60
-    val seconds = totalSeconds % 60
-
-    return String.format(
-        "%02d:%02d:%02d",
-        hours,
-        minutes,
-        seconds
-    )
-}
 
 //private fun formatDuration(
 //    totalSeconds: Int

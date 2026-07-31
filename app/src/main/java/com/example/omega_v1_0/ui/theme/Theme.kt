@@ -88,3 +88,159 @@ fun Omega_v1_0Theme(
         content = content
     )
 }
+
+// *********************************************************************8
+// ------- MY RED OMEGA THEME ======================
+
+private val OmegaRedColorScheme = darkColorScheme(
+
+    // Accent
+    primary = Color(0xFF8A2E2E),
+
+    // Backgrounds
+    background = Color(0xFF2A1111),
+    surface = Color(0xFF381818),
+    surfaceVariant = Color(0xFF4A2323),
+
+    // Text
+    onPrimary = Color(0xFF101010),
+    onBackground = Color(0xFF101010),
+    onSurface = Color(0xFF101010),
+    onSurfaceVariant = Color(0xFF2D2D2D),
+
+    // Extras
+    outline = Color(0xFF5B3535),
+
+    // Optional Material colors
+    primaryContainer = Color(0xFFB65A5A),
+    secondary = Color(0xFF6E3030),
+    secondaryContainer = Color(0xFF5A2626)
+
+)
+
+@Composable
+fun OmegaRedTheme(
+    content: @Composable () -> Unit
+) {
+    MaterialTheme(
+        colorScheme = OmegaMinimalBWDarkColorScheme,
+        typography = TypographyPersonal,
+        content = content
+    )
+}
+// *************************************************************************************8888
+// =========================
+// Omega Coral Theme
+// =========================
+
+private val OmegaCoralColorScheme = darkColorScheme(
+
+    // Primary Accent
+    primary = Color(0xFFDF6C4F),
+
+    // Secondary Accent
+    secondary = Color(0xFFD14836),
+
+    // Containers
+    primaryContainer = Color(0xFFF08B6D),
+    secondaryContainer = Color(0xFFB9392D),
+
+    // Backgrounds
+    background = Color(0xFFE29683),
+    surface = Color(0xFFDF6C4F),
+    surfaceVariant = Color(0xFFC54434),
+
+    // Text
+    onPrimary = Color(0xFFFFF5E8),
+    onSecondary = Color(0xFFFFF5E8),
+
+    onBackground = Color(0xFFFFF5E8),
+    onSurface = Color(0xFFFFF5E8),
+
+    onSurfaceVariant = Color(0xFFF2D7C7),
+
+    // Borders
+    outline = Color(0xFFB9392D),
+
+    // Error
+    error = Color(0xFF8E1F1F),
+
+    // Optional
+    tertiary = Color(0xFFF5E7D2),
+    tertiaryContainer = Color(0xFFECC9B0)
+
+)
+
+private val OmegaMinimalBWColorScheme = darkColorScheme(
+    // ================= Accent =================
+
+    primary = Color(0xFF4F4A45),
+
+// ================= Backgrounds =================
+
+            background = Color(0xFFF4F1EA),
+
+            surface = Color(0xFFECE7DE),
+
+            surfaceVariant = Color(0xFFE1DBD0),
+
+// ================= Text =================
+
+            onPrimary = Color(0xFFF8F5EF),
+
+            onBackground = Color(0xFF2D2A27),
+
+            onSurface = Color(0xFF2D2A27),
+
+            onSurfaceVariant = Color(0xFF6A645E),
+
+// ================= Extras =================
+
+            outline = Color(0xFFC8C1B7),
+
+// Optional
+
+            primaryContainer = Color(0xFFD9D2C8),
+
+            secondary = Color(0xFF8C857C),
+
+            secondaryContainer = Color(0xFFD5CEC3),
+)
+
+private val OmegaMinimalBWDarkColorScheme = darkColorScheme(
+
+    // ================= Accent =================
+
+    primary = Color(0xFFB5ADA3),
+
+    // ================= Backgrounds =================
+
+    background = Color(0xFF181715),
+
+    surface = Color(0xFF22211F),
+
+    surfaceVariant = Color(0xFF2B2926),
+
+    // ================= Text =================
+
+    onPrimary = Color(0xFF181715),
+
+    onBackground = Color(0xFFE8E2D9),
+
+    onSurface = Color(0xFFE8E2D9),
+
+    onSurfaceVariant = Color(0xFFB5ADA3),
+
+    // ================= Extras =================
+
+    outline = Color(0xFF3B3936),
+
+    // Optional
+
+    primaryContainer = Color(0xFF3C3934),
+
+    secondary = Color(0xFF8F887E),
+
+    secondaryContainer = Color(0xFF33312D)
+
+)

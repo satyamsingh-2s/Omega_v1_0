@@ -33,6 +33,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.omega_v1_0.ui.model.DailyRecordSessionDetailsUiModel
 import com.example.omega_v1_0.ui.theme.OmegaDarkTheme
+import com.example.omega_v1_0.ui.utils.formatDuration
 
 @Composable
 fun DailyRecordDetailsScreen(

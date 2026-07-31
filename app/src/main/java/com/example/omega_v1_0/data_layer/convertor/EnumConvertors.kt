@@ -1,7 +1,7 @@
 package com.example.omega_v1_0.data_layer.convertor
 
 import androidx.room.TypeConverter
-import com.example.omega_v1_0.estimation.pomodoro_engine.PomodoroPhase
+import com.example.omega_v1_0.omega_engines.pomodoro_engine.PomodoroPhase
 import com.example.omega_v1_0.models.Complexity
 import com.example.omega_v1_0.models.Experience
 import com.example.omega_v1_0.models.PhaseType

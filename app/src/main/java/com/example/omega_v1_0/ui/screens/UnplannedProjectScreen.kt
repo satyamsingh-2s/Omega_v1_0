@@ -10,6 +10,7 @@ import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -64,11 +65,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.omega_v1_0.ui.components.OmegaScreen
 import com.example.omega_v1_0.ui.model.UnplannedProjectUiModel
 import com.example.omega_v1_0.ui.theme.AccentPalette
 import com.example.omega_v1_0.ui.uistate.UnplannedProjectUiState
@@ -107,221 +111,254 @@ fun UnplannedProjectScreen(
     onToggelExpand: (Long) -> Unit = {},
     onNavigateToSession: (Long) -> Unit,
 ) {
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = {
-                    Column {
-                        Text(
-                            text = "Unplanned Projects",
-                            style = MaterialTheme.typography.headlineMedium,
-                            color = MaterialTheme.colorScheme.onSurface
-                        )
-                        Text(
-                            text = "Organize tasks, ideas and learning paths",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                },
-                actions = {
-                    TextButton(
-                        onClick = onAddRoot,
-                        shape = RoundedCornerShape(20.dp),
-                        colors = ButtonDefaults.textButtonColors(
-                            contentColor = MaterialTheme.colorScheme.primary
-                        ),
-                        modifier = Modifier.padding(end = 8.dp)
-                    ) {
-                        Icon(Icons.Default.Add, contentDescription = "New", modifier = Modifier.size(18.dp))
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text("New", fontSize = 12.sp)
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.surface
-                )
-            )
-        },
-    ) { paddingValues ->
-        LazyColumn(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues)
-                .padding(horizontal = 16.dp)
-                .padding(top = 8.dp),
-            verticalArrangement = Arrangement.spacedBy(0.dp)
-        ) {
-            items(uiState.tree) { node ->
-                UnplannedProjectNodeItem(
-                    node = node,
-                    depth = 0,
-                    onAddChild = onAddChild,
-                    onToggleCompleted = onToggleCompleted,
-                    onNodeClick = onNodeClick,
-                    onAddExpectedDuration = onAddExpectedDuration,
-                    onRename = onRename,
-                    onDelete = onDelete,
-                    onShowStats = onShowStats,
-                    expandedNodeIds = expandedNodeIds,
-                    onToggleExpand = onToggelExpand,
-                    onNavigateToSession = onNavigateToSession
-                )
-            }
-
-            item {
-                TipCard()
-            }
-        }
-
-        if (uiState.showAddRootDialog) {
-            NodeInputDialog(
-                title = "Add Root Node".uppercase(Locale.getDefault()),
-                value = uiState.dialogInput,
-                onValueChange = onDialogInputChanged,
-                onDismiss = onDismissRootDialog,
-                onConfirm = onConfirmRoot
-            )
-        }
-
-        if (uiState.showAddChildDialog) {
-            val parentNode = uiState.selectedNodeId?.let { findNodeById(uiState.tree, it) }
-            NodeInputDialog(
-                title = "Add Child Node".uppercase(Locale.getDefault()),
-                nodeName = parentNode?.title,
-                value = uiState.dialogInput,
-                onValueChange = onDialogInputChanged,
-                onDismiss = onDismissChildDialog,
-                onConfirm = onConfirmChild
-            )
-        }
-
-        if (uiState.showExpectedDurationDialog) {
-            val targetNode = uiState.selectedExpectedDurationNodeId?.let { findNodeById(uiState.tree, it) }
-            NodeInputDialog(
-                title = "Expected Duration (min)",
-                nodeName = targetNode?.title,
-                value = uiState.expectedDurationInput,
-                onValueChange = onExpectedDurationChanged,
-                onDismiss = onDismissExpectedDuration,
-                onConfirm = onConfirmExpectedDuration
-            )
-        }
-
-        if (uiState.showRenameDialog) {
-            val targetNode = uiState.selectedRenameNodeId?.let { findNodeById(uiState.tree, it) }
-            NodeInputDialog(
-                title = "Rename Node",
-                nodeName = targetNode?.title,
-                value = uiState.renameInput,
-                onValueChange = onRenameChanged,
-                onDismiss = onDismissRename,
-                onConfirm = onConfirmRename
-            )
-        }
-
-        if (uiState.showDeleteDialog) {
-            val targetNode = uiState.selectedDeleteNodeId?.let { findNodeById(uiState.tree, it) }
-            AlertDialog(
-                onDismissRequest = onDismissDelete,
-                shape = RoundedCornerShape(16.dp),
-                title = {
-                    Column {
-                        Text("Delete Node", style = MaterialTheme.typography.titleSmall)
-                        if (targetNode != null) {
+        Scaffold(
+           // containerColor = Color.Transparent, // TODO --- ONLY FOR PATTER BACKGROUND
+            topBar = {
+                TopAppBar(
+                    title = {
+                        Column {
                             Text(
-                                text = targetNode.title,
+                                text = "Unplanned Projects",
+                                style = MaterialTheme.typography.headlineMedium,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                            Text(
+                                text = "Organize tasks, ideas and learning paths",
                                 style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
-                                modifier = Modifier.padding(top = 4.dp)
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
-                    }
-                },
-                text = { Text("Delete this node and all its children?", style = MaterialTheme.typography.bodyMedium) },
-                confirmButton = {
-                    TextButton(onClick = onConfirmDelete) {
-                        Text("Delete", style = MaterialTheme.typography.labelLarge)
-                    }
-                },
-                dismissButton = {
-                    TextButton(onClick = onDismissDelete) {
-                        Text("Cancel", style = MaterialTheme.typography.labelLarge)
-                    }
-                }
-            )
-        }
-
-        if (uiState.showSessionAlreadyRunningDialog) {
-            AlertDialog(
-                onDismissRequest = onDismissSessionDialog,
-                shape = RoundedCornerShape(16.dp),
-                title = { Text("Session Running", style = MaterialTheme.typography.titleSmall) },
-                text = { Text("A session is already running.", style = MaterialTheme.typography.bodyMedium) },
-                confirmButton = {
-                    TextButton(onClick = onOpenSession) {
-                        Text("Open Session", style = MaterialTheme.typography.labelLarge)
-                    }
-                },
-                dismissButton = {
-                    Row {
-                        TextButton(onClick = onEndSession) {
-                            Text("End Session", style = MaterialTheme.typography.labelLarge)
+                    },
+                    actions = {
+                        TextButton(
+                            onClick = onAddRoot,
+                            shape = RoundedCornerShape(20.dp),
+                            colors = ButtonDefaults.textButtonColors(
+                                contentColor = MaterialTheme.colorScheme.primary
+                            ),
+                            modifier = Modifier.padding(end = 8.dp)
+                        ) {
+                            Icon(
+                                Icons.Default.Add,
+                                contentDescription = "New",
+                                modifier = Modifier.size(18.dp)
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text("New", fontSize = 12.sp)
                         }
-                        TextButton(onClick = onDismissSessionDialog) {
-                            Text("Cancel", style = MaterialTheme.typography.labelLarge)
-                        }
-                    }
+                    },
+                    colors = TopAppBarDefaults.topAppBarColors(
+                        containerColor = MaterialTheme.colorScheme.surface
+                    )
+                )
+            },
+        ) { paddingValues ->
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(paddingValues)
+                    .padding(horizontal = 16.dp)
+                    .padding(top = 8.dp)
+                    .background(MaterialTheme.colorScheme.background),
+                verticalArrangement = Arrangement.spacedBy(0.dp)
+            ) {
+                items(uiState.tree) { node ->
+                    UnplannedProjectNodeItem(
+                        node = node,
+                        depth = 0,
+                        onAddChild = onAddChild,
+                        onToggleCompleted = onToggleCompleted,
+                        onNodeClick = onNodeClick,
+                        onAddExpectedDuration = onAddExpectedDuration,
+                        onRename = onRename,
+                        onDelete = onDelete,
+                        onShowStats = onShowStats,
+                        expandedNodeIds = expandedNodeIds,
+                        onToggleExpand = onToggelExpand,
+                        onNavigateToSession = onNavigateToSession
+                    )
                 }
-            )
-        }
 
-        if (uiState.showStatsDialog) {
-            val node = uiState.selectedStatsNode
-            if (node != null) {
+                item {
+                    TipCard()
+                }
+            }
+
+            if (uiState.showAddRootDialog) {
+                NodeInputDialog(
+                    title = "Add Root Node".uppercase(Locale.getDefault()),
+                    value = uiState.dialogInput,
+                    onValueChange = onDialogInputChanged,
+                    onDismiss = onDismissRootDialog,
+                    onConfirm = onConfirmRoot
+                )
+            }
+
+            if (uiState.showAddChildDialog) {
+                val parentNode = uiState.selectedNodeId?.let { findNodeById(uiState.tree, it) }
+                NodeInputDialog(
+                    title = "Add Child Node".uppercase(Locale.getDefault()),
+                    nodeName = parentNode?.title,
+                    value = uiState.dialogInput,
+                    onValueChange = onDialogInputChanged,
+                    onDismiss = onDismissChildDialog,
+                    onConfirm = onConfirmChild
+                )
+            }
+
+            if (uiState.showExpectedDurationDialog) {
+                val targetNode =
+                    uiState.selectedExpectedDurationNodeId?.let { findNodeById(uiState.tree, it) }
+                NodeInputDialog(
+                    title = "Expected Duration (min)",
+                    nodeName = targetNode?.title,
+                    value = uiState.expectedDurationInput,
+                    onValueChange = onExpectedDurationChanged,
+                    onDismiss = onDismissExpectedDuration,
+                    onConfirm = onConfirmExpectedDuration
+                )
+            }
+
+            if (uiState.showRenameDialog) {
+                val targetNode =
+                    uiState.selectedRenameNodeId?.let { findNodeById(uiState.tree, it) }
+                NodeInputDialog(
+                    title = "Rename Node",
+                    nodeName = targetNode?.title,
+                    value = uiState.renameInput,
+                    onValueChange = onRenameChanged,
+                    onDismiss = onDismissRename,
+                    onConfirm = onConfirmRename
+                )
+            }
+
+            if (uiState.showDeleteDialog) {
+                val targetNode =
+                    uiState.selectedDeleteNodeId?.let { findNodeById(uiState.tree, it) }
                 AlertDialog(
-                    onDismissRequest = onDismissStats,
+                    onDismissRequest = onDismissDelete,
                     shape = RoundedCornerShape(16.dp),
                     title = {
                         Column {
-                            Text("Node Stats", style = MaterialTheme.typography.titleSmall)
-                            Text(
-                                text = node.title,
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
-                                modifier = Modifier.padding(top = 4.dp)
-                            )
+                            Text("Delete Node", style = MaterialTheme.typography.titleSmall)
+                            if (targetNode != null) {
+                                Text(
+                                    text = targetNode.title,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                    modifier = Modifier.padding(top = 4.dp)
+                                )
+                            }
                         }
                     },
                     text = {
-                        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                            Text("Current: ${formatShortDuration(node.currentDurationSeconds)}", style = MaterialTheme.typography.bodyMedium)
-                            Text("Expected: ${formatShortDuration(node.expectedDurationSeconds)}", style = MaterialTheme.typography.bodyMedium)
-                            val progress = if (node.expectedDurationSeconds == 0) {
-                                0
-                            } else {
-                                (node.currentDurationSeconds * 100 / node.expectedDurationSeconds)
-                            }
-                            Text("Progress: $progress%", style = MaterialTheme.typography.bodyMedium)
-                            Text(
-                                if (node.isCompleted) "Status: Completed" else "Status: In Progress",
-                                style = MaterialTheme.typography.bodyMedium
-                            )
-                        }
+                        Text(
+                            "Delete this node and all its children?",
+                            style = MaterialTheme.typography.bodyMedium
+                        )
                     },
                     confirmButton = {
-                        TextButton(onClick = onDismissStats) {
-                            Text("Close", style = MaterialTheme.typography.labelLarge)
+                        TextButton(onClick = onConfirmDelete) {
+                            Text("Delete", style = MaterialTheme.typography.labelLarge)
+                        }
+                    },
+                    dismissButton = {
+                        TextButton(onClick = onDismissDelete) {
+                            Text("Cancel", style = MaterialTheme.typography.labelLarge)
                         }
                     }
                 )
             }
+
+            if (uiState.showSessionAlreadyRunningDialog) {
+                AlertDialog(
+                    onDismissRequest = onDismissSessionDialog,
+                    shape = RoundedCornerShape(16.dp),
+                    title = {
+                        Text(
+                            "Session Running",
+                            style = MaterialTheme.typography.titleSmall
+                        )
+                    },
+                    text = {
+                        Text(
+                            "A session is already running.",
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                    },
+                    confirmButton = {
+                        TextButton(onClick = onOpenSession) {
+                            Text("Open Session", style = MaterialTheme.typography.labelLarge)
+                        }
+                    },
+                    dismissButton = {
+                        Row {
+                            TextButton(onClick = onEndSession) {
+                                Text("End Session", style = MaterialTheme.typography.labelLarge)
+                            }
+                            TextButton(onClick = onDismissSessionDialog) {
+                                Text("Cancel", style = MaterialTheme.typography.labelLarge)
+                            }
+                        }
+                    }
+                )
+            }
+
+            if (uiState.showStatsDialog) {
+                val node = uiState.selectedStatsNode
+                if (node != null) {
+                    AlertDialog(
+                        onDismissRequest = onDismissStats,
+                        shape = RoundedCornerShape(16.dp),
+                        title = {
+                            Column {
+                                Text("Node Stats", style = MaterialTheme.typography.titleSmall)
+                                Text(
+                                    text = node.title,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                    modifier = Modifier.padding(top = 4.dp)
+                                )
+                            }
+                        },
+                        text = {
+                            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                Text(
+                                    "Current: ${formatShortDuration(node.currentDurationSeconds)}",
+                                    style = MaterialTheme.typography.bodyMedium
+                                )
+                                Text(
+                                    "Expected: ${formatShortDuration(node.expectedDurationSeconds)}",
+                                    style = MaterialTheme.typography.bodyMedium
+                                )
+                                val progress = if (node.expectedDurationSeconds == 0) {
+                                    0
+                                } else {
+                                    (node.currentDurationSeconds * 100 / node.expectedDurationSeconds)
+                                }
+                                Text(
+                                    "Progress: $progress%",
+                                    style = MaterialTheme.typography.bodyMedium
+                                )
+                                Text(
+                                    if (node.isCompleted) "Status: Completed" else "Status: In Progress",
+                                    style = MaterialTheme.typography.bodyMedium
+                                )
+                            }
+                        },
+                        confirmButton = {
+                            TextButton(onClick = onDismissStats) {
+                                Text("Close", style = MaterialTheme.typography.labelLarge)
+                            }
+                        }
+                    )
+                }
+            }
         }
-    }
 }
 
 // Helper to calculate indentation per depth
@@ -350,6 +387,12 @@ fun UnplannedProjectNodeItem(
     onToggleExpand: (Long) -> Unit = {},
     onNavigateToSession: (Long) -> Unit
 ) {
+
+
+    val completionProgress = node.completionProgress
+    val completionPercentage = (completionProgress * 100).toInt()
+
+
     val isExpanded = expandedNodeIds.contains(node.nodeId)
     Log.d("EXPAND_UI", "node=${node.nodeId} expanded=$isExpanded set=$expandedNodeIds")
 
@@ -409,14 +452,14 @@ fun UnplannedProjectNodeItem(
                         Column(modifier = Modifier.weight(1f)) {
                             Text(
                                 text = node.title,
-                                fontSize = 18.sp,
+                                fontSize = 20.sp,
                                 fontWeight = FontWeight.SemiBold,
                                 color = MaterialTheme.colorScheme.onSurface
                             )
 
                             Spacer(modifier = Modifier.height(8.dp))
 
-                            if (node.expectedDurationSeconds > 0) {
+                            if (node.expectedDurationSeconds > 0 || depth > 1 || 3>0) {
                                 Text(
                                     text = "Estimated: ${formatShortDuration(node.expectedDurationSeconds)}",
                                     fontSize = 13.sp,
@@ -430,10 +473,10 @@ fun UnplannedProjectNodeItem(
                                     modifier = Modifier.fillMaxWidth()
                                 ) {
                                     LinearProgressIndicator(
-                                        progress = progress,
+                                        progress = completionProgress,
                                         modifier = Modifier
                                             .weight(1f)
-                                            .height(3.dp),
+                                            .height(10.dp),
                                         color = MaterialTheme.colorScheme.primary,
                                         trackColor = MaterialTheme.colorScheme.surfaceVariant.copy(
                                             alpha = 0.5f
@@ -442,7 +485,7 @@ fun UnplannedProjectNodeItem(
 
                                     Spacer(modifier = Modifier.width(8.dp))
                                     Text(
-                                        text = "${(progress * 100).toInt()}%",
+                                        text = "${(completionProgress * 100).toInt()}%",
                                         fontSize = 13.sp,
                                         color = MaterialTheme.colorScheme.primary
                                     )
@@ -450,17 +493,22 @@ fun UnplannedProjectNodeItem(
                             }
 
                             if (node.children.isNotEmpty()) {
-                                Spacer(modifier = Modifier.height(8.dp))
-                                IconButton(
-                                    onClick = { onToggleExpand(node.nodeId) },
-                                    modifier = Modifier.size(24.dp)
+                                Column( // <-- Apply alignment here
+                                    modifier = Modifier.fillMaxWidth(), // Make sure it fills width to center within
+                                    horizontalAlignment = Alignment.CenterHorizontally // <-- FIX IS HERE
                                 ) {
-                                    Icon(
-                                        imageVector = Icons.Default.KeyboardArrowDown,
-                                        contentDescription = if (isExpanded) "Collapse" else "Expand",
-                                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                        modifier = Modifier.rotate(if (isExpanded) 0f else -90f)
-                                    )
+                                    Spacer(modifier = Modifier.height(1.dp))
+                                    IconButton(
+                                        onClick = { onToggleExpand(node.nodeId) },
+                                        modifier = Modifier.size(18.dp), // Increased size slightly for better tap target
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.KeyboardArrowDown,
+                                            contentDescription = if (isExpanded) "Collapse" else "Expand",
+                                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            modifier = Modifier.rotate(if (isExpanded) 0f else -90f),
+                                        )
+                                    }
                                 }
                             }
                         }
@@ -505,8 +553,8 @@ fun UnplannedProjectNodeItem(
                         if (node.children.isNotEmpty()) {
                             // Thicker divider parent → child
                             Divider(
-                                color = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f),
-                                thickness = 1.2.dp
+                                color = MaterialTheme.colorScheme.outline.copy(alpha = 0.8f),
+                                thickness = 3.2.dp
                             )
 
                             // Section header
@@ -516,6 +564,7 @@ fun UnplannedProjectNodeItem(
                                 fontWeight = FontWeight.Medium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp)
+                                    .fillMaxWidth(),textAlign = TextAlign.Center
                             )
                         }
 
@@ -546,7 +595,7 @@ fun UnplannedProjectNodeItem(
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(start = 36.dp, top = 8.dp, bottom = 8.dp),
+                                .padding(start = 36.dp),
                             horizontalArrangement = Arrangement.Start
                         ) {
                             TextButton(
@@ -565,29 +614,31 @@ fun UnplannedProjectNodeItem(
 
                         // Thick divider after add button for root
                         Divider(
-                            color = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f),
-                            thickness = 1.2.dp,
+                            color = MaterialTheme.colorScheme.outline.copy(alpha = 1f),
+                            thickness = 2.2.dp,
                             modifier = Modifier.padding(horizontal = 20.dp, vertical = 12.dp)
                         )
                     }
                 }
-                // -------- accent color
-                if (node.expectedDurationSeconds == 0) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(1.9.dp)
-                            .background(accentColor)
-                    )
+                // -------- accent color----- bottom
+//                if (node.expectedDurationSeconds == 0) {
+//                    Box(
+//                        modifier = Modifier
+//                            .fillMaxWidth()
+//                            .height(1.9.dp)
+//                            .background(accentColor)
+//                    )
+//
+//                } else {
+//                    Box(
+//                        modifier = Modifier
+//                            .fillMaxWidth()
+//                            .height(2.5.dp)
+//                            .background(accentColor)
+//                    )
+//                }
 
-                } else {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(2.5.dp)
-                            .background(accentColor)
-                    )
-                }
+
             }
         }
     } else {
@@ -615,48 +666,66 @@ fun UnplannedProjectNodeItem(
                 Box(
                     modifier = Modifier
                         .padding(start = indent)
-                        .width(1.dp)
+                        .width(1.2.dp)
                         .fillMaxHeight()
-                        .background(MaterialTheme.colorScheme.outline.copy(alpha = 0.1f))
+                        .background(MaterialTheme.colorScheme.outline.copy(alpha = 0.8f))
                 )
                 Box(
                     modifier = Modifier
-                        .padding(start = indent, top = 16.dp)
+                        .padding(start = 0.2.dp, top = 23.dp)
                         .width(12.dp)
                         .height(1.dp)
-                        .background(MaterialTheme.colorScheme.outline.copy(alpha = 0.1f))
+                        .background(MaterialTheme.colorScheme.outline.copy(alpha = 1f)),
                 )
 
                 // Row content
                 Row(
                     modifier = Modifier
                         .weight(1f)
-                        .padding(start = 12.dp, top = 12.dp, bottom = 12.dp, end = 12.dp),
+                        .padding(start = 7.dp, top = 12.dp, bottom = 12.dp, end = 12.dp),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
                             text = node.title,
-                            fontSize = 15.sp,
+                            fontSize = 17.sp,
                             fontWeight = FontWeight.Medium,
                             color = MaterialTheme.colorScheme.onSurface
                         )
 
-                        if (node.expectedDurationSeconds > 0) {
+                        if (node.expectedDurationSeconds > 0 || 3>0) {
+                            var a =2
+                            if(node.children.isNotEmpty())
+                            {
+                                 a =30
+                            }
+                            else
+                            {
+                                 a=4
+                            }
                             Spacer(modifier = Modifier.height(4.dp))
-                            Row(verticalAlignment = Alignment.CenterVertically) {
+                            Column(horizontalAlignment = Alignment.Start) {
+                                Row(modifier = Modifier.fillMaxWidth()
+                                    .padding(start=2.dp,end = a.dp),
+                                    horizontalArrangement = Arrangement.SpaceBetween){
                                 Text(
-                                    text = "Estimated: ${formatShortDuration(node.expectedDurationSeconds)}",
+                                    text = " ${formatShortDuration(node.expectedDurationSeconds)}",
                                     fontSize = 12.sp,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 )
-                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(
+                                    text = "${(completionProgress * 100).toInt()}%",
+                                    fontSize = 12.sp,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                                    }
+                               // Spacer(modifier = Modifier.width(1.dp))
                                 LinearProgressIndicator(
-                                    progress = progress,
+                                    progress = completionProgress,
                                     modifier = Modifier
                                         .weight(1f)
-                                        .height(2.dp),
+                                        .height(6.dp),
                                     color = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f),
                                     trackColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
                                 )
@@ -665,19 +734,6 @@ fun UnplannedProjectNodeItem(
                     }
 
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        if (node.children.isNotEmpty()) {
-                            IconButton(
-                                onClick = { onToggleExpand(node.nodeId) },
-                                modifier = Modifier.size(24.dp)
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.KeyboardArrowDown,
-                                    contentDescription = if (isExpanded) "Collapse" else "Expand",
-                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    modifier = Modifier.rotate(if (isExpanded) 0f else -90f)
-                                )
-                            }
-                        }
 
                         if (node.children.isEmpty()) {
                             NodeCompletionToggle(
@@ -700,6 +756,37 @@ fun UnplannedProjectNodeItem(
                     }
                 }
             }
+            // FIX: New section for the horizontally centered expand/collapse icon
+            if (node.children.isNotEmpty()) {
+                // Apply left padding for indentation
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(start = indent + 12.dp + 12.dp, bottom = 2.dp), // Added top padding for spacing
+                    horizontalArrangement = Arrangement.Center, // Center content of this Row
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    IconButton(
+                        onClick = { onToggleExpand(node.nodeId) },
+                        modifier = Modifier.size(16.dp) // Maintain consistent size
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.KeyboardArrowDown,
+                            contentDescription = if (isExpanded) "Collapse" else "Expand",
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.rotate(if (isExpanded) 0f else -90f)
+                        )
+                    }
+                }
+            }
+            // Thick divider before add button to show end of list important
+            if (depth > 0 && node.children.isEmpty()) {
+                Divider(
+                    color = MaterialTheme.colorScheme.outline.copy(alpha = 1f),
+                    thickness = 3.2.dp,
+                    modifier = Modifier.padding(start = (getIndentation(depth) + 12).dp)
+                )
+            }
 
             // Expanded content for non-root
             AnimatedVisibility(
@@ -711,8 +798,8 @@ fun UnplannedProjectNodeItem(
                     if (node.children.isNotEmpty()) {
                         // Thicker divider parent → child
                         Divider(
-                            color = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f),
-                            thickness = 1.2.dp,
+                            color = MaterialTheme.colorScheme.outline.copy(alpha = 0.9f),
+                            thickness = 3.2.dp,
                             modifier = Modifier.padding(start = indent + 12.dp)
                         )
 
@@ -723,6 +810,8 @@ fun UnplannedProjectNodeItem(
                             fontWeight = FontWeight.Medium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.padding(start = indent + 12.dp + 12.dp, top = 8.dp, bottom = 8.dp)
+                                .fillMaxWidth(),
+                            textAlign = TextAlign.Center
                         )
                     }
 
@@ -759,22 +848,22 @@ fun UnplannedProjectNodeItem(
                         Box(
                             modifier = Modifier
                                 .padding(start = (getIndentation(depth)).dp)
-                                .width(1.dp)
+                                .width(1.2.dp)
                                 .fillMaxHeight()
-                                .background(MaterialTheme.colorScheme.outline.copy(alpha = 0.1f))
+                                .background(MaterialTheme.colorScheme.outline.copy(alpha = 1f))
                         )
-                        Box(
-                            modifier = Modifier
-                                .padding(start = (getIndentation(depth)).dp, top = 0.dp)
-                                .width(12.dp)
-                                .height(1.dp)
-                                .background(MaterialTheme.colorScheme.outline.copy(alpha = 0.1f))
-                        )
+//                        Box(
+//                            modifier = Modifier
+//                                .padding(start = (getIndentation(depth)).dp, top = 0.dp)
+//                                .width(12.dp)
+//                                .height(1.dp)
+//                                .background(MaterialTheme.colorScheme.outline.copy(alpha = 0.1f))
+//                        )
                         Row(
                             modifier = Modifier
                                 .weight(1f)
-                                .padding(start = 12.dp, top = 8.dp, bottom = 12.dp),
-                            horizontalArrangement = Arrangement.Start
+                              //  .padding(start = 12.dp, top = 8.dp, bottom = 12.dp),
+                          ,  horizontalArrangement = Arrangement.Center
                         ) {
                             TextButton(
                                 onClick = { onAddChild(node.nodeId) },
@@ -782,7 +871,7 @@ fun UnplannedProjectNodeItem(
                             ) {
                                 Icon(Icons.Default.Add, contentDescription = "Add", modifier = Modifier.size(16.dp))
                                 Spacer(modifier = Modifier.width(4.dp))
-                                Text(text = "Add", fontSize = 12.sp)
+                              //  Text(text = "Add", fontSize = 12.sp)
                             }
                         }
                     }
@@ -790,8 +879,8 @@ fun UnplannedProjectNodeItem(
                     // Thick divider after add button
                     if (depth > 0) {
                         Divider(
-                            color = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f),
-                            thickness = 1.2.dp,
+                            color = MaterialTheme.colorScheme.outline.copy(alpha = 1f),
+                            thickness = 3.2.dp,
                             modifier = Modifier.padding(start = (getIndentation(depth) + 12).dp)
                         )
                     }

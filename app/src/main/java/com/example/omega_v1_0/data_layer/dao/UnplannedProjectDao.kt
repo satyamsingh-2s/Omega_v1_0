@@ -86,6 +86,14 @@ WHERE nodeId = :nodeId
 """)
     suspend fun getRecentUsedAccentIndices(): List<Int>
 
+    //--------- getting a simple list not the flow of list for project map ----
+    @Query("""
+        SELECT * 
+        FROM Unplanned_projects
+        ORDER BY sortOrder ASC
+    """)
+    suspend fun getAllNodesOnce(): List<UnplannedProjectEntity>
+
 
 
 }

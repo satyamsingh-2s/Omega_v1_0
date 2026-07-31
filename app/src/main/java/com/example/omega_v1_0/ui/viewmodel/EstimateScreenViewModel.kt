@@ -3,7 +3,7 @@ package com.example.omega_v1_0.ui.viewmodel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.omega_v1_0.data_layer.omega_repository.Omega_Repository
-import com.example.omega_v1_0.estimation.estimateProject
+import com.example.omega_v1_0.omega_engines.estimation_engine.estimateProject
 import com.example.omega_v1_0.models.Complexity
 import com.example.omega_v1_0.models.Experience
 import com.example.omega_v1_0.models.PhaseType

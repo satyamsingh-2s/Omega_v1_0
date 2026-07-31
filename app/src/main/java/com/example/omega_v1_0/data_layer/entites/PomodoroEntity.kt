@@ -2,7 +2,7 @@ package com.example.omega_v1_0.data_layer.entites
 
 import androidx.room.Entity
 import androidx.room.PrimaryKey
-import com.example.omega_v1_0.estimation.pomodoro_engine.PomodoroPhase
+import com.example.omega_v1_0.omega_engines.pomodoro_engine.PomodoroPhase
 
 @Entity(tableName = "pomodoro")
 data class PomodoroEntity(

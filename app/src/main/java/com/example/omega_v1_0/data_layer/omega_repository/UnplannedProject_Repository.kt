@@ -6,6 +6,7 @@ import com.example.omega_v1_0.data_layer.entites.SessionEntity
 import com.example.omega_v1_0.data_layer.entites.UnplannedProjectEntity
 import com.example.omega_v1_0.data_layer.imports.ImportNode
 import com.example.omega_v1_0.data_layer.imports.OmegaImport
+import com.example.omega_v1_0.omega_engines.layout_engine.model.LayoutTreeNode
 import com.example.omega_v1_0.models.SessionType
 import com.example.omega_v1_0.ui.model.UnplannedProjectUiModel
 import com.example.omega_v1_0.ui.theme.AccentPalette
@@ -398,6 +399,71 @@ class UnplannedProjectRepository(
         return 0
     }
 
+    // =============================================================================
+    //----------------- building a lightweight tree for layout ----------------
+    suspend fun getLayoutTree(
+        rootNodeId: Long
+    ): LayoutTreeNode {
+        val nodes =
+            unplannedProjectDao.getAllNodesOnce()
+        return buildLayoutTree(
+            nodes,
+            rootNodeId
+        )
+    }
+
+    private fun buildLayoutTree(
+        nodes: List<UnplannedProjectEntity>,
+        rootNodeId: Long
+    ): LayoutTreeNode {
+
+        // Parent -> Children lookup
+        val childrenByParent =
+            nodes.groupBy {
+                it.parentNodeId
+            }
+
+        val root =
+            nodes.first {
+                it.nodeId == rootNodeId
+            }
+
+        return buildLayoutNode(
+            entity = root,
+            childrenByParent = childrenByParent
+
+        )
+    }
+
+    private fun buildLayoutNode(
+        entity: UnplannedProjectEntity,
+        childrenByParent: Map<Long?, List<UnplannedProjectEntity>>
+
+    ): LayoutTreeNode {
+
+        // Get direct children
+        val childEntities =
+            childrenByParent[entity.nodeId]
+                ?.sortedBy { it.sortOrder }
+                ?: emptyList()
+
+        // Recursively build children
+        val children =
+            childEntities.map {
+                buildLayoutNode(
+                    entity = it,
+                    childrenByParent = childrenByParent
+                )
+            }
+
+        // Return lightweight node
+        return LayoutTreeNode(
+            nodeId = entity.nodeId,
+            children = children
+
+        )
+    }
+// ===========================================================================================
 
 
 }

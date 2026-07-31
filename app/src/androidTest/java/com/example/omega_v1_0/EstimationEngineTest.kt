@@ -1,10 +1,5 @@
 package com.example.omega_v1_0
 
-import com.example.omega_v1_0.estimation.estimateProject
-import com.example.omega_v1_0.models.Complexity
-import com.example.omega_v1_0.models.Experience
-import com.example.omega_v1_0.models.PhaseType
-import com.example.omega_v1_0.models.Scope
 //import kotlin.test.assertEquals
 
 class EstimationEngineTest {

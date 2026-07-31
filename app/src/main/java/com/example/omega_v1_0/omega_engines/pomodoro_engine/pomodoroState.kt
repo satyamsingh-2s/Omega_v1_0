@@ -1,4 +1,4 @@
-package com.example.omega_v1_0.estimation.pomodoro_engine
+package com.example.omega_v1_0.omega_engines.pomodoro_engine
 
 data class PomodoroState(
 

@@ -32,6 +32,9 @@ import com.example.omega_v1_0.ui.deskOmega.getDeskOmegaSkin
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import com.example.omega_v1_0.models.SessionStatus
+import com.example.omega_v1_0.ui.components.common.CircularIconButton
+import com.example.omega_v1_0.ui.theme.StopwatchTextStyle
+import com.example.omega_v1_0.ui.utils.formatDuration
 
 
 //DailyRecordViewModel
@@ -131,7 +134,8 @@ fun DeskOmegaScreen(
             Text(
                 text = formatDuration(stopwatchSeconds),
                 modifier = Modifier.align(Alignment.CenterHorizontally),
-                style = MaterialTheme.typography.displayLarge,
+               // style = MaterialTheme.typography.displayLarge,
+                style = StopwatchTextStyle,
                 color = colors.content
             )
 

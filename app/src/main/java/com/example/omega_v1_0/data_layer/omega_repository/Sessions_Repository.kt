@@ -20,20 +20,34 @@ class SessionRepository(
         expectedDurationMinutes: Int?
 
     ) {
-
         if (
             activeSessionDao.getActiveSession()
             != null
         ) {
-
             throw IllegalStateException(
-
                 "A session is already running."
             )
         }
 
+
         val now =
             System.currentTimeMillis()
+
+        val finalName =
+            if (sessionName.isNullOrBlank()) { // it is naming for session name, if not set by user..
+
+                val sessionCount =
+                    sessionDao.getSessionCountForParent(
+                        parentId = parentId,
+                        parentType = parentType
+                    )
+
+                "Session ${sessionCount + 1}"
+
+            } else {
+                sessionName.trim()
+            }
+
 
         val session = SessionEntity(
             parentId = parentId,
@@ -41,7 +55,7 @@ class SessionRepository(
             startTime = now,
             endTime = null,
             durationSeconds = 0,
-            sessionName = sessionName,
+            sessionName = finalName,
             expectedDurationMinutes = expectedDurationMinutes
         )
         val sessionId = sessionDao.insertSession(session)
@@ -57,34 +71,48 @@ class SessionRepository(
 
     suspend fun stopSession() {
 
-        val activeSession = activeSessionDao.getActiveSession() ?: return
+        val activeSession =
+            activeSessionDao.getActiveSession()
+                ?: throw IllegalStateException(
+                    "No active daily session found."
+                )
+
 
         val now = System.currentTimeMillis()
 
         val runningSeconds =
-            if (activeSession.status == SessionStatus.RUNNING
+            when (activeSession.status) {
 
-            ) {
-                ((now - activeSession.currentStartTime) / 1000).toInt()
-            }
+                SessionStatus.RUNNING -> {
+                    activeSession.accumulatedDurationSeconds +
+                            ((now - activeSession.currentStartTime) / 1000).toInt()
+                }
 
-            else {
-                0
+                SessionStatus.PAUSED -> {
+                    activeSession.accumulatedDurationSeconds
+                }
             }
 
         val totalDuration = activeSession.accumulatedDurationSeconds + runningSeconds
+        if (totalDuration < 90) {
+            sessionDao.deleteSession(sessionDao.getSessionById(activeSession.sessionId).id)
 
-        sessionDao.endSession(
-
-            sessionId = activeSession.sessionId,
-            endTime = now,
-            durationTime = totalDuration
-        )
+        } else {
+            sessionDao.endSession(
+                sessionId = activeSession.sessionId,
+                endTime = now,
+                durationTime = totalDuration
+            )
+        }
         activeSessionDao.clear()
     }
 
     suspend fun pauseSession() {
-        val activeSession = activeSessionDao.getActiveSession() ?: return
+        val activeSession =
+            activeSessionDao.getActiveSession()
+                ?: throw IllegalStateException(
+                    "No active session found."
+                )
 
         if (activeSession.status != SessionStatus.RUNNING
         ) {
@@ -103,7 +131,12 @@ class SessionRepository(
     }
 
     suspend fun resumeSession() {
-        val activeSession = activeSessionDao.getActiveSession() ?: return
+        val activeSession =
+            activeSessionDao.getActiveSession()
+                ?: throw IllegalStateException(
+                    "No active session found."
+                )
+
         if (
             activeSession.status != SessionStatus.PAUSED
         ) {

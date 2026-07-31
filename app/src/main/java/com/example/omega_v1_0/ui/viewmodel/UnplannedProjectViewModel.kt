@@ -28,6 +28,8 @@ class UnplannedProjectViewModel(
     val navigateToSession: SharedFlow<Unit> =
         _navigateToSession.asSharedFlow()
 
+    // this is for focused camera feature to keep track of the tree for the ui
+    private val navigationStack = mutableListOf<Long>()
 
     init {
         Log.d(
@@ -43,8 +45,29 @@ class UnplannedProjectViewModel(
             repository
                 .getUnplannedTree()
                 .collect { tree ->
+
                     _uiState.update {
                         it.copy(tree = tree)
+                    }
+
+                    // refresh current focus
+                    val currentFocusedId =
+                        uiState.value.focusedNode?.nodeId
+
+                    if (currentFocusedId == null) {
+
+                        // No focused node yet
+                        // (we'll handle initial selection in a moment)
+
+                    } else {
+
+                        val refreshedNode =
+                            findNodeById(
+                                currentFocusedId,
+                                tree
+                            )
+
+                        setFocusedNode(refreshedNode)
                     }
                 }
         }
@@ -428,6 +451,7 @@ class UnplannedProjectViewModel(
 
 
     fun onNodeClick( nodeId: Long){
+        focusNode(nodeId)
 
     }
 
@@ -485,6 +509,75 @@ class UnplannedProjectViewModel(
                 expandedNodeIds = updatedSet
             )
         }
+    }
+
+    // --- new feature improvement in ui
+    private fun focusNode(
+        nodeId: Long
+    ) {
+        if (uiState.value.focusedNode?.nodeId == nodeId) {
+            return
+        }
+
+        val node = findNodeById(
+            nodeId,
+            uiState.value.tree
+        ) ?: return
+
+        uiState.value.focusedNode?.let { currentNode ->
+            navigationStack.add(currentNode.nodeId)
+        }
+
+        setFocusedNode(node)
+    }
+
+    // -- it has time complexity O(n) TODO -- improve time complexity
+    private fun findNodeById(
+        nodeId: Long,
+        nodes: List<UnplannedProjectUiModel>
+    ): UnplannedProjectUiModel? {
+
+        for (node in nodes) {
+            if (node.nodeId == nodeId) {
+                return node
+            }
+            val found = findNodeById(
+                nodeId,
+                node.children
+            )
+            if (found != null) {
+                return found
+            }
+        }
+
+        return null
+    }
+
+    private fun setFocusedNode(
+        node: UnplannedProjectUiModel?
+    ) {
+        _uiState.update {
+            it.copy(
+                focusedNode = node,
+                visibleChildren = node?.children ?: emptyList(),
+                canNavigateBack = navigationStack.isNotEmpty()
+            )
+        }
+    }
+
+    fun navigateBack() {
+
+        val previousNodeId =
+            navigationStack.removeLastOrNull()
+                ?: return
+
+        val previousNode =
+            findNodeById(
+                previousNodeId,
+                uiState.value.tree
+            )
+
+        setFocusedNode(previousNode)
     }
 
 

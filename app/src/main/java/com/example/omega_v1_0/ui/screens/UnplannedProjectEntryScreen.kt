@@ -29,6 +29,7 @@ import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.omega_v1_0.ui.components.OmegaScreen
 import com.example.omega_v1_0.ui.navigation.Screen
 import com.example.omega_v1_0.ui.utils.OmegaJsonParser
 import com.example.omega_v1_0.ui.utils.OmegaPrompts
@@ -63,14 +64,14 @@ fun UnplannedProjectEntryScreen(
 
     ) { padding ->
 
-        Column(
-            modifier = Modifier
-                .padding(padding)
-                .padding(24.dp)
-                .fillMaxSize(),
-            verticalArrangement = Arrangement.spacedBy(20.dp)
+            Column(
+                modifier = Modifier
+                    .padding(padding)
+                    .padding(24.dp)
+                    .fillMaxSize(),
+                verticalArrangement = Arrangement.spacedBy(20.dp)
 
-        ) {
+            ) {
 
                 Text(
 
@@ -148,9 +149,7 @@ fun UnplannedProjectEntryScreen(
                                 viewModel.importWorkspace(omegaImport)
                                 navigateToWorkspace()
                             }
-                        }
-
-                        else {
+                        } else {
                             scope.launch {
                                 snackbarHostState.showSnackbar(
                                     "Invalid JSON"
@@ -160,7 +159,7 @@ fun UnplannedProjectEntryScreen(
                     }
 
                 )
-                 {
+                {
 
                     Text("Generate Workspace")
                 }
@@ -179,6 +178,6 @@ fun UnplannedProjectEntryScreen(
                     Text("Skip & Create Manually")
                 }
 
-        }
+            }
     }
 }

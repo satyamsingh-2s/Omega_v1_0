@@ -13,14 +13,20 @@ import com.example.omega_v1_0.models.Experience
 import com.example.omega_v1_0.models.PhaseType
 import com.example.omega_v1_0.models.SessionType
 import com.example.omega_v1_0.data_layer.dao.DailyRecordDao
+import com.example.omega_v1_0.data_layer.dao.PomodoroDao
 import com.example.omega_v1_0.data_layer.dao.ToDoListDao
 import com.example.omega_v1_0.data_layer.dao.UnplannedProjectDao
 import com.example.omega_v1_0.data_layer.entites.ActiveBreakEntity
 import com.example.omega_v1_0.data_layer.entites.ActiveSessionEntity
+import com.example.omega_v1_0.data_layer.entites.PomodoroEntity
 import com.example.omega_v1_0.data_layer.entites.ToDoListEntity
 import com.example.omega_v1_0.data_layer.imports.OmegaImport
+import com.example.omega_v1_0.omega_engines.pomodoro_engine.PomodoroConfig
+import com.example.omega_v1_0.omega_engines.pomodoro_engine.PomodoroState
 import com.example.omega_v1_0.models.SessionStatus
+import com.example.omega_v1_0.models.SessionStatusBarModel
 import com.example.omega_v1_0.models.TodoCategory
+import com.example.omega_v1_0.settings.repository.SettingsRepository
 import com.example.omega_v1_0.ui.model.DailyRecordHistoryUiModel
 import com.example.omega_v1_0.ui.model.DailyRecordSessionDetailsUiModel
 import com.example.omega_v1_0.ui.model.ToDoListUiModel
@@ -40,11 +46,17 @@ class Omega_Repository (
     private val activeSessionDao: ActiveSessionDao,
     private val todolistDao: ToDoListDao,
     private val activeBreakDao: ActiveBreakDao,
-    private val unplannedProjectDao: UnplannedProjectDao
-){
+    private val unplannedProjectDao: UnplannedProjectDao,
+    private val pomodoroDao: PomodoroDao,
+    private val settingsRepository: SettingsRepository,
+    private val sessionStatusBarRepository: SessionStatusBarRepository
+
+    ){
 
     private val sessionRepository = SessionRepository(sessionDao,activeSessionDao)
     private val unplannedProjectRepository = UnplannedProjectRepository(unplannedProjectDao, sessionDao)
+    private val pomodoroRepository = PomodoroRepository(pomodoroDao)
+
 
     // ----- project related operations -----
 
@@ -840,6 +852,86 @@ fun getAllToDoItems(category: TodoCategory
 
     fun clearSelectedNode() {
         selectedNodeId = null
+    }
+
+    // ------------------------- Pomodor Section -----------------------------
+    suspend fun savePomodoroRuntime(
+        state: PomodoroState,
+        config: PomodoroConfig,
+        startedAt: Long
+    ) {
+        pomodoroRepository.saveRuntime(
+            state,
+            config,
+            startedAt
+        )
+    }
+
+    suspend fun getPomodoroRuntime(): PomodoroEntity? {
+        return pomodoroRepository.getRuntime()
+    }
+
+    suspend fun getPomodoroRuntimeState(): PomodoroState? {
+        return pomodoroRepository.getRuntimeState()
+    }
+
+    suspend fun getPomodoroRuntimeConfig(): PomodoroConfig? {
+        return pomodoroRepository.getRuntimeConfig()
+    }
+
+    suspend fun deletePomodoroRuntime() {
+        pomodoroRepository.deleteRuntime()
+    }
+
+    // ***********************************************************************
+    // ------------------------- Settings -----------------------------
+
+    fun getPomodoroConfig(): PomodoroConfig {
+        return settingsRepository.getPomodoroConfig()
+    }
+
+    fun savePomodoroConfig(
+        config: PomodoroConfig
+    ) {
+        settingsRepository.savePomodoroConfig(config)
+    }
+
+    fun resetPomodoroDefaults() {
+        settingsRepository.resetPomodoroDefaults()
+    }
+
+    //---- here mapping the dailyrecordhistory ui state and dailyrecord history table data
+    fun getUnplannedProjectHistory():
+            Flow<List<DailyRecordHistoryUiModel>> {
+
+        return dailyRecordDao
+            .getAllRecords()
+            .map { records ->
+
+                records.map { record ->
+
+                    DailyRecordHistoryUiModel(
+
+                        recordId = record.id,
+
+                        recordDate = record.recordDate,
+
+                        totalDurationSeconds =
+                            record.totalDurationSeconds,
+
+                        totalSessionCount =
+                            record.totalSessionCount,
+
+                        totalbreakseconds = record.totalBreakSeconds
+                    )
+                }
+            }
+    }
+
+    // ----------------------------------------------------------------------------
+    //--------------- SessionStatusBottomBar -----------------------------
+    fun getSessionStatusBar(): Flow<SessionStatusBarModel?> {
+        return sessionStatusBarRepository.getSessionStatusBar()
     }
 
 }

@@ -1,4 +1,4 @@
-package com.example.omega_v1_0.estimation.pomodoro_engine
+package com.example.omega_v1_0.omega_engines.pomodoro_engine
 
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -13,9 +13,13 @@ import kotlinx.coroutines.launch
 
 class PomodoroEngine(
 
-    private val config: PomodoroConfig,
+    private var config: PomodoroConfig,
     private val onStateChanged: (PomodoroState) -> Unit,
-    private val onEvent: (PomodoroEvent) -> Unit
+    private val onEvent: (
+        PomodoroEvent,
+        PomodoroState,
+        PomodoroConfig
+    ) -> Unit
 ) {
 
     private var state = PomodoroState(
@@ -28,6 +32,10 @@ class PomodoroEngine(
 
     val isEnabled: Boolean // this isEnabled is used in viewmodel
         get() = state.isEnabled  // state.isEnabled -> is taking value from above
+
+//    fun getCurrentState(): PomodoroState = state
+// --------- no need this two function, as these value get travelled by paraments to viemodel in event
+//    fun getCurrentConfig(): PomodoroConfig = config
 
     // ---- coroutine scope ---- or -- it's own lifecycle ----
     private val scope = CoroutineScope(
@@ -55,7 +63,10 @@ class PomodoroEngine(
                             .coerceAtLeast(0)
                 )
                 onStateChanged(state)
-                onEvent(PomodoroEvent.Tick)
+                onEvent(
+                    PomodoroEvent.Tick,
+                    state,
+                    config)
 
                 // --- if ticker == 0, now transition to next phase
                 if (state.remainingSeconds == 0) {
@@ -73,7 +84,7 @@ class PomodoroEngine(
             isRunning = true
         )
         onStateChanged(state)
-        onEvent(PomodoroEvent.WorkStarted)
+        onEvent(PomodoroEvent.WorkStarted, state, config)
 
         startTicker()
     }
@@ -131,22 +142,22 @@ class PomodoroEngine(
 
                 if (completedCycles >= config.workCyclesBeforeLongBreak) {
 
-                    onEvent(PomodoroEvent.WorkCompleted)
-                    onEvent(PomodoroEvent.LongBreakStarted)
+                    onEvent(PomodoroEvent.WorkCompleted,state,config)
+                    onEvent(PomodoroEvent.LongBreakStarted,state,config)
                     startLongBreak()
 
                 } else {
 
-                    onEvent(PomodoroEvent.WorkCompleted)
-                    onEvent(PomodoroEvent.ShortBreakStarted)
+                    onEvent(PomodoroEvent.WorkCompleted,state,config)
+                    onEvent(PomodoroEvent.ShortBreakStarted,state,config)
                     startShortBreak()
                 }
             }
 
             PomodoroPhase.SHORT_BREAK -> {
 
-                onEvent(PomodoroEvent.BreakCompleted)
-                onEvent(PomodoroEvent.WorkStarted)
+                onEvent(PomodoroEvent.BreakCompleted,state,config)
+                onEvent(PomodoroEvent.WorkStarted,state,config)
                 startWork()
             }
 
@@ -155,8 +166,8 @@ class PomodoroEngine(
                     completedWorkCycles = 0
                 )
 
-                onEvent(PomodoroEvent.BreakCompleted)
-                onEvent(PomodoroEvent.WorkStarted)
+                onEvent(PomodoroEvent.BreakCompleted,state,config)
+                onEvent(PomodoroEvent.WorkStarted,state,config)
                 startWork()
             }
         }
@@ -199,9 +210,9 @@ class PomodoroEngine(
 
             PomodoroPhase.SHORT_BREAK,
             PomodoroPhase.LONG_BREAK -> {
-                onEvent(PomodoroEvent.BreakSkipped)
-                onEvent(PomodoroEvent.BreakCompleted)
-                onEvent(PomodoroEvent.WorkStarted)
+                onEvent(PomodoroEvent.BreakSkipped,state,config)
+                onEvent(PomodoroEvent.BreakCompleted,state,config)
+                onEvent(PomodoroEvent.WorkStarted,state,config)
                 startWork()
             }
             PomodoroPhase.WORK -> {
@@ -211,26 +222,16 @@ class PomodoroEngine(
     }
 
     fun restoreState(
-        phase: PomodoroPhase,
-        remainingSeconds: Int,
-        completedWorkCycles: Int,
-        isRunning: Boolean
+        state: PomodoroState,
+        config: PomodoroConfig
+
     ) {
-
         tickerJob?.cancel()
-        // it cacencls the ticker to make sure no two coroutine ticker run simulatenously
-
-        state = PomodoroState(
-            phase = phase,
-            remainingSeconds = remainingSeconds,
-            completedWorkCycles = completedWorkCycles,
-            isRunning = isRunning,
-            isEnabled = true
-        )
-
+        this.config = config
+        this.state = state
         onStateChanged(state)
 
-        if (isRunning) {
+        if (state.isRunning) {
             startTicker()
         }
     }
