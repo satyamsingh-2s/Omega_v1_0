@@ -1,7 +1,11 @@
 package com.example.omega_v1_0.ui.screens
 
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.PickVisualMediaRequest
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -43,6 +47,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -55,6 +60,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.omega_v1_0.models.RevisionNoteItem
 import com.example.omega_v1_0.omega_engines.pomodoro_engine.PomodoroPhase
 import com.example.omega_v1_0.omega_engines.pomodoro_engine.PomodoroState
 import com.example.omega_v1_0.models.SessionStatus
@@ -64,10 +70,15 @@ import com.example.omega_v1_0.ui.components.PomodoroCardStyle
 import com.example.omega_v1_0.ui.components.SessionControlCard
 import com.example.omega_v1_0.ui.components.SessionControlCardStyle
 import com.example.omega_v1_0.ui.components.common.CircularIconButton
+import com.example.omega_v1_0.ui.components.dialogs.RevisionNoteEditorDialog
+import com.example.omega_v1_0.ui.components.dialogs.RevisionNoteViewerDialog
+import com.example.omega_v1_0.ui.components.revision_notes.RevisionHistoryPanel
+import com.example.omega_v1_0.ui.model.RevisionNoteMenuAction
 import com.example.omega_v1_0.ui.model.ToDoListUiModel
 import com.example.omega_v1_0.ui.model.UnplannedProjectRecentSessionUiModel
 import com.example.omega_v1_0.ui.theme.StopwatchTextStyle
 import com.example.omega_v1_0.ui.utils.formatDuration
+import com.example.omega_v1_0.ui.viewmodel.RevisionNoteViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -107,6 +118,8 @@ fun UnplannedProjectSessionScreen(
     selectedTodoCategory: TodoCategory = TodoCategory.TODAY,
     onTodoCategoryChanged: (TodoCategory) -> Unit = {},
 
+    revisionNoteViewModel: RevisionNoteViewModel,
+
 
     //----------------
     navigateToDeskOmega: () -> Unit = {},
@@ -121,6 +134,36 @@ fun UnplannedProjectSessionScreen(
     var showFocusSheet by remember {
         mutableStateOf(false)
     }
+
+    // --- notes ui state  -----------
+    var showNotesSheet by remember {
+        mutableStateOf(false)
+    }
+    var selectedRevisionNote by remember {
+        mutableStateOf<RevisionNoteItem?>(null)
+    }
+    var showRevisionEditor by remember {
+        mutableStateOf(false)
+    }
+    val revisionNoteUiState by
+    revisionNoteViewModel.uiState.collectAsState()
+    val revisionNotes by
+    revisionNoteViewModel.revisionNotes.collectAsState()
+
+    // for photopicker api -- it is the launcher for photopicker
+    val photoPickerLauncher =
+        rememberLauncherForActivityResult(
+            contract = ActivityResultContracts.PickVisualMedia()
+        ) { uri ->
+
+            uri?.let {
+
+                revisionNoteViewModel.addAttachment(
+                    it.toString()
+                )
+            }
+        }
+
 
     val todayTasksLeft =
         if (selectedTodoCategory == TodoCategory.TODAY) {
@@ -448,22 +491,33 @@ fun UnplannedProjectSessionScreen(
 
             // zone for utitlity buttons
             Row(
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier
+                    .fillMaxWidth()
                     .weight(0.04f),
-                horizontalArrangement = Arrangement.SpaceBetween
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                Box(
-                    modifier = Modifier.weight(1f).height(40.dp),
-                    contentAlignment = Alignment.CenterEnd
-                ) {
-                    Button(
-                        onClick = { showFocusSheet = true }
-                    ) {
-                        if (selectedTodoCategory == TodoCategory.TODAY)
-                            Text("TODY [ $todayTasksLeft ]")
-                        if (selectedTodoCategory == TodoCategory.FUTURE)
-                            Text("FUTY [ $futureTasksLeft ]")
+
+                Button(
+                    modifier = Modifier.weight(1f),
+                    onClick = {
+                        showNotesSheet = true
                     }
+                ) {
+                    Text("Notes")
+                }
+
+                Button(
+                    modifier = Modifier.weight(1f),
+                    onClick = {
+                        showFocusSheet = true
+                    }
+                ) {
+
+                    if (selectedTodoCategory == TodoCategory.TODAY)
+                        Text("TODY [ $todayTasksLeft ]")
+
+                    if (selectedTodoCategory == TodoCategory.FUTURE)
+                        Text("FUTY [ $futureTasksLeft ]")
                 }
             }
             Column(
@@ -531,7 +585,13 @@ fun UnplannedProjectSessionScreen(
                                     modifier = Modifier.width(groupWidth)
                                 ) {
                                     sessionGroup.forEach { session ->
-                                        UnplannedRecentSessionItem(session = session)
+                                        UnplannedRecentSessionItem(session = session,
+                                            onLongClick = { selectedSession ->
+                                                revisionNoteViewModel.loadRevisionNote(
+                                                    selectedSession.id
+                                                )
+                                                showRevisionEditor = true
+                                            })
                                     }
                                 }
                             }
@@ -687,17 +747,122 @@ fun UnplannedProjectSessionScreen(
             }
         }
     }
+
+    if (showNotesSheet) {
+
+        ModalBottomSheet(
+            onDismissRequest = {
+                showNotesSheet = false
+            }
+        ) {
+
+            RevisionHistoryPanel(
+                //notes = revisionNotes,
+                notes = revisionNotes,
+                onNoteClick = {
+                    revisionNoteViewModel.loadRevisionNote(
+                        it.sessionId
+                    )
+                    selectedRevisionNote = it
+                }
+            )
+        }
+
+    }
+
+    selectedRevisionNote?.let { note ->
+        RevisionNoteViewerDialog(
+
+            note = note,
+
+            attachments = revisionNoteUiState.attachments,
+
+            onEdit = {
+
+                selectedRevisionNote = null
+
+                showRevisionEditor = true
+            },
+
+            onDismiss = {
+
+                selectedRevisionNote = null
+            }
+        )
+
+    }
+    if (showRevisionEditor) {
+
+        RevisionNoteEditorDialog(
+
+            summary = revisionNoteUiState.summary,
+
+            attachments = revisionNoteUiState.attachments,
+
+            onSummaryChange =
+                revisionNoteViewModel::onSummaryChanged,
+
+            onSave = {
+
+                revisionNoteViewModel.saveRevisionNote {
+
+                    showRevisionEditor = false
+
+                    revisionNoteViewModel.clear()
+                }
+
+            },
+
+            onDismiss = {
+
+                showRevisionEditor = false
+
+                revisionNoteViewModel.clear()
+            },
+            onMenuAction = { action ->
+                when (action) {
+                    RevisionNoteMenuAction.ADD_IMAGE -> {
+
+                        photoPickerLauncher.launch(
+                            PickVisualMediaRequest(
+                                ActivityResultContracts.PickVisualMedia.ImageOnly
+                            )
+                        )
+                    }
+                }
+            },
+            onDeleteAttachment = { attachmentId ->
+
+                revisionNoteViewModel.deleteAttachment(
+                    attachmentId
+                )
+            },
+
+
+        )
+
+    }
+
 }
 
 
 @Composable
 fun UnplannedRecentSessionItem(
-    session: UnplannedProjectRecentSessionUiModel
+    session: UnplannedProjectRecentSessionUiModel,
+    onLongClick: (UnplannedProjectRecentSessionUiModel) -> Unit
 ) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(0.dp, 3.dp, 0.dp, 0.dp),
+            .padding(top = 3.dp)
+            .combinedClickable(
+                onClick = {
+                    // Reserved for future
+                },
+                onLongClick = {
+                    onLongClick(session)
+                }
+            ),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -717,104 +882,105 @@ fun UnplannedRecentSessionItem(
 }
 
 
-@Preview(
-    showBackground = true,
-    showSystemUi = true
-)
-@Composable
-private fun UnplannedProjectSessionScreenPreview() {
-        UnplannedProjectSessionScreen(
-
-            // ---------- Header ----------
-            projectName = "Omega v1.1",
-
-            breadcrumb =
-                "Android > Data Layer > Repository",
-
-            // ---------- Progress ----------
-            currentDurationSeconds = 29460,      // 08:11:00
-
-            expectedDurationSeconds = 43200,     // 12:00:00
-
-            totalSessions = 18,
-
-            // ---------- Session ----------
-            sessionName = "",
-
-            activeSessionName = "Implement Session Screen",
-
-            onSessionNameChanged = {},
-
-            // ---------- Stopwatch ----------
-            sessionStatus = SessionStatus.RUNNING,
-
-            stopwatchSeconds = 2538,             // 00:42:18
-
-            // ---------- Controls ----------
-            onPauseSession = {},
-
-            onResumeSession = {},
-
-            onStopSession = {},
-
-            // ---------- Recent Sessions ----------
-            recentSessions = listOf(
-
-                UnplannedProjectRecentSessionUiModel(
-                    id = 1,
-                    sessionName = "Repository Refactor",
-                    durationSeconds = 3600
-                ),
-
-                UnplannedProjectRecentSessionUiModel(
-                    id = 2,
-                    sessionName = "Tree Traversal",
-                    durationSeconds = 2700
-                ),
-
-                UnplannedProjectRecentSessionUiModel(
-                    id = 3,
-                    sessionName = "Session Screen UI",
-                    durationSeconds = 1800
-                ),
-
-                UnplannedProjectRecentSessionUiModel(
-                    id = 4,
-                    sessionName = "ViewModel",
-                    durationSeconds = 4200
-                ),
-
-                UnplannedProjectRecentSessionUiModel(
-                    id = 5,
-                    sessionName = "Navigation",
-                    durationSeconds = 2400
-                ),
-
-                UnplannedProjectRecentSessionUiModel(
-                    id = 6,
-                    sessionName = "Repository Testing",
-                    durationSeconds = 3000
-                )
-            ),
-
-            // ---------- Navigation ----------
-            onBack = {},
-
-            onStatsClick = {},
-            onStartSession = {},
-            pomodoroState = PomodoroState(
-
-                phase = PomodoroPhase.WORK,
-                remainingSeconds = 25 * 60,
-                completedWorkCycles = 2,
-                isRunning = true,
-                isEnabled = false
-            ),
-            workCyclesBeforeLongBreak = 4,
-            onSkipBreak = {},
-            selectedDurationMinutes = null,
-            onDurationSelected = {}
-
-
-        )
-    }
+//@Preview(
+//    showBackground = true,
+//    showSystemUi = true
+//)
+//@Composable
+//private fun UnplannedProjectSessionScreenPreview() {
+//        UnplannedProjectSessionScreen(
+//
+//            // ---------- Header ----------
+//            projectName = "Omega v1.1",
+//
+//            breadcrumb =
+//                "Android > Data Layer > Repository",
+//
+//            // ---------- Progress ----------
+//            currentDurationSeconds = 29460,      // 08:11:00
+//
+//            expectedDurationSeconds = 43200,     // 12:00:00
+//
+//            totalSessions = 18,
+//
+//            // ---------- Session ----------
+//            sessionName = "",
+//
+//            activeSessionName = "Implement Session Screen",
+//
+//            onSessionNameChanged = {},
+//
+//            // ---------- Stopwatch ----------
+//            sessionStatus = SessionStatus.RUNNING,
+//
+//            stopwatchSeconds = 2538,             // 00:42:18
+//
+//            // ---------- Controls ----------
+//            onPauseSession = {},
+//
+//            onResumeSession = {},
+//
+//            onStopSession = {},
+//
+//            // ---------- Recent Sessions ----------
+//            recentSessions = listOf(
+//
+//                UnplannedProjectRecentSessionUiModel(
+//                    id = 1,
+//                    sessionName = "Repository Refactor",
+//                    durationSeconds = 3600
+//                ),
+//
+//                UnplannedProjectRecentSessionUiModel(
+//                    id = 2,
+//                    sessionName = "Tree Traversal",
+//                    durationSeconds = 2700
+//                ),
+//
+//                UnplannedProjectRecentSessionUiModel(
+//                    id = 3,
+//                    sessionName = "Session Screen UI",
+//                    durationSeconds = 1800
+//                ),
+//
+//                UnplannedProjectRecentSessionUiModel(
+//                    id = 4,
+//                    sessionName = "ViewModel",
+//                    durationSeconds = 4200
+//                ),
+//
+//                UnplannedProjectRecentSessionUiModel(
+//                    id = 5,
+//                    sessionName = "Navigation",
+//                    durationSeconds = 2400
+//                ),
+//
+//                UnplannedProjectRecentSessionUiModel(
+//                    id = 6,
+//                    sessionName = "Repository Testing",
+//                    durationSeconds = 3000
+//                )
+//            ),
+//
+//            // ---------- Navigation ----------
+//            onBack = {},
+//
+//            onStatsClick = {},
+//            onStartSession = {},
+//            pomodoroState = PomodoroState(
+//
+//                phase = PomodoroPhase.WORK,
+//                remainingSeconds = 25 * 60,
+//                completedWorkCycles = 2,
+//                isRunning = true,
+//                isEnabled = false
+//            ),
+//            workCyclesBeforeLongBreak = 4,
+//            onSkipBreak = {},
+//            selectedDurationMinutes = null,
+//            onDurationSelected = {},
+//         //   revisionNoteViewModel = {}
+//
+//
+//        )
+//    }

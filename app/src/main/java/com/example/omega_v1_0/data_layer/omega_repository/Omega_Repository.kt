@@ -756,8 +756,11 @@ fun getAllToDoItems(category: TodoCategory
         )
     }
 
-    suspend fun stopUnplannedSession() {
+    suspend fun stopUnplannedSession():Long? {
         sessionRepository.stopSession()
+        val sessionid = getActiveSession()?.id
+
+        return sessionid
     }
 
     suspend fun pauseUnplannedSession() {

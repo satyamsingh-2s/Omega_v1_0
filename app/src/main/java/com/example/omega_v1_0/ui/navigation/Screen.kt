@@ -34,6 +34,8 @@ sealed class Screen(val route:String) {
     object DailyRecord : Screen("daily_record")
 
     object DeskOmega : Screen("desk_omega")
+    //- for the navigation to deskomega without seeing flash (a logic for ui)
+    object DeskOmegaRouter : Screen("desk_omega_launcher")
 
     object DailyRecordHistory : Screen("daily_record_history/{recordId}")
 

@@ -80,6 +80,7 @@ import com.example.omega_v1_0.ui.theme.OmegaRedTheme
 import com.example.omega_v1_0.ui.theme.StopwatchTextStyle
 import com.example.omega_v1_0.ui.utils.formatDuration
 
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DailyRecordScreen(

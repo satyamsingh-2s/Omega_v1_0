@@ -19,8 +19,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
-import androidx.compose.material.icons.filled.Stop
-import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -33,6 +31,7 @@ import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import com.example.omega_v1_0.models.SessionStatus
 import com.example.omega_v1_0.ui.components.common.CircularIconButton
+import com.example.omega_v1_0.ui.model.DeskOmegaUiModel
 import com.example.omega_v1_0.ui.theme.StopwatchTextStyle
 import com.example.omega_v1_0.ui.utils.formatDuration
 
@@ -46,15 +45,10 @@ import com.example.omega_v1_0.ui.utils.formatDuration
 @Composable
 fun DeskOmegaScreen(
 
-    stopwatchSeconds: Int,
-
-    activeSessionName: String?,
-
-    expectedDurationMinutes: Int?,
-    sessionStatus: SessionStatus?,
+    uiModel: DeskOmegaUiModel,
     onPauseSession: () -> Unit,
     onResumeSession: () -> Unit,
-
+    onBack: () -> Unit,
     skin: DeskOmegaSkin
 
 ) {
@@ -114,16 +108,23 @@ fun DeskOmegaScreen(
         ) {
             // Session Name
             Text(
-                text = activeSessionName ?: "Session",
+                text = uiModel.title ,
+                style = MaterialTheme.typography.headlineMedium,
+                color = colors.content
+            )
+            Spacer(modifier = Modifier.height(36.dp))
+            // Session Name
+            Text(
+                text = uiModel.subtitle ?: "Session",
                 style = MaterialTheme.typography.headlineSmall.copy(fontSize = 15.sp),
                 color = colors.content
             )
 
             // Expected Duration
-            expectedDurationMinutes?.let {
+            uiModel.expectedDurationSeconds?.let {
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
-                    text = "exp. ${it}m",
+                    text = formatDuration(it),
                     style = MaterialTheme.typography.headlineSmall,
                     color = colors.secondary,
                     modifier = Modifier.align(Alignment.CenterHorizontally)
@@ -132,7 +133,7 @@ fun DeskOmegaScreen(
             // Stopwatch
             Spacer(modifier = Modifier.height(36.dp))
             Text(
-                text = formatDuration(stopwatchSeconds),
+                text = formatDuration(uiModel.stopwatchSeconds),
                 modifier = Modifier.align(Alignment.CenterHorizontally),
                // style = MaterialTheme.typography.displayLarge,
                 style = StopwatchTextStyle,
@@ -146,7 +147,7 @@ fun DeskOmegaScreen(
             Surface(modifier = Modifier.align(Alignment.CenterHorizontally),
                 color = colors.background)
             {
-                when (sessionStatus) {
+                when (uiModel.sessionStatus) {
                     null -> {
                         Log.d("DeskOmegaScreen", "Session status is null")
                     }

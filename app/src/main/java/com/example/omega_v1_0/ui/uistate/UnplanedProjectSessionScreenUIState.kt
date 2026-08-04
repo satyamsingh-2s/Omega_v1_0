@@ -40,6 +40,8 @@ data class UnplannedProjectSessionScreenUiState(
     val pomodoroState: PomodoroState? = null,
     val workCyclesBeforeLongBreak: Int = 4,
 
+    val workingNodeId: Long? = null,
+
     // -------- for future -------
     val runningNodeId: Long? = null
 )

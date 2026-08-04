@@ -57,4 +57,8 @@ data class UnplannedProjectUiState (
     val visibleChildren: List<UnplannedProjectUiModel> = emptyList(),
     val canNavigateBack: Boolean = false,
 
+    // ---- for the notes feature
+    val revisionNoteSummary: String = "",
+    val workingNodeId: Long? =null,
+
 )

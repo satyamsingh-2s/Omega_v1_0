@@ -5,6 +5,8 @@ import androidx.room.Room
 import com.example.omega_v1_0.data_layer.database.OmegaDatabase
 import com.example.omega_v1_0.data_layer.database.migrations.MIGRATION_6_7
 import com.example.omega_v1_0.data_layer.database.migrations.MIGRATION_7_8
+import com.example.omega_v1_0.data_layer.database.migrations.MIGRATION_8_9
+import com.example.omega_v1_0.data_layer.database.migrations.MIGRATION_9_10
 
 object DatabaseProvider {
 
@@ -19,7 +21,9 @@ object DatabaseProvider {
                 "omega_db"
             )
                 .addMigrations(MIGRATION_6_7,
-                    MIGRATION_7_8
+                    MIGRATION_7_8,
+                    MIGRATION_8_9,
+                    MIGRATION_9_10
                 )
                 .build()
             INSTANCE = instance

@@ -1,19 +1,16 @@
 package com.example.omega_v1_0.ui.navigation
 
 import android.Manifest
-import android.os.Build
 import android.util.Log
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.annotation.RequiresApi
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -21,7 +18,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
@@ -30,8 +26,11 @@ import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
 import androidx.navigation.NavType
 import androidx.navigation.compose.currentBackStackEntryAsState
+import com.example.omega_v1_0.core.storage.LocalFileStorageManager
 import com.example.omega_v1_0.data_layer.database.DatabaseProvider
 import com.example.omega_v1_0.data_layer.omega_repository.Omega_Repository
+import com.example.omega_v1_0.data_layer.omega_repository.SessionNoteAttachmentRepository
+import com.example.omega_v1_0.data_layer.omega_repository.SessionNoteRepository
 import com.example.omega_v1_0.data_layer.omega_repository.SessionStatusBarRepository
 import com.example.omega_v1_0.data_layer.pemissions.OmegaPermissionManager
 import com.example.omega_v1_0.models.Experience
@@ -48,7 +47,6 @@ import com.example.omega_v1_0.ui.screens.PhaseTimerScreen
 import com.example.omega_v1_0.ui.screens.ProjectDashboardScreen
 import com.example.omega_v1_0.ui.screens.UnplannedProjectScreen
 import com.example.omega_v1_0.ui.screens.UnplannedProjectEntryScreen
-import com.example.omega_v1_0.ui.theme.OmegaDarkTheme
 import com.example.omega_v1_0.ui.viewmodel.CreateProjectViewModel
 import com.example.omega_v1_0.ui.viewmodel.DailyRecordDetailsViewModel
 import com.example.omega_v1_0.ui.viewmodel.DailyRecordHistoryViewModel
@@ -67,6 +65,9 @@ import com.example.omega_v1_0.ui.viewmodel.UnplannedProjectSessionViewModel
 import com.example.omega_v1_0.settings.repository.SettingsRepository
 import com.example.omega_v1_0.ui.components.SessionStatusBar
 import com.example.omega_v1_0.ui.components.SessionStatusBarViewModel
+import com.example.omega_v1_0.ui.model.DeskOmegaUiModel
+import com.example.omega_v1_0.ui.viewmodel.DeskOmegaViewModel
+import com.example.omega_v1_0.ui.viewmodel.RevisionNoteViewModel
 
 /**
  * NavHost = container
@@ -103,6 +104,12 @@ fun OmegaNavGraph(
 
         val context = LocalContext.current
 
+        val localFileStorageManager = remember {
+            LocalFileStorageManager(
+                context.applicationContext
+            )
+        }
+
         val db = remember { DatabaseProvider.getDatabase(context) }
 
         val settingsRepository = remember {
@@ -119,6 +126,18 @@ fun OmegaNavGraph(
                 dailyRecordDao = db.DailyRecordDao()
             )
         }
+        val sessionNoteRepository = remember {
+            SessionNoteRepository(
+                db.sessionNoteDao()
+            )
+        }
+
+        val sessionNoteAttachmentRepository = remember {
+            SessionNoteAttachmentRepository(
+                db.sessionNoteAttachmentDao(),
+                localFileStorageManager = localFileStorageManager
+            )
+        }
 
         val repository = remember {
             Omega_Repository(
@@ -132,7 +151,7 @@ fun OmegaNavGraph(
                 unplannedProjectDao = db.UnplannedProjectDao(),
                 pomodoroDao = db.pomodoroDao(),
                 settingsRepository = settingsRepository,
-                sessionStatusBarRepository = sessionStatusBarRepository
+                sessionStatusBarRepository = sessionStatusBarRepository,
 
             )
         }
@@ -178,7 +197,7 @@ fun OmegaNavGraph(
         }
 
         // this viewmodel is created for the 2 screen,1. for dailyrecordscreen 2. deskomegascreen
-        val viewModel = remember {
+        val dailyrecordviewModel = remember {
             DailyRecordViewModel(repository, omegaNotificationManager)
         }
 
@@ -583,10 +602,9 @@ fun OmegaNavGraph(
 
                 // -------------------- DailyRecordScreen part ------------------
                 composable(Screen.DailyRecord.route) {
-                    // --- the creating repository part is done on top, so we don't have to create multiple times
+                    // --- the creating repository part is done on top, so we don't have to create multiple time
 
-
-                    val uiState by viewModel.uiState.collectAsState()
+                    val uiState by dailyrecordviewModel.uiState.collectAsState()
 
                     val toDoListViewModel = remember {
                         ToDoListViewModel(repository)
@@ -613,9 +631,9 @@ fun OmegaNavGraph(
 
 
                     LaunchedEffect(Unit) {
-                        viewModel.syncActiveSession()
-                        viewModel.loadTodaysTotal()
-                        viewModel.loadRecentSessions()
+                        dailyrecordviewModel.syncActiveSession()
+                        dailyrecordviewModel.loadTodaysTotal()
+                        dailyrecordviewModel.loadRecentSessions()
 
                     }
 
@@ -624,19 +642,19 @@ fun OmegaNavGraph(
                         sessionName = uiState.sessionNameInput,
                         activeSessionName = uiState.activeSessionName,
                         onEstimateSelected =
-                            viewModel::onEstimateSelected,
+                            dailyrecordviewModel::onEstimateSelected,
                         selectedEstimateMinutes =
                             uiState.selectedEstimateMinutes,
                         onSessionNameChange =
-                            viewModel::onSessionNameChanged,
+                            dailyrecordviewModel::onSessionNameChanged,
 //               // onExpectedDurationChange =
 //                    viewModel::onExpectedDurationChanged,
                         onStartSession =
-                            viewModel::startSession,
+                            dailyrecordviewModel::startSession,
                         sessionStatus = uiState.sessionStatus,
-                        onPauseSession = viewModel::pauseSession,
-                        onResumeSession = viewModel::resumeSession,
-                        onStopSession = viewModel::stopSession,
+                        onPauseSession = dailyrecordviewModel::pauseSession,
+                        onResumeSession = dailyrecordviewModel::resumeSession,
+                        onStopSession = dailyrecordviewModel::stopSession,
                         stopwatchSeconds =
                             uiState.stopwatchSeconds,
                         recentSessions = uiState.recentSessions,
@@ -661,30 +679,120 @@ fun OmegaNavGraph(
                         currentBreakSeconds = uiState.currentBreakSeconds,
                         todaysBreakSeconds = uiState.todaysBreakSeconds,
                         todaysBreakCount = uiState.todaysBreakCount,
-                        onEndBreak = viewModel::endBreak,
-                        onStartBreak = viewModel::startBreak,
+                        onEndBreak = dailyrecordviewModel::endBreak,
+                        onStartBreak = dailyrecordviewModel::startBreak,
 
-                        onBreakDurationSelected = viewModel::onBreakDurationSelected,
+                        onBreakDurationSelected = dailyrecordviewModel::onBreakDurationSelected,
                         selectedBreakMinutes = uiState.selectedBreakMinutes
                     )
                 }
 
-                //------------------ DeskOmegaScreen--------------------------------------
+                //--------------------  logic ------------------------------- to perform navigation smoothly
+                composable(
+                    Screen.DeskOmegaRouter.route
+                ) {
+
+                    DeskOmegaRouter(
+                        sessionStatusBar = sessionStatusBar,
+                        navController = navController
+                    )
+                }
+//------------------ DeskOmegaScreen --------------------------------------
                 composable(Screen.DeskOmega.route) {
 
-                    // here dailyrecord viewmodel is used
-                    val uiState by viewModel.uiState.collectAsState()
+                    // Dispatcher ViewModel
+                    val deskOmegaViewModel = remember {
+                        DeskOmegaViewModel(repository)
+                    }
 
-                    DeskOmegaScreen(
-                        stopwatchSeconds = uiState.stopwatchSeconds,
-                        activeSessionName = uiState.activeSessionName,
-                        expectedDurationMinutes = uiState.selectedEstimateMinutes,
-                        sessionStatus = uiState.sessionStatus,
-                        onPauseSession = viewModel::pauseSession,
-                        onResumeSession = viewModel::resumeSession,
+                    val sessionStatusBar by
+                    deskOmegaViewModel.sessionStatusBar.collectAsState()
 
-                        skin = DeskOmegaSkin.AOD
-                    )
+                    // Existing feature ViewModels
+//                    val dailyRecordViewModel = remember {
+//                        DailyRecordViewModel(
+//                            repository,
+//                            omegaNotificationManager
+//                        )
+//                    }
+
+                    val unplannedSessionViewModel = remember {
+                        UnplannedProjectSessionViewModel(repository)
+                    }
+
+                    when (sessionStatusBar?.sessionType) {
+
+                        SessionType.DAILY_RECORD -> {
+
+                            val dailyRecordUiState by
+                            dailyrecordviewModel.uiState.collectAsState()
+
+                            val deskUiModel = DeskOmegaUiModel(
+                                title = "",
+                                subtitle = dailyRecordUiState.activeSessionName ?: "Session",
+                                stopwatchSeconds = dailyRecordUiState.stopwatchSeconds,
+                                expectedDurationSeconds =
+                                    dailyRecordUiState.selectedEstimateMinutes?.times(60),
+                                sessionStatus = dailyRecordUiState.sessionStatus
+                            )
+
+                            DeskOmegaScreen(
+                                uiModel = deskUiModel,
+                                onPauseSession = dailyrecordviewModel::pauseSession,
+                                onResumeSession = dailyrecordviewModel::resumeSession,
+                                skin = DeskOmegaSkin.AOD,
+                                onBack = {
+                                    navController.navigate(Screen.DailyRecord.route) {
+                                        popUpTo(Screen.DeskOmega.route) {
+                                            inclusive = true
+                                        }
+                                        launchSingleTop = true
+                                    }
+                                }
+                            )
+                        }
+
+                        SessionType.UNPLANNED -> {
+
+                            val unplannedProjectSessionUiState by
+                            unplannedSessionViewModel.uiState.collectAsState()
+
+                            val deskUiModel = DeskOmegaUiModel(
+                                title = unplannedProjectSessionUiState.breadcrumb,
+                                subtitle = unplannedProjectSessionUiState.activeSessionName,
+                                stopwatchSeconds = unplannedProjectSessionUiState.stopwatchSeconds,
+                                expectedDurationSeconds =
+                                    unplannedProjectSessionUiState.expectedDurationSeconds,
+                                sessionStatus = unplannedProjectSessionUiState.sessionStatus
+                            )
+
+                            DeskOmegaScreen(
+                                uiModel = deskUiModel,
+                                onPauseSession = unplannedSessionViewModel::pauseSession,
+                                onResumeSession = unplannedSessionViewModel::resumeSession,
+                                onBack = {
+                                    navController.navigate(
+                                        Screen.UnplannedProjectSessionScreen.route
+                                    )
+                                    {
+                                        popUpTo(Screen.DeskOmega.route) {
+                                            inclusive = true
+                                        }
+                                        launchSingleTop = true
+                                    }
+                                },
+                                skin = DeskOmegaSkin.AOD
+                            )
+                        }
+
+                        SessionType.PLANNED -> {
+                            // Not supported in v1
+                        }
+
+                        null -> {
+                            Text("No Active Session")
+                        }
+                    }
                 }
 
                 // ---------------- DailyRecordHistoryScreen --------------------
@@ -871,6 +979,21 @@ fun OmegaNavGraph(
                         toDoListViewModel.onToastShown()
                     }
 
+                    val revisionNoteViewModel = remember {
+                        RevisionNoteViewModel(sessionNoteRepository,
+                            sessionNoteAttachmentRepository,
+                            localFileStorageManager = localFileStorageManager)
+                    }
+                    val revisionNoteUiState by
+                    revisionNoteViewModel.uiState.collectAsState()
+
+                    LaunchedEffect(uiState.workingNodeId) {
+
+                        uiState.workingNodeId?.let {
+                            revisionNoteViewModel.observeRevisionNotes(it)
+                        }
+                    }
+
                     UnplannedProjectSessionScreen(
                         // ---------- Header ----------
                         projectName = uiState.projectName,
@@ -927,6 +1050,8 @@ fun OmegaNavGraph(
                             navController.navigate(Screen.DeskOmega.route)
                         },
 
+                        revisionNoteViewModel = revisionNoteViewModel, // for note feature
+
 
                         onStatsClick = {
                             // Future Statistics Screen
@@ -935,19 +1060,50 @@ fun OmegaNavGraph(
                 }
             }
 
-            if (currentRoute != Screen.OmegaSplashScreen.route && currentRoute!= Screen.DailyRecord.route && currentRoute != Screen.UnplannedProjectSessionScreen.route) {
+            if (currentRoute != Screen.OmegaSplashScreen.route && currentRoute!= Screen.DailyRecord.route && currentRoute != Screen.UnplannedProjectSessionScreen.route && currentRoute != Screen.DeskOmega.route && currentRoute != Screen.UnplannedProjectEntryScreen.route) {
                 SessionStatusBar(
                     model = sessionStatusBar,
+                    onDeskOmegaClick = {
+
+                        when (sessionStatusBar?.sessionType) {
+
+                            SessionType.DAILY_RECORD -> {
+                                navController.currentBackStackEntry
+                                    ?.savedStateHandle
+                                    ?.set("openDeskOmega", true)
+
+                                navController.navigate(
+                                    Screen.DeskOmegaRouter.route
+                                ) {
+                                    launchSingleTop = true
+                                }
+                            }
+
+                            SessionType.UNPLANNED -> {
+                                navController.currentBackStackEntry
+                                    ?.savedStateHandle
+                                    ?.set("openDeskOmega", true)
+
+                                navController.navigate(
+                                    Screen.DeskOmegaRouter.route
+                                ) {
+                                    launchSingleTop = true
+                                }
+                            }
+
+                            SessionType.PLANNED -> {
+                                // v1
+                            }
+
+                            null -> Unit
+                        }
+                    },
                     onClick = {
 
                         when (sessionStatusBar?.sessionType) {
 
                             SessionType.PLANNED -> {
-//                                navController.navigate(
-//                                    Screen.PhaseTimer.createRoute(
-//                                        sessionStatusBar.parentId
-//                                    )
-//                                )
+                                // for v1 unabailable
                             }
 
                             SessionType.UNPLANNED -> {

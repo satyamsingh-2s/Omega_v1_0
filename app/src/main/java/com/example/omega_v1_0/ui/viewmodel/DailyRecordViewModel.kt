@@ -9,6 +9,7 @@ import com.example.omega_v1_0.data_layer.omega_repository.Omega_Repository
 import com.example.omega_v1_0.models.SessionStatus
 import com.example.omega_v1_0.notification.OmegaNotificationManager
 import com.example.omega_v1_0.ui.model.DailyRecordRecentsSessionUiModel
+import com.example.omega_v1_0.ui.model.DeskOmegaUiModel
 import com.example.omega_v1_0.ui.uistate.DailyRecordUiState
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -41,6 +42,15 @@ class DailyRecordViewModel(
         loadTodaysBreakData()
         recoverActiveBreak()
     }
+
+    val deskOmegaUiModel: DeskOmegaUiModel
+        get() = DeskOmegaUiModel(
+            title = uiState.value.activeSessionName ?: "Session",
+            subtitle = null,
+            stopwatchSeconds = uiState.value.stopwatchSeconds,
+            expectedDurationSeconds = uiState.value.selectedEstimateMinutes?.times(60),
+            sessionStatus = uiState.value.sessionStatus
+        )
 
 //------------ stopwatch ticker -------------------------------
     private var stopwatchJob: Job? = null

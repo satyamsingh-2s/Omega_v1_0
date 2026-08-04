@@ -16,12 +16,16 @@ import com.example.omega_v1_0.data_layer.dao.ActiveBreakDao
 import com.example.omega_v1_0.data_layer.dao.ActiveSessionDao
 import com.example.omega_v1_0.data_layer.dao.DailyRecordDao
 import com.example.omega_v1_0.data_layer.dao.PomodoroDao
+import com.example.omega_v1_0.data_layer.dao.SessionNoteAttachmentDao
+import com.example.omega_v1_0.data_layer.dao.SessionNoteDao
 import com.example.omega_v1_0.data_layer.dao.ToDoListDao
 import com.example.omega_v1_0.data_layer.dao.UnplannedProjectDao
 import com.example.omega_v1_0.data_layer.entites.ActiveSessionEntity
 import com.example.omega_v1_0.data_layer.entites.ToDoListEntity
 import com.example.omega_v1_0.data_layer.entites.ActiveBreakEntity
 import com.example.omega_v1_0.data_layer.entites.PomodoroEntity
+import com.example.omega_v1_0.data_layer.entites.SessionNoteAttachmentEntity
+import com.example.omega_v1_0.data_layer.entites.SessionNoteEntity
 
 @Database(
     [
@@ -34,12 +38,14 @@ import com.example.omega_v1_0.data_layer.entites.PomodoroEntity
         ActiveSessionEntity::class,
 
         ToDoListEntity::class,
+        SessionNoteEntity::class,
+        SessionNoteAttachmentEntity::class,
 
         ActiveBreakEntity::class,
 
         PomodoroEntity::class
     ],
-    version = 8
+    version = 10
 )
 
 // here we are telling database that to use type convertors for enum
@@ -54,6 +60,8 @@ abstract class OmegaDatabase: RoomDatabase() {
     abstract fun ActiveBreakDao(): ActiveBreakDao
     abstract fun UnplannedProjectDao(): UnplannedProjectDao
     abstract fun pomodoroDao(): PomodoroDao
+    abstract fun sessionNoteDao(): SessionNoteDao
+    abstract fun sessionNoteAttachmentDao(): SessionNoteAttachmentDao
 }
 
 /**

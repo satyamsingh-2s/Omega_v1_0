@@ -7,6 +7,7 @@ import com.example.omega_v1_0.omega_engines.pomodoro_engine.PomodoroConfig
 import com.example.omega_v1_0.omega_engines.pomodoro_engine.PomodoroEngine
 import com.example.omega_v1_0.omega_engines.pomodoro_engine.PomodoroEvent
 import com.example.omega_v1_0.models.SessionStatus
+import com.example.omega_v1_0.ui.model.DeskOmegaUiModel
 import com.example.omega_v1_0.ui.model.UnplannedProjectRecentSessionUiModel
 import com.example.omega_v1_0.ui.uistate.UnplannedProjectSessionScreenUiState
 import kotlinx.coroutines.Job
@@ -33,6 +34,15 @@ class UnplannedProjectSessionViewModel(
 
     val uiState: StateFlow<UnplannedProjectSessionScreenUiState> =
         _uiState.asStateFlow()
+
+    val deskOmegaUiModel: DeskOmegaUiModel
+        get() = DeskOmegaUiModel(
+            title = uiState.value.projectName,
+            subtitle = uiState.value.activeSessionName,
+            stopwatchSeconds = uiState.value.stopwatchSeconds,
+            expectedDurationSeconds = uiState.value.expectedDurationSeconds,
+            sessionStatus = uiState.value.sessionStatus
+        )
 
     //------------ stopwatch ticker -------------------------------
     private var stopwatchJob: Job? = null
@@ -185,7 +195,9 @@ class UnplannedProjectSessionViewModel(
         }
     }
 
-    fun stopSession() {
+    fun stopSession(
+        onSessionCompleted: (Long) -> Unit = {}
+    ) {
         viewModelScope.launch {
             val sessionName =
                 uiState.value.sessionNameInput.trim()
@@ -197,13 +209,19 @@ class UnplannedProjectSessionViewModel(
 //                    sessionName
 //            )
 
-            repository.stopUnplannedSession()
+            val completedSessionId =
+                repository.stopUnplannedSession()
 
             if (pomodoroEngine.isEnabled) {
                 pomodoroEngine.stop()
             }
+
             loadScreenData()
             syncActiveSession()
+
+            completedSessionId?.let {
+                onSessionCompleted(it)
+            }
         }
     }
 
@@ -225,9 +243,12 @@ class UnplannedProjectSessionViewModel(
             val screenData =
                 repository.getCurrentSessionScreenData()
 
+            val workingNodeId = repository.getSelectedNode()
+
             _uiState.update {
 
                 it.copy(
+                    workingNodeId = workingNodeId,
                     projectName =
                         screenData.projectName,
                     breadcrumb =
@@ -248,7 +269,7 @@ class UnplannedProjectSessionViewModel(
                                 durationSeconds =
                                     session.durationSeconds
                             )
-                        }
+                        },
                 )
             }
         }

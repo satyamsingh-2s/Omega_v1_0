@@ -404,6 +404,11 @@ fun UnplannedProjectNodeItem(
     } else {
         (node.currentDurationSeconds.toFloat() / node.expectedDurationSeconds).coerceAtMost(1f)
     }
+    val displayedProgress = if (node.children.isEmpty()) {
+        progress              // Leaf → Time Progress
+    } else {
+        completionProgress    // Parent → Checklist Progress
+    }
     val accentColor =
         AccentPalette.getAccent(node.accentIndex)
 
@@ -431,195 +436,224 @@ fun UnplannedProjectNodeItem(
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
             elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
         ) {
-            Column {
+
+            Row(
+                modifier = Modifier
+                    .height(IntrinsicSize.Min)
+            ) {
+
+
+                Column(
+                    modifier = Modifier.weight(1f)
+                ) {
 
                 // -------- accent color
+//                Box(
+//                    modifier = Modifier
+//                        .fillMaxWidth()
+//                        .height(4.4.dp)
+//                        .background(accentColor)
+//                )
+
+                        Column {
+                            // Root content-------- block
+                            Column(modifier = Modifier.padding(20.dp)) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    verticalAlignment = Alignment.Top,
+                                    horizontalArrangement = Arrangement.SpaceBetween
+                                ) {
+                                    Column(modifier = Modifier.weight(1f)) {
+                                        Text(
+                                            text = node.title,
+                                            fontSize = 20.sp,
+                                            fontWeight = FontWeight.SemiBold,
+                                            color = MaterialTheme.colorScheme.onSurface
+                                        )
+
+                                        Spacer(modifier = Modifier.height(8.dp))
+
+                                        if (node.expectedDurationSeconds > 0 || depth > 1 || 3 > 0) {
+                                            Text(
+                                                text = "Estimated: ${formatShortDuration(node.expectedDurationSeconds)}",
+                                                fontSize = 13.sp,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                            )
+
+                                            Spacer(modifier = Modifier.height(8.dp))
+
+                                            Row(
+                                                verticalAlignment = Alignment.CenterVertically,
+                                                modifier = Modifier.fillMaxWidth()
+                                            ) {
+                                                LinearProgressIndicator(
+                                                    progress = displayedProgress,
+                                                    modifier = Modifier
+                                                        .weight(1f)
+                                                        .height(10.dp),
+                                                    color = MaterialTheme.colorScheme.primary,
+                                                    trackColor = MaterialTheme.colorScheme.surfaceVariant.copy(
+                                                        alpha = 0.5f
+                                                    )
+                                                )
+
+                                                Spacer(modifier = Modifier.width(8.dp))
+                                                Text(
+                                                    text = if (node.children.isEmpty()) {
+                                                        "${(progress * 100).toInt()}%"
+                                                    } else {
+                                                        "${(completionProgress * 100).toInt()}%"
+                                                    },
+                                                    fontSize = 13.sp,
+                                                    color = MaterialTheme.colorScheme.primary
+                                                )
+                                            }
+                                        }
+
+                                        if (node.children.isNotEmpty()) {
+                                            Column( // <-- Apply alignment here
+                                                modifier = Modifier.fillMaxWidth(), // Make sure it fills width to center within
+                                                horizontalAlignment = Alignment.CenterHorizontally // <-- FIX IS HERE
+                                            ) {
+                                                Spacer(modifier = Modifier.height(1.dp))
+                                                IconButton(
+                                                    onClick = { onToggleExpand(node.nodeId) },
+                                                    modifier = Modifier.size(18.dp), // Increased size slightly for better tap target
+                                                ) {
+                                                    Icon(
+                                                        imageVector = Icons.Default.KeyboardArrowDown,
+                                                        contentDescription = if (isExpanded) "Collapse" else "Expand",
+                                                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                        modifier = Modifier.rotate(if (isExpanded) 0f else -90f),
+                                                    )
+                                                }
+                                            }
+                                        }
+                                    }
+
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        if (node.children.isEmpty()) {
+                                            NodeCompletionToggle(
+                                                isCompleted = node.isCompleted,
+                                                onToggle = {
+                                                    onToggleCompleted(
+                                                        node.nodeId,
+                                                        node.isCompleted
+                                                    )
+                                                }
+                                            )
+                                            Spacer(modifier = Modifier.width(4.dp))
+                                            IconButton(
+                                                onClick = { onNavigateToSession(node.nodeId) },
+                                                modifier = Modifier.size(28.dp)
+                                            ) {
+                                                Icon(
+                                                    imageVector = Icons.Default.PlayArrow,
+                                                    contentDescription = "Play",
+                                                    tint = MaterialTheme.colorScheme.primary
+                                                )
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                            // ----- block -------------
+
+                            // Root expanded content
+                            AnimatedVisibility(
+                                visible = isExpanded,
+                                enter = fadeIn(animationSpec = tween(200)) + expandVertically(
+                                    animationSpec = tween(
+                                        200
+                                    )
+                                ),
+                                exit = fadeOut(animationSpec = tween(200)) + shrinkVertically(
+                                    animationSpec = tween(
+                                        200
+                                    )
+                                )
+                            ) {
+                                Column {
+                                    if (node.children.isNotEmpty()) {
+                                        // Thicker divider parent → child
+                                        Divider(
+                                            color = MaterialTheme.colorScheme.outline.copy(alpha = 0.8f),
+                                            thickness = 3.2.dp
+                                        )
+
+                                        // Section header
+                                        Text(
+                                            text = "${node.children.size} Children",
+                                            fontSize = 12.sp,
+                                            fontWeight = FontWeight.Medium,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp)
+                                                .fillMaxWidth(),textAlign = TextAlign.Center
+                                        )
+                                    }
+
+                                    node.children.forEachIndexed { index, child ->
+                                        UnplannedProjectNodeItem(
+                                            node = child,
+                                            depth = depth + 1,
+                                            onAddChild = onAddChild,
+                                            onToggleCompleted = onToggleCompleted,
+                                            onNodeClick = onNodeClick,
+                                            onAddExpectedDuration = onAddExpectedDuration,
+                                            onRename = onRename,
+                                            onDelete = onDelete,
+                                            onShowStats = onShowStats,
+                                            expandedNodeIds = expandedNodeIds,
+                                            onToggleExpand = onToggleExpand,
+                                            onNavigateToSession = onNavigateToSession
+                                        )
+                                        if (index != node.children.lastIndex) {
+                                            Divider(
+                                                color = MaterialTheme.colorScheme.outline.copy(alpha = 0.15f),
+                                                thickness = 0.5.dp,
+                                                modifier = Modifier.padding(start = 36.dp)
+                                            )
+                                        }
+                                    }
+
+                                    Row(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(start = 36.dp),
+                                        horizontalArrangement = Arrangement.Start
+                                    ) {
+                                        TextButton(
+                                            onClick = { onAddChild(node.nodeId) },
+                                            colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.primary)
+                                        ) {
+                                            Icon(
+                                                Icons.Default.Add,
+                                                contentDescription = "Add",
+                                                modifier = Modifier.size(16.dp)
+                                            )
+                                            Spacer(modifier = Modifier.width(4.dp))
+                                            Text(text = "Add", fontSize = 12.sp)
+                                        }
+                                    }
+
+                                    // Thick divider after add button for root
+                                    Divider(
+                                        color = MaterialTheme.colorScheme.outline.copy(alpha = 1f),
+                                        thickness = 2.2.dp,
+                                        modifier = Modifier.padding(horizontal = 20.dp, vertical = 12.dp)
+                                    )
+                                }
+                            }
+                        }
+                }
                 Box(
                     modifier = Modifier
-                        .fillMaxWidth()
-                        .height(4.4.dp)
+                        .fillMaxHeight()
+                        .width(4.dp)
                         .background(accentColor)
                 )
 
 
-                // Root content
-                Column(modifier = Modifier.padding(20.dp)) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.Top,
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(
-                                text = node.title,
-                                fontSize = 20.sp,
-                                fontWeight = FontWeight.SemiBold,
-                                color = MaterialTheme.colorScheme.onSurface
-                            )
-
-                            Spacer(modifier = Modifier.height(8.dp))
-
-                            if (node.expectedDurationSeconds > 0 || depth > 1 || 3>0) {
-                                Text(
-                                    text = "Estimated: ${formatShortDuration(node.expectedDurationSeconds)}",
-                                    fontSize = 13.sp,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-
-                                Spacer(modifier = Modifier.height(8.dp))
-
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    modifier = Modifier.fillMaxWidth()
-                                ) {
-                                    LinearProgressIndicator(
-                                        progress = completionProgress,
-                                        modifier = Modifier
-                                            .weight(1f)
-                                            .height(10.dp),
-                                        color = MaterialTheme.colorScheme.primary,
-                                        trackColor = MaterialTheme.colorScheme.surfaceVariant.copy(
-                                            alpha = 0.5f
-                                        )
-                                    )
-
-                                    Spacer(modifier = Modifier.width(8.dp))
-                                    Text(
-                                        text = "${(completionProgress * 100).toInt()}%",
-                                        fontSize = 13.sp,
-                                        color = MaterialTheme.colorScheme.primary
-                                    )
-                                }
-                            }
-
-                            if (node.children.isNotEmpty()) {
-                                Column( // <-- Apply alignment here
-                                    modifier = Modifier.fillMaxWidth(), // Make sure it fills width to center within
-                                    horizontalAlignment = Alignment.CenterHorizontally // <-- FIX IS HERE
-                                ) {
-                                    Spacer(modifier = Modifier.height(1.dp))
-                                    IconButton(
-                                        onClick = { onToggleExpand(node.nodeId) },
-                                        modifier = Modifier.size(18.dp), // Increased size slightly for better tap target
-                                    ) {
-                                        Icon(
-                                            imageVector = Icons.Default.KeyboardArrowDown,
-                                            contentDescription = if (isExpanded) "Collapse" else "Expand",
-                                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                            modifier = Modifier.rotate(if (isExpanded) 0f else -90f),
-                                        )
-                                    }
-                                }
-                            }
-                        }
-
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            if (node.children.isEmpty()) {
-                                NodeCompletionToggle(
-                                    isCompleted = node.isCompleted,
-                                    onToggle = { onToggleCompleted(node.nodeId, node.isCompleted) }
-                                )
-                                Spacer(modifier = Modifier.width(4.dp))
-                                IconButton(
-                                    onClick = { onNavigateToSession(node.nodeId) },
-                                    modifier = Modifier.size(28.dp)
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Default.PlayArrow,
-                                        contentDescription = "Play",
-                                        tint = MaterialTheme.colorScheme.primary
-                                    )
-                                }
-                            }
-                        }
-                    }
-                }
-
-                // Root expanded content
-                AnimatedVisibility(
-                    visible = isExpanded,
-                    enter = fadeIn(animationSpec = tween(200)) + expandVertically(
-                        animationSpec = tween(
-                            200
-                        )
-                    ),
-                    exit = fadeOut(animationSpec = tween(200)) + shrinkVertically(
-                        animationSpec = tween(
-                            200
-                        )
-                    )
-                ) {
-                    Column {
-                        if (node.children.isNotEmpty()) {
-                            // Thicker divider parent → child
-                            Divider(
-                                color = MaterialTheme.colorScheme.outline.copy(alpha = 0.8f),
-                                thickness = 3.2.dp
-                            )
-
-                            // Section header
-                            Text(
-                                text = "${node.children.size} Children",
-                                fontSize = 12.sp,
-                                fontWeight = FontWeight.Medium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp)
-                                    .fillMaxWidth(),textAlign = TextAlign.Center
-                            )
-                        }
-
-                        node.children.forEachIndexed { index, child ->
-                            UnplannedProjectNodeItem(
-                                node = child,
-                                depth = depth + 1,
-                                onAddChild = onAddChild,
-                                onToggleCompleted = onToggleCompleted,
-                                onNodeClick = onNodeClick,
-                                onAddExpectedDuration = onAddExpectedDuration,
-                                onRename = onRename,
-                                onDelete = onDelete,
-                                onShowStats = onShowStats,
-                                expandedNodeIds = expandedNodeIds,
-                                onToggleExpand = onToggleExpand,
-                                onNavigateToSession = onNavigateToSession
-                            )
-                            if (index != node.children.lastIndex) {
-                                Divider(
-                                    color = MaterialTheme.colorScheme.outline.copy(alpha = 0.15f),
-                                    thickness = 0.5.dp,
-                                    modifier = Modifier.padding(start = 36.dp)
-                                )
-                            }
-                        }
-
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(start = 36.dp),
-                            horizontalArrangement = Arrangement.Start
-                        ) {
-                            TextButton(
-                                onClick = { onAddChild(node.nodeId) },
-                                colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.primary)
-                            ) {
-                                Icon(
-                                    Icons.Default.Add,
-                                    contentDescription = "Add",
-                                    modifier = Modifier.size(16.dp)
-                                )
-                                Spacer(modifier = Modifier.width(4.dp))
-                                Text(text = "Add", fontSize = 12.sp)
-                            }
-                        }
-
-                        // Thick divider after add button for root
-                        Divider(
-                            color = MaterialTheme.colorScheme.outline.copy(alpha = 1f),
-                            thickness = 2.2.dp,
-                            modifier = Modifier.padding(horizontal = 20.dp, vertical = 12.dp)
-                        )
-                    }
-                }
                 // -------- accent color----- bottom
 //                if (node.expectedDurationSeconds == 0) {
 //                    Box(
@@ -722,7 +756,7 @@ fun UnplannedProjectNodeItem(
                                     }
                                // Spacer(modifier = Modifier.width(1.dp))
                                 LinearProgressIndicator(
-                                    progress = completionProgress,
+                                    progress = displayedProgress,
                                     modifier = Modifier
                                         .weight(1f)
                                         .height(6.dp),
