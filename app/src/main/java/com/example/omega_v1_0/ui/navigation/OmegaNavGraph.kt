@@ -935,7 +935,7 @@ fun OmegaNavGraph(
                         onShowStats = viewModel::showStatsDialog,
                         onDismissStats = viewModel::hideStatsDialog,
 
-                        expandedNodeIds = uiState.expandedNodeIds,
+                      //  expandedNodeIds = uiState.expandedNodeIds,
                         onToggelExpand = viewModel::toggleExpandNode,
 
                         onNavigateToSession = { nodeId ->

@@ -36,7 +36,7 @@ class UnplannedProjectViewModel(
             "UNPLANNED",
             "viemodel recreated ")
         observeTree()
-      //  observeSession()
+        //  observeSession()
     }
 
     private fun observeTree() {
@@ -48,6 +48,25 @@ class UnplannedProjectViewModel(
 
                     _uiState.update {
                         it.copy(tree = tree)
+                    }
+
+                    // -----------------------
+                    // NEW FEATURE : SINGLE BRANCH EXPANSION
+                    // Refresh expandedPath against the latest emitted tree.
+                    // -----------------------
+                    val expandedLeafNodeId =
+                        uiState.value.expandedPath.lastOrNull()
+                    if (expandedLeafNodeId != null) {
+                        val refreshedPath =
+                            findPathToNode(
+                                expandedLeafNodeId,
+                                tree
+                            )
+                        _uiState.update {
+                            it.copy(
+                                expandedPath = refreshedPath
+                            )
+                        }
                     }
 
                     // refresh current focus
@@ -418,7 +437,7 @@ class UnplannedProjectViewModel(
         }
     }
 
-// ------------- confirm function -----------------
+    // ------------- confirm function -----------------
     fun confirmAddRoot() {
         val title = uiState.value.dialogInput
         if (title.isBlank()
@@ -450,9 +469,23 @@ class UnplannedProjectViewModel(
     }
 
 
-    fun onNodeClick( nodeId: Long){
-        focusNode(nodeId)
-
+    fun onNodeClick(
+        nodeId: Long
+    ) {
+        // -----------------------
+        // NEW FEATURE : SINGLE BRANCH EXPANSION
+        // User clicks node -> findPathToNode() -> expandedPath = returnedPath -> UI recomposes.
+        // -----------------------
+        val path =
+            findPathToNode(
+                nodeId
+            )
+        if (path.isEmpty()) return
+        _uiState.update {
+            it.copy(
+                expandedPath = path
+            )
+        }
     }
 
     fun deleteNode(
@@ -491,24 +524,111 @@ class UnplannedProjectViewModel(
 //        }
 //    }
 
-    // ----------- feature to remeber last open node -------
     fun toggleExpandNode(
         nodeId: Long
     ) {
-        _uiState.update {
-            val updatedSet =
-                it.expandedNodeIds.toMutableSet()
-            if (
-                updatedSet.contains(nodeId)
-            ) {
-                updatedSet.remove(nodeId)
-            } else {
-                updatedSet.add(nodeId)
+        // -----------------------
+        // NEW FEATURE : SINGLE BRANCH EXPANSION
+        // Toggle behavior is now based on expandedPath (single-branch).
+        // If the node is already expanded:
+        // - If it is the leaf of expandedPath, collapse the node itself (to its parent).
+        // - If it is an ancestor in expandedPath, collapse only its descendants.
+        // Otherwise, expand the single path to it.
+        // -----------------------
+        val currentPath =
+            uiState.value.expandedPath
+
+        val index =
+            currentPath.indexOf(nodeId)
+
+        if (index == -1) {
+            onNodeClick(nodeId)
+            return
+        }
+
+        if (index == currentPath.lastIndex) {
+            val newPath =
+                if (index == 0) {
+                    emptyList()
+                } else {
+                    currentPath.take(index)
+                }
+            _uiState.update {
+                it.copy(
+                    expandedPath = newPath
+                )
             }
+            return
+        }
+
+        collapseToNode(nodeId)
+    }
+
+    fun collapseToNode(
+        nodeId: Long
+    ) {
+        // -----------------------
+        // NEW FEATURE : SINGLE BRANCH EXPANSION
+        // Collapses the currently expanded branch to the given node (inclusive).
+        // Example:
+        // Current: [Project2, Engine, Database, Layout]
+        // Input: Engine
+        // Output: [Project2, Engine]
+        // -----------------------
+        val currentPath =
+            uiState.value.expandedPath
+
+        val index =
+            currentPath.indexOf(nodeId)
+
+        if (index == -1) return
+
+        val newPath =
+            currentPath.take(index + 1)
+
+        _uiState.update {
             it.copy(
-                expandedNodeIds = updatedSet
+                expandedPath = newPath
             )
         }
+    }
+
+    fun findPathToNode(
+        nodeId: Long
+    ): List<Long> {
+        // -----------------------
+        // NEW FEATURE : SINGLE BRANCH EXPANSION
+        // Finds the hierarchical path from a root node to the given nodeId.
+        // Returns a list of nodeIds like: [Root, Child, SubChild, Leaf]
+        // -----------------------
+        return findPathToNode(
+            nodeId,
+            uiState.value.tree
+        )
+    }
+
+    private fun findPathToNode(
+        nodeId: Long,
+        nodes: List<UnplannedProjectUiModel>
+    ): List<Long> {
+        // -----------------------
+        // NEW FEATURE : SINGLE BRANCH EXPANSION
+        // Recursive helper for findPathToNode(nodeId).
+        // -----------------------
+        for (node in nodes) {
+            if (node.nodeId == nodeId) {
+                return listOf(node.nodeId)
+            }
+            val childPath =
+                findPathToNode(
+                    nodeId,
+                    node.children
+                )
+            if (childPath.isNotEmpty()) {
+                return listOf(node.nodeId) + childPath
+            }
+        }
+        return emptyList()
     }
 
     // --- new feature improvement in ui

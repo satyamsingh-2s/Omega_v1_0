@@ -41,8 +41,13 @@ data class UnplannedProjectUiState (
     val showStatsDialog: Boolean = false,
     val selectedStatsNode: UnplannedProjectUiModel? = null,
 
-    // --- for remebering last open node
-    val expandedNodeIds: Set<Long> = emptySet(),
+    // -----------------------
+    // NEW FEATURE : SINGLE BRANCH EXPANSION
+    // Stores the currently expanded hierarchy.
+    // Example:
+    // [Project2, Engine, Database]
+    // -----------------------
+    val expandedPath: List<Long> = emptyList(),
 
 //    val activeNodeTitle: String? = null,
 //    val activeExpectedDuration: Int? = null,
@@ -61,4 +66,13 @@ data class UnplannedProjectUiState (
     val revisionNoteSummary: String = "",
     val workingNodeId: Long? =null,
 
-)
+    ){
+
+    // -----------------------
+    // NEW FEATURE : SINGLE BRANCH EXPANSION
+    // Backward-compatible bridge for existing call sites.
+    // This is derived from expandedPath (not stored separately).
+    // -----------------------
+    val expandedNodeIds: Set<Long>
+        get() = expandedPath.toSet()
+}
