@@ -109,7 +109,7 @@ fun DeskOmegaScreen(
             // Session Name
             Text(
                 text = uiModel.title ,
-                style = MaterialTheme.typography.headlineMedium,
+                style = MaterialTheme.typography.headlineSmall.copy(fontSize = 17.sp),
                 color = colors.content
             )
             Spacer(modifier = Modifier.height(36.dp))

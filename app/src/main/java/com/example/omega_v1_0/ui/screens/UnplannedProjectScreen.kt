@@ -1,6 +1,7 @@
 package com.example.omega_v1_0.ui.screens
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.animateFloatAsState
@@ -14,11 +15,13 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.gestures.snapping.rememberSnapFlingBehavior
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -30,12 +33,14 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.KeyboardArrowDown
@@ -43,12 +48,12 @@ import androidx.compose.material.icons.filled.Lightbulb
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Timer
 import androidx.compose.material.icons.outlined.BarChart
-import androidx.compose.material.icons.outlined.PlayCircleOutline
+import androidx.compose.material.icons.outlined.RadioButtonUnchecked
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.Checkbox
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -56,6 +61,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -66,8 +72,10 @@ import androidx.compose.material3.ripple
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -75,6 +83,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
@@ -85,6 +94,25 @@ import androidx.compose.ui.unit.sp
 import com.example.omega_v1_0.ui.model.UnplannedProjectUiModel
 import com.example.omega_v1_0.ui.theme.AccentPalette
 import com.example.omega_v1_0.ui.uistate.UnplannedProjectUiState
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+
+// ================================================================
+// SMART FOCUS HELPERS
+// ================================================================
+
+private fun isLevel2Node(tree: List<UnplannedProjectUiModel>, nodeId: Long): Boolean {
+    return tree.any { root -> root.children.any { level2node -> level2node.nodeId == nodeId } }
+}
+
+private fun getExpandedLevel2NodeId(
+    tree: List<UnplannedProjectUiModel>,
+    expandedPath: List<Long>
+): Long? {
+    if (expandedPath.size < 2) return null
+    val candidateId = expandedPath[1]
+    return if (isLevel2Node(tree, candidateId)) candidateId else null
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -118,6 +146,47 @@ fun UnplannedProjectScreen(
     onToggleCompleted: (Long, Boolean) -> Unit,
     onNavigateToSession: (Long) -> Unit,
 ) {
+    val scope = rememberCoroutineScope()
+    val listState = rememberLazyListState()
+    val density = LocalDensity.current.density
+    var animatedLeafNodeId by remember { mutableStateOf<Long?>(null) }
+
+    // Smart Focus Orchestrator
+    val handleContainerClick: (Long) -> Unit = { clickedNodeId ->
+        val currentlyExpandedLevel2Id = getExpandedLevel2NodeId(uiState.tree, uiState.expandedPath)
+        val isClickedLevel2 = isLevel2Node(uiState.tree, clickedNodeId)
+
+        if (isClickedLevel2 && currentlyExpandedLevel2Id != null && currentlyExpandedLevel2Id != clickedNodeId) {
+            scope.launch {
+                onToggelExpand(currentlyExpandedLevel2Id)
+                delay(10)
+                onToggelExpand(clickedNodeId)
+                delay(50)
+
+                val rootIndex = uiState.tree.indexOfFirst { root ->
+                    root.children.any { it.nodeId == clickedNodeId }
+                }.coerceAtLeast(0)
+
+                val rootNode = uiState.tree.getOrNull(rootIndex)
+                val siblingIndex = rootNode?.children?.indexOfFirst { it.nodeId == clickedNodeId } ?: 0
+
+                val offsetWithinCardDp = 135f + (siblingIndex * 104.5f)
+                val offsetWithinCardPx = (offsetWithinCardDp * density).toInt()
+
+                val viewportHeight = listState.layoutInfo.viewportSize.height
+                val targetCenterPx = (viewportHeight * 0.45f).toInt()
+                val targetScrollOffset = targetCenterPx - offsetWithinCardPx
+
+                listState.animateScrollToItem(
+                    index = rootIndex,
+                    scrollOffset = targetScrollOffset
+                )
+            }
+        } else {
+            onToggelExpand(clickedNodeId)
+        }
+    }
+
     Scaffold(
         containerColor = DARK_BACKGROUND,
         topBar = {
@@ -148,6 +217,7 @@ fun UnplannedProjectScreen(
         },
     ) { paddingValues ->
         LazyColumn(
+            state = listState,
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
@@ -159,7 +229,7 @@ fun UnplannedProjectScreen(
                 UnplannedProjectRootCard(
                     node = node,
                     expandedPath = uiState.expandedPath,
-                    onToggleExpand = onToggelExpand,
+                    onToggleExpand = handleContainerClick,
                     onNodeClick = onNodeClick,
                     onAddChild = onAddChild,
                     onAddExpectedDuration = onAddExpectedDuration,
@@ -167,8 +237,15 @@ fun UnplannedProjectScreen(
                     onDelete = onDelete,
                     onShowStats = onShowStats,
                     onNavigateToSession = onNavigateToSession,
-                    onToggleCompleted = onToggleCompleted
-
+                    onToggleCompleted = onToggleCompleted,
+                    animatedLeafNodeId = animatedLeafNodeId,
+                    onLeafClicked = { nodeId ->
+                        animatedLeafNodeId = nodeId
+                        scope.launch {
+                            delay(150)
+                            animatedLeafNodeId = null
+                        }
+                    }
                 )
             }
 
@@ -189,7 +266,7 @@ fun UnplannedProjectScreen(
 
         if (uiState.showAddRootDialog) {
             NodeInputDialog(
-                title = "Add Root Node".uppercase(),
+                title = "ADD ROOT NODE",
                 value = uiState.dialogInput,
                 onValueChange = onDialogInputChanged,
                 onDismiss = onDismissRootDialog,
@@ -200,7 +277,7 @@ fun UnplannedProjectScreen(
         if (uiState.showAddChildDialog) {
             val parentNode = uiState.selectedNodeId?.let { findNodeById(uiState.tree, it) }
             NodeInputDialog(
-                title = "Add Child Node".uppercase(),
+                title = "ADD CHILD NODE",
                 nodeName = parentNode?.title,
                 value = uiState.dialogInput,
                 onValueChange = onDialogInputChanged,
@@ -211,10 +288,9 @@ fun UnplannedProjectScreen(
 
         if (uiState.showExpectedDurationDialog) {
             val targetNode = uiState.selectedExpectedDurationNodeId?.let { findNodeById(uiState.tree, it) }
-            NodeInputDialog(
-                title = "Expected Duration (min)",
+            ExpectedDurationDialog(
                 nodeName = targetNode?.title,
-                value = uiState.expectedDurationInput,
+                initialInput = uiState.expectedDurationInput,
                 onValueChange = onExpectedDurationChanged,
                 onDismiss = onDismissExpectedDuration,
                 onConfirm = onConfirmExpectedDuration
@@ -224,7 +300,7 @@ fun UnplannedProjectScreen(
         if (uiState.showRenameDialog) {
             val targetNode = uiState.selectedRenameNodeId?.let { findNodeById(uiState.tree, it) }
             NodeInputDialog(
-                title = "Rename Node",
+                title = "RENAME NODE",
                 nodeName = targetNode?.title,
                 value = uiState.renameInput,
                 onValueChange = onRenameChanged,
@@ -237,28 +313,36 @@ fun UnplannedProjectScreen(
             val targetNode = uiState.selectedDeleteNodeId?.let { findNodeById(uiState.tree, it) }
             AlertDialog(
                 onDismissRequest = onDismissDelete,
-                shape = RoundedCornerShape(16.dp),
+                containerColor = DARK_DIALOG_SURFACE,
+                shape = RoundedCornerShape(20.dp),
                 title = {
                     Column {
-                        Text("Delete Node", style = MaterialTheme.typography.titleSmall)
+                        Text("Delete Node", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = Color.White)
                         if (targetNode != null) {
                             Text(
                                 text = targetNode.title,
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                maxLines = 1,
+                                style = MaterialTheme.typography.titleSmall,
+                                fontWeight = FontWeight.SemiBold,
+                                color = Color(0xFFDDDDDD),
+                                maxLines = 2,
                                 overflow = TextOverflow.Ellipsis,
                                 modifier = Modifier.padding(top = 4.dp)
                             )
                         }
                     }
                 },
-                text = { Text("Delete this node and all its children?", style = MaterialTheme.typography.bodyMedium) },
+                text = { Text("Delete this node and all its children? This action cannot be undone.", style = MaterialTheme.typography.bodyMedium, color = Color(0xFFAAAAAA)) },
                 confirmButton = {
-                    TextButton(onClick = onConfirmDelete) { Text("Delete", style = MaterialTheme.typography.labelLarge) }
+                    Button(
+                        onClick = onConfirmDelete,
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFE53935)),
+                        shape = RoundedCornerShape(10.dp)
+                    ) {
+                        Text("Delete", style = MaterialTheme.typography.labelLarge, color = Color.White, fontWeight = FontWeight.Bold)
+                    }
                 },
                 dismissButton = {
-                    TextButton(onClick = onDismissDelete) { Text("Cancel", style = MaterialTheme.typography.labelLarge) }
+                    TextButton(onClick = onDismissDelete) { Text("Cancel", style = MaterialTheme.typography.labelLarge, color = Color.Gray) }
                 }
             )
         }
@@ -266,16 +350,22 @@ fun UnplannedProjectScreen(
         if (uiState.showSessionAlreadyRunningDialog) {
             AlertDialog(
                 onDismissRequest = onDismissSessionDialog,
-                shape = RoundedCornerShape(16.dp),
-                title = { Text("Session Running", style = MaterialTheme.typography.titleSmall) },
-                text = { Text("A session is already running.", style = MaterialTheme.typography.bodyMedium) },
+                containerColor = DARK_DIALOG_SURFACE,
+                shape = RoundedCornerShape(20.dp),
+                title = { Text("Session Already Running", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = Color.White) },
+                text = { Text("A timer session is currently active. End the active session before starting a new one.", style = MaterialTheme.typography.bodyMedium, color = Color(0xFFCCCCCC)) },
                 confirmButton = {
-                    TextButton(onClick = onOpenSession) { Text("Open Session", style = MaterialTheme.typography.labelLarge) }
+                    Button(
+                        onClick = onEndSession,
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFE53935)),
+                        shape = RoundedCornerShape(10.dp)
+                    ) {
+                        Text("End Session", style = MaterialTheme.typography.labelLarge, color = Color.White, fontWeight = FontWeight.Bold)
+                    }
                 },
                 dismissButton = {
-                    Row {
-                        TextButton(onClick = onEndSession) { Text("End Session", style = MaterialTheme.typography.labelLarge) }
-                        TextButton(onClick = onDismissSessionDialog) { Text("Cancel", style = MaterialTheme.typography.labelLarge) }
+                    TextButton(onClick = onDismissSessionDialog) {
+                        Text("Cancel", style = MaterialTheme.typography.labelLarge, color = Color.Gray)
                     }
                 }
             )
@@ -286,35 +376,46 @@ fun UnplannedProjectScreen(
             if (node != null) {
                 AlertDialog(
                     onDismissRequest = onDismissStats,
-                    shape = RoundedCornerShape(16.dp),
+                    containerColor = DARK_DIALOG_SURFACE,
+                    shape = RoundedCornerShape(20.dp),
                     title = {
                         Column {
-                            Text("Node Stats", style = MaterialTheme.typography.titleSmall)
+                            Text("Node Statistics", style = MaterialTheme.typography.titleSmall, color = Color.Gray)
                             Text(
                                 text = node.title,
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                maxLines = 1,
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.SemiBold,
+                                color = Color.White,
+                                maxLines = 2,
                                 overflow = TextOverflow.Ellipsis,
                                 modifier = Modifier.padding(top = 4.dp)
                             )
                         }
                     },
                     text = {
-                        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                            Text("Current: ${formatShortDuration(node.currentDurationSeconds)}", style = MaterialTheme.typography.bodyMedium)
-                            Text("Expected: ${formatShortDuration(node.expectedDurationSeconds)}", style = MaterialTheme.typography.bodyMedium)
+                        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                                Text("Current Duration:", style = MaterialTheme.typography.bodyMedium, color = Color.Gray)
+                                Text(formatShortDuration(node.currentDurationSeconds), style = MaterialTheme.typography.bodyMedium, color = Color.White, fontWeight = FontWeight.Medium)
+                            }
+                            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                                Text("Expected Duration:", style = MaterialTheme.typography.bodyMedium, color = Color.Gray)
+                                Text(formatShortDuration(node.expectedDurationSeconds), style = MaterialTheme.typography.bodyMedium, color = Color.White, fontWeight = FontWeight.Medium)
+                            }
                             val progress = if (node.expectedDurationSeconds == 0) 0
                             else (node.currentDurationSeconds * 100 / node.expectedDurationSeconds)
-                            Text("Progress: $progress%", style = MaterialTheme.typography.bodyMedium)
-                            Text(
-                                if (node.isCompleted) "Status: Completed" else "Status: In Progress",
-                                style = MaterialTheme.typography.bodyMedium
-                            )
+                            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                                Text("Progress:", style = MaterialTheme.typography.bodyMedium, color = Color.Gray)
+                                Text("$progress%", style = MaterialTheme.typography.bodyMedium, color = Color.White, fontWeight = FontWeight.Bold)
+                            }
+                            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                                Text("Status:", style = MaterialTheme.typography.bodyMedium, color = Color.Gray)
+                                Text(if (node.isCompleted) "Completed" else "In Progress", style = MaterialTheme.typography.bodyMedium, color = if (node.isCompleted) Color.White else Color(0xFFCCCCCC), fontWeight = FontWeight.Medium)
+                            }
                         }
                     },
                     confirmButton = {
-                        TextButton(onClick = onDismissStats) { Text("Close", style = MaterialTheme.typography.labelLarge) }
+                        TextButton(onClick = onDismissStats) { Text("Close", style = MaterialTheme.typography.labelLarge, color = Color.White, fontWeight = FontWeight.Bold) }
                     }
                 )
             }
@@ -323,18 +424,19 @@ fun UnplannedProjectScreen(
 }
 
 private val DARK_SURFACE = Color(0xFF121212)
+private val DARK_DIALOG_SURFACE = Color(0xFF1E1E1E)
+private val DARK_INPUT_BACKGROUND = Color(0xFF282828)
 private val DARK_BACKGROUND = Color(0xFF000000)
 private val TREE_LINE_COLOR = Color(0xFF333333)
 
 private val ROOT_CARD_INNER_PADDING = 20.dp
 private val GROUP_DIVIDER_TOP = 16.dp
 private val BETWEEN_CHILD_ROWS = 8.dp
-private val ADD_BUTTON_TOP_PADDING = 16.dp
 private val CARD_VERTICAL_MARGIN = 12.dp
 
-private val ROOT_TITLE_SIZE = 18.sp
-private val LEVEL1_TITLE_SIZE = 16.sp
-private val LEVEL2_TITLE_SIZE = 15.sp
+private val ROOT_PROJECT_TITLE_SIZE = 18.sp
+private val WORKSPACE_HEADING_TITLE_SIZE = 20.sp
+private val BREADCRUMB_ROW_TITLE_SIZE = 16.sp
 
 @Composable
 private fun UnplannedProjectRootCard(
@@ -349,10 +451,11 @@ private fun UnplannedProjectRootCard(
     onShowStats: (UnplannedProjectUiModel) -> Unit,
     onNavigateToSession: (Long) -> Unit,
     onToggleCompleted: (Long, Boolean) -> Unit,
-
+    animatedLeafNodeId: Long?,
+    onLeafClicked: (Long) -> Unit,
 ) {
     val isExpanded = expandedPath.firstOrNull() == node.nodeId
-    val chain = if (isExpanded) expandedPath.drop(1) else emptyList()
+    val activeBranchPath = if (isExpanded) expandedPath.drop(1) else emptyList()
     var showMenu by remember { mutableStateOf(false) }
     val accentColor = AccentPalette.getAccent(node.accentIndex)
 
@@ -360,7 +463,7 @@ private fun UnplannedProjectRootCard(
         modifier = Modifier
             .fillMaxWidth()
             .combinedClickable(
-                onClick = { if (node.children.isNotEmpty()) onToggleExpand(node.nodeId) else onNodeClick(node.nodeId) },
+                onClick = { if (node.children.isNotEmpty()) onToggleExpand(node.nodeId) else onLeafClicked(node.nodeId) },
                 onLongClick = { showMenu = true },
                 interactionSource = remember { MutableInteractionSource() },
                 indication = ripple(bounded = true)
@@ -386,13 +489,14 @@ private fun UnplannedProjectRootCard(
             ) {
                 NodeSummaryRow(
                     node = node,
-                    titleFontSize = ROOT_TITLE_SIZE,
+                    titleFontSize = ROOT_PROJECT_TITLE_SIZE,
                     titleFontWeight = FontWeight.Medium,
                     isExpandable = node.children.isNotEmpty(),
                     isExpanded = isExpanded,
                     onToggleExpand = { onToggleExpand(node.nodeId) },
                     onPlay = { onNavigateToSession(node.nodeId) },
-                    onToggleCompleted = onToggleCompleted
+                    onToggleCompleted = onToggleCompleted,
+                    animatedLeafNodeId = animatedLeafNodeId
                 )
 
                 AnimatedVisibility(
@@ -407,17 +511,14 @@ private fun UnplannedProjectRootCard(
                                 color = accentColor.copy(alpha = 0.45f)
                             )
 
-                            val activeChildId = chain.getOrNull(0)
+                            val activeChildId = activeBranchPath.getOrNull(0)
 
-                            node.children.forEachIndexed { index, child ->
-                                if (child.nodeId == activeChildId) {
-                                    Level1HeadingRow(
-                                        node = child,
-                                        accentColor=accentColor,
-                                        onToggleExpand = { onToggleExpand(child.nodeId) }
+                            node.children.forEachIndexed { index, level2node ->
+                                if (level2node.nodeId == activeChildId) {
+                                    WorkspaceHeadingRow(
+                                        node = level2node,
+                                        onToggleExpand = { onToggleExpand(level2node.nodeId) }
                                     )
-
-                                    val fullPathNodes = resolveFullPath(node, chain)
 
                                     Card(
                                         modifier = Modifier
@@ -434,39 +535,31 @@ private fun UnplannedProjectRootCard(
                                     ) {
                                         Column(
                                             modifier = Modifier
-                                                .padding(10.dp,10.dp,10.dp,0.1.dp)
+                                                .padding(10.dp, 10.dp, 10.dp, 0.1.dp)
                                                 .animateContentSize()
                                         ) {
+                                            // ==========================================
+                                            // NEW IMPLEMENTATION: Single canonical path
+                                            // ==========================================
+                                            val subPathIds = activeBranchPath.drop(1)
+                                            val fullPathNodes = mutableListOf<UnplannedProjectUiModel>()
 
-                                            val terminal = fullPathNodes.last()
-                                            val isTerminalLeaf = terminal.children.isEmpty()
-                                            val breadcrumbNodes =
-                                                if (isTerminalLeaf) fullPathNodes.dropLast(1)
-                                                else fullPathNodes
-                                            val focusRows =
-                                                if (isTerminalLeaf) {
-                                                    breadcrumbNodes.lastOrNull()?.children
-                                                        ?: child.children
+                                            var currentNode = level2node
+                                            for (id in subPathIds) {
+                                                val nextNode = currentNode.children.find { it.nodeId == id }
+                                                if (nextNode != null) {
+                                                    fullPathNodes.add(nextNode)
+                                                    currentNode = nextNode
                                                 } else {
-                                                    terminal.children
+                                                    break
                                                 }
+                                            }
 
-
-                                            SingleBranchBreadcrumb(
-                                                segments = breadcrumbNodes
-                                                    .drop(1)
-                                                    .map { it.nodeId to it.title },
-                                                onSegmentClick = onNodeClick,
-                                                modifier = Modifier.fillMaxWidth(),
-                                                accentColor = accentColor
-                                            )
-
-                                            Spacer(modifier = Modifier.height(12.dp))
-
-                                            focusRows.forEachIndexed { fIndex, fRow ->
-                                                TreeRow(
-                                                    node = fRow,
-                                                    titleFontSize = LEVEL2_TITLE_SIZE,
+                                            if (fullPathNodes.isEmpty()) {
+                                                // Strictly at Level 2, no deeper expansion
+                                                WorkspaceChildRowList(
+                                                    rows = level2node.children,
+                                                    accentColor = accentColor,
                                                     onToggleExpand = onToggleExpand,
                                                     onNodeClick = onNodeClick,
                                                     onNavigateToSession = onNavigateToSession,
@@ -475,35 +568,97 @@ private fun UnplannedProjectRootCard(
                                                     onAddExpectedDuration = onAddExpectedDuration,
                                                     onShowStats = onShowStats,
                                                     onDelete = onDelete,
-                                                    showVerticalLine = true,
-                                                    onToggleCompleted = onToggleCompleted
+                                                    onToggleCompleted = onToggleCompleted,
+                                                    animatedLeafNodeId = animatedLeafNodeId,
+                                                    onLeafClicked = onLeafClicked
                                                 )
-                                                if (fIndex != focusRows.lastIndex) {
-                                                    // divdier
-                                                    HorizontalDivider(
-                                                        modifier = Modifier.padding(vertical = 2.dp),
-                                                        thickness = 0.5.dp,
-                                                        color = accentColor.copy(alpha = 0.45f)
+                                                AddChildButton(
+                                                    label = "Add Item",
+                                                    onClick = { onAddChild(level2node.nodeId) },
+                                                    indent = 0.dp
+                                                )
+                                            } else {
+                                                // Level 3 or deeper
+                                                val terminal = fullPathNodes.last()
+                                                val isTerminalLeaf = terminal.children.isEmpty()
+                                                val terminalParent = if (fullPathNodes.size >= 2) {
+                                                    fullPathNodes[fullPathNodes.size - 2]
+                                                } else {
+                                                    level2node
+                                                }
+
+                                                val breadcrumbNodes = if (isTerminalLeaf) {
+                                                    fullPathNodes.dropLast(1)
+                                                } else {
+                                                    fullPathNodes
+                                                }
+
+                                                val focusRows = if (isTerminalLeaf) {
+                                                    terminalParent.children
+                                                } else {
+                                                    terminal.children
+                                                }
+
+                                                if (breadcrumbNodes.isNotEmpty()) {
+                                                    BreadcrumbTrail(
+                                                        segments = breadcrumbNodes.map { it.nodeId to it.title },
+                                                        onSegmentClick = onNodeClick,
+                                                        modifier = Modifier.fillMaxWidth(),
+                                                        accentColor = accentColor
                                                     )
-//                                                    Spacer(
-//                                                        modifier = Modifier.height(
-//                                                            BETWEEN_CHILD_ROWS
-//                                                        )
-//                                                    )
+                                                    Spacer(modifier = Modifier.height(12.dp))
+                                                }
+
+                                                focusRows.forEachIndexed { fIndex, fRow ->
+                                                    val isFocusedLeaf = isTerminalLeaf && fRow.nodeId == terminal.nodeId
+                                                    Column {
+                                                        TreeRow(
+                                                            node = fRow,
+                                                            titleFontSize = BREADCRUMB_ROW_TITLE_SIZE,
+                                                            onToggleExpand = onToggleExpand,
+                                                            onNodeClick = onNodeClick,
+                                                            onNavigateToSession = onNavigateToSession,
+                                                            onAddChild = onAddChild,
+                                                            onRename = onRename,
+                                                            onAddExpectedDuration = onAddExpectedDuration,
+                                                            onShowStats = onShowStats,
+                                                            onDelete = onDelete,
+                                                            showVerticalLine = true,
+                                                            onToggleCompleted = onToggleCompleted,
+                                                            animatedLeafNodeId = animatedLeafNodeId,
+                                                            onLeafClicked = onLeafClicked
+                                                        )
+                                                        if (isFocusedLeaf) {
+                                                            AddChildButton(
+                                                                label = "Add Child",
+                                                                onClick = { onAddChild(fRow.nodeId) },
+                                                                indent = 24.dp
+                                                            )
+                                                        }
+                                                    }
+                                                    if (fIndex != focusRows.lastIndex) {
+                                                        HorizontalDivider(
+                                                            modifier = Modifier.padding(vertical = 2.dp),
+                                                            thickness = 0.5.dp,
+                                                            color = accentColor.copy(alpha = 0.45f)
+                                                        )
+                                                    }
+                                                }
+
+                                                if (!isTerminalLeaf) {
+                                                    AddChildButton(
+                                                        label = "Add Item",
+                                                        onClick = { onAddChild(terminal.nodeId) },
+                                                        indent = 0.dp,
+                                                    )
                                                 }
                                             }
-
-                                            AddChildButton(
-                                                label = "Add Item",
-                                                onClick = { onAddChild(terminal.nodeId) },
-                                                indent = 0.dp,
-                                            )
                                         }
                                     }
                                 } else {
                                     TreeRow(
-                                        node = child,
-                                        titleFontSize = LEVEL1_TITLE_SIZE,
+                                        node = level2node,
+                                        titleFontSize = BREADCRUMB_ROW_TITLE_SIZE,
                                         onToggleExpand = onToggleExpand,
                                         onNodeClick = onNodeClick,
                                         onNavigateToSession = onNavigateToSession,
@@ -512,19 +667,19 @@ private fun UnplannedProjectRootCard(
                                         onAddExpectedDuration = onAddExpectedDuration,
                                         onShowStats = onShowStats,
                                         onDelete = onDelete,
-                                        onToggleCompleted = onToggleCompleted
+                                        onToggleCompleted = onToggleCompleted,
+                                        animatedLeafNodeId = animatedLeafNodeId,
+                                        onLeafClicked = onLeafClicked
                                     )
                                 }
-                                if (index != node.children.lastIndex && (child.nodeId != activeChildId)) {
+                                if (index != node.children.lastIndex && (level2node.nodeId != activeChildId)) {
                                     HorizontalDivider(
-                                        modifier = Modifier.padding(vertical=BETWEEN_CHILD_ROWS),
+                                        modifier = Modifier.padding(vertical = BETWEEN_CHILD_ROWS),
                                         thickness = 0.5.dp,
                                         color = accentColor.copy(alpha = 0.45f)
                                     )
-                                }
-                                    else{
-                                     Spacer(modifier = Modifier.height(BETWEEN_CHILD_ROWS))
-
+                                } else {
+                                    Spacer(modifier = Modifier.height(BETWEEN_CHILD_ROWS))
                                 }
                             }
                         }
@@ -532,8 +687,7 @@ private fun UnplannedProjectRootCard(
                         AddChildButton(
                             label = "Add Topic",
                             onClick = { onAddChild(node.nodeId) },
-                            indent = 0.dp,
-                            //modifier = Modifier.padding(top = ADD_BUTTON_TOP_PADDING)
+                            indent = 0.dp
                         )
                     }
                 }
@@ -554,50 +708,72 @@ private fun UnplannedProjectRootCard(
 }
 
 @Composable
-private fun Level1HeadingRow(
-    node: UnplannedProjectUiModel,
+private fun WorkspaceChildRowList(
+    rows: List<UnplannedProjectUiModel>,
     accentColor: Color,
+    onToggleExpand: (Long) -> Unit,
+    onNodeClick: (Long) -> Unit,
+    onNavigateToSession: (Long) -> Unit,
+    onAddChild: (Long) -> Unit,
+    onRename: (Long, String) -> Unit,
+    onAddExpectedDuration: (Long) -> Unit,
+    onShowStats: (UnplannedProjectUiModel) -> Unit,
+    onDelete: (Long) -> Unit,
+    onToggleCompleted: (Long, Boolean) -> Unit,
+    animatedLeafNodeId: Long?,
+    onLeafClicked: (Long) -> Unit
+) {
+    rows.forEachIndexed { index, row ->
+        TreeRow(
+            node = row,
+            titleFontSize = BREADCRUMB_ROW_TITLE_SIZE,
+            onToggleExpand = onToggleExpand,
+            onNodeClick = onNodeClick,
+            onNavigateToSession = onNavigateToSession,
+            onAddChild = onAddChild,
+            onRename = onRename,
+            onAddExpectedDuration = onAddExpectedDuration,
+            onShowStats = onShowStats,
+            onDelete = onDelete,
+            showVerticalLine = true,
+            onToggleCompleted = onToggleCompleted,
+            animatedLeafNodeId = animatedLeafNodeId,
+            onLeafClicked = onLeafClicked
+        )
+        if (index != rows.lastIndex) {
+            HorizontalDivider(
+                modifier = Modifier.padding(vertical = 2.dp),
+                thickness = 0.5.dp,
+                color = accentColor.copy(alpha = 0.45f)
+            )
+        }
+    }
+}
+
+@Composable
+private fun WorkspaceHeadingRow(
+    node: UnplannedProjectUiModel,
     onToggleExpand: () -> Unit
 ) {
-    // Only container nodes can be rendered as a heading.
     if (node.children.isEmpty()) return
 
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .clickable { onToggleExpand() }
-            .padding( 6.dp, 8.dp,4.dp,0.2.dp),
+            .padding(6.dp, 8.dp, 4.dp, 0.2.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Text(
             text = node.title,
-            fontSize = 20.sp,
+            fontSize = WORKSPACE_HEADING_TITLE_SIZE,
             fontWeight = FontWeight.Bold,
             color = Color.White,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
             modifier = Modifier.weight(1f)
         )
-//        Icon(
-//            imageVector = Icons.Default.KeyboardArrowDown,
-//            contentDescription = "Collapse",
-//            tint = accentColor,
-//            modifier = Modifier.size(24.dp)
-//        )
     }
-}
-
-private fun resolveFullPath(root: UnplannedProjectUiModel, chain: List<Long>): List<UnplannedProjectUiModel> {
-    val path = mutableListOf<UnplannedProjectUiModel>()
-    var current = root
-    for (id in chain) {
-        val next = current.children.find { it.nodeId == id }
-        if (next != null) {
-            path.add(next)
-            current = next
-        } else {
-            break
-        }
-    }
-    return path
 }
 
 @Composable
@@ -615,6 +791,8 @@ private fun TreeRow(
     onDelete: (Long) -> Unit,
     showVerticalLine: Boolean = true,
     onToggleCompleted: (Long, Boolean) -> Unit,
+    animatedLeafNodeId: Long?,
+    onLeafClicked: (Long) -> Unit,
 ) {
     var showMenu by remember { mutableStateOf(false) }
     val accentColor = AccentPalette.getAccent(node.accentIndex)
@@ -623,7 +801,7 @@ private fun TreeRow(
         modifier = Modifier
             .fillMaxWidth()
             .combinedClickable(
-                onClick = { if (node.children.isNotEmpty()) onToggleExpand(node.nodeId) else onNodeClick(node.nodeId) },
+                onClick = { if (node.children.isNotEmpty()) onToggleExpand(node.nodeId) else onLeafClicked(node.nodeId) },
                 onLongClick = { showMenu = true },
                 interactionSource = remember { MutableInteractionSource() },
                 indication = ripple(bounded = true)
@@ -632,9 +810,7 @@ private fun TreeRow(
         verticalAlignment = Alignment.Top
     ) {
         Box(
-            modifier = Modifier
-               // .width(10.dp)
-                .height(80.dp),
+            modifier = Modifier.height(80.dp),
             contentAlignment = Alignment.TopCenter
         ) {
             if (showVerticalLine) {
@@ -649,7 +825,7 @@ private fun TreeRow(
                 modifier = Modifier
                     .padding(top = 10.dp)
                     .size(6.dp)
-                    .background( accentColor.copy(alpha = 0.45f), CircleShape)
+                    .background(accentColor.copy(alpha = 0.45f), CircleShape)
             )
         }
 
@@ -663,7 +839,8 @@ private fun TreeRow(
             isExpanded = false,
             onToggleExpand = { onToggleExpand(node.nodeId) },
             onPlay = { onNavigateToSession(node.nodeId) },
-            onToggleCompleted = onToggleCompleted
+            onToggleCompleted = onToggleCompleted,
+            animatedLeafNodeId = animatedLeafNodeId
         )
     }
 
@@ -680,6 +857,67 @@ private fun TreeRow(
 }
 
 @Composable
+private fun CompletionToggle(
+    isCompleted: Boolean,
+    onToggle: () -> Unit,
+) {
+    var bounce by remember { mutableStateOf(false) }
+    val scope = rememberCoroutineScope()
+
+    val tint by animateColorAsState(
+        targetValue = if (isCompleted) Color(0xFF4CAF50) else Color.Gray,
+        animationSpec = tween(durationMillis = 140),
+        label = "CompletionTint"
+    )
+
+    val scale by animateFloatAsState(
+        targetValue = if (bounce) 0.88f else 1f,
+        animationSpec = tween(durationMillis = 140),
+        label = "CompletionScale"
+    )
+
+    val icon = if (isCompleted) {
+        Icons.Filled.CheckCircle
+    } else {
+        Icons.Outlined.RadioButtonUnchecked
+    }
+
+    Box(
+        modifier = Modifier
+            .size(40.dp)
+            .clickable(
+                interactionSource = remember { MutableInteractionSource() },
+                indication = ripple(bounded = false, radius = 20.dp),
+                onClick = {
+                    bounce = true
+                    onToggle()
+                    scope.launch {
+                        delay(140)
+                        bounce = false
+                    }
+                }
+            ),
+        contentAlignment = Alignment.Center
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = if (isCompleted) "Mark as not done" else "Mark as done",
+            tint = tint,
+            modifier = Modifier
+                .size(24.dp)
+                .graphicsLayer {
+                    scaleX = scale
+                    scaleY = scale
+                }
+        )
+    }
+}
+
+private val TOGGLE_WIDTH = 40.dp
+private val PLAY_WIDTH = 40.dp
+private val TOGGLE_PLAY_GAP = 6.dp
+
+@Composable
 private fun NodeSummaryRow(
     node: UnplannedProjectUiModel,
     titleFontSize: TextUnit,
@@ -689,6 +927,7 @@ private fun NodeSummaryRow(
     onToggleExpand: () -> Unit,
     onPlay: () -> Unit,
     onToggleCompleted: (Long, Boolean) -> Unit,
+    animatedLeafNodeId: Long?,
 ) {
     val progress = if (node.expectedDurationSeconds == 0) {
         0f
@@ -699,84 +938,145 @@ private fun NodeSummaryRow(
     val displayedPercent = if (node.children.isEmpty()) (progress * 100).toInt() else (node.completionProgress * 100).toInt()
 
     val accentColor = AccentPalette.getAccent(node.accentIndex)
+    val isLeafAnimated = animatedLeafNodeId == node.nodeId
 
-    Row(verticalAlignment = Alignment.Top, modifier = Modifier.fillMaxWidth())
-    {
-        Column(modifier = Modifier.weight(1f)) {
+    val playScale by animateFloatAsState(
+        targetValue = if (isLeafAnimated) 1.15f else 1f,
+        animationSpec = tween(durationMillis = 140),
+        label = "PlayPulse"
+    )
+
+    val playTint by animateColorAsState(
+        targetValue = if (isLeafAnimated) Color(0xFF4CAF50) else Color.Gray,
+        animationSpec = tween(durationMillis = 140),
+        label = "PlayTint"
+    )
+
+    Column(modifier = Modifier.fillMaxWidth()) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
             Text(
                 text = node.title,
                 fontSize = titleFontSize,
                 fontWeight = titleFontWeight,
                 color = Color.White,
                 maxLines = 2,
-                overflow = TextOverflow.Ellipsis
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.weight(1f)
             )
 
-            Spacer(modifier = Modifier.height(6.dp))
-            Text(
-                text = "Est. ${formatShortDuration(node.expectedDurationSeconds)}",
-                fontSize = 12.sp,
-                color = Color.Gray
-            )
+            Spacer(modifier = Modifier.width(12.dp))
 
-            Spacer(modifier = Modifier.height(10.dp))
+            if (isExpandable) {
+                Box(
+                    modifier = Modifier.width(PLAY_WIDTH),
+                    contentAlignment = Alignment.CenterEnd
+                ) {
+                    IconButton(
+                        onClick = onToggleExpand,
+                        modifier = Modifier.size(28.dp)
+                    ) {
+                        Icon(
+                            imageVector = if (isExpanded) Icons.Default.KeyboardArrowDown
+                            else Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                            contentDescription = if (isExpanded) "Collapse" else "Expand",
+                            tint = Color.Gray
+                        )
+                    }
+                }
+            } else {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.End
+                ) {
+                    CompletionToggle(
+                        isCompleted = node.isCompleted,
+                        onToggle = { onToggleCompleted(node.nodeId, !node.isCompleted) }
+                    )
+
+                    Spacer(modifier = Modifier.width(TOGGLE_PLAY_GAP))
+
+                    Box(
+                        modifier = Modifier.width(PLAY_WIDTH),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        IconButton(
+                            onClick = onPlay,
+                            modifier = Modifier.size(PLAY_WIDTH)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Filled.PlayArrow,
+                                contentDescription = "Start Session",
+                                tint = playTint,
+                                modifier = Modifier.graphicsLayer {
+                                    scaleX = playScale
+                                    scaleY = playScale
+                                }
+                            )
+                        }
+                    }
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(6.dp))
+        Text(
+            text = "Est. ${formatShortDuration(node.expectedDurationSeconds)}",
+            fontSize = 12.sp,
+            color = Color.Gray
+        )
+
+        Spacer(modifier = Modifier.height(10.dp))
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
             LinearProgressIndicator(
                 progress = { displayedProgress },
                 modifier = Modifier
-                    .fillMaxWidth()
+                    .weight(1f)
                     .height(4.5.dp)
                     .clip(CircleShape),
                 color = accentColor,
                 trackColor = Color(0xFF222222),
                 strokeCap = StrokeCap.Round
             )
-        }
 
-        Spacer(modifier = Modifier.width(12.dp))
+            Spacer(modifier = Modifier.width(12.dp))
 
-        Column(
-            horizontalAlignment = Alignment.End,
-            verticalArrangement = Arrangement.SpaceBetween,
-            modifier = Modifier.height(80.dp)
-        ) {
             if (isExpandable) {
-                IconButton(onClick = onToggleExpand, modifier = Modifier.size(28.dp)) {
-                    Icon(
-                        imageVector = if (isExpanded) Icons.Default.KeyboardArrowDown else Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                        contentDescription = if (isExpanded) "Collapse" else "Expand",
-                        tint = Color.Gray
+                Box(
+                    modifier = Modifier.width(PLAY_WIDTH),
+                    contentAlignment = Alignment.CenterEnd
+                ) {
+                    Text(
+                        text = "$displayedPercent%",
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = Color.White
                     )
                 }
             } else {
                 Row(
+                    horizontalArrangement = Arrangement.End,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-//                    Checkbox(
-//                        checked = node.isCompleted,
-//                        onCheckedChange = {
-//                            onToggleCompleted(node.nodeId, it)
-//                        }
-//                    )
-
-                    IconButton(
-                        onClick = onPlay
+                    Spacer(modifier = Modifier.width(TOGGLE_WIDTH + TOGGLE_PLAY_GAP))
+                    Box(
+                        modifier = Modifier.width(PLAY_WIDTH),
+                        contentAlignment = Alignment.Center
                     ) {
-                        Icon(
-                            Icons.Filled.PlayArrow,
-                            contentDescription = "Start Session",
-                            tint = Color.Gray
+                        Text(
+                            text = "$displayedPercent%",
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Medium,
+                            color = Color.White
                         )
                     }
                 }
             }
-
-            Text(
-                text = "$displayedPercent%",
-                fontSize = 14.sp,
-                fontWeight = FontWeight.Medium,
-                color = Color.White,
-                modifier = Modifier.padding(bottom = 3.dp)
-            )
         }
     }
 }
@@ -812,6 +1112,7 @@ private fun AddChildButton(label: String, onClick: () -> Unit, indent: Dp, modif
     }
 }
 
+// Redesigned Bottom Sheet Options
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun NodeOptionsBottomSheet(
@@ -830,28 +1131,55 @@ private fun NodeOptionsBottomSheet(
 
     androidx.compose.material3.ModalBottomSheet(
         onDismissRequest = onDismiss,
-        sheetState = sheetState
+        sheetState = sheetState,
+        containerColor = DARK_DIALOG_SURFACE,
+        dragHandle = {
+            Box(
+                modifier = Modifier
+                    .padding(vertical = 10.dp)
+                    .width(36.dp)
+                    .height(4.dp)
+                    .clip(CircleShape)
+                    .background(Color(0xFF444444))
+            )
+        }
     ) {
-        Column(modifier = Modifier.padding(bottom = 12.dp)) {
-            Text(
-                text = nodeName,
-                style = MaterialTheme.typography.titleSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
+        Column(modifier = Modifier.padding(bottom = 20.dp, start = 8.dp, end = 8.dp)) {
+            Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 20.dp, vertical = 8.dp)
-            )
-            HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.15f))
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = nodeName,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.White,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f)
+                )
+            }
 
-            BottomSheetOption(icon = Icons.Default.Add, label = "Add Child", onClick = { onAddChild(); onDismiss() })
-            BottomSheetOption(icon = Icons.Default.Edit, label = "Rename", onClick = { onRename(); onDismiss() })
-            BottomSheetOption(icon = Icons.Default.Timer, label = "Estimated Minutes", onClick = { onSetDuration(); onDismiss() })
-            BottomSheetOption(icon = Icons.Outlined.BarChart, label = "Show Statistics", onClick = { onShowStats(); onDismiss() })
+            HorizontalDivider(
+                modifier = Modifier.padding(vertical = 8.dp),
+                color = Color(0xFF2A2A2A)
+            )
+
+            BottomSheetOption(icon = Icons.Default.Add, label = "Add Child Item", onClick = { onAddChild(); onDismiss() })
+            BottomSheetOption(icon = Icons.Default.Edit, label = "Rename Item", onClick = { onRename(); onDismiss() })
+            BottomSheetOption(icon = Icons.Default.Timer, label = "Set Estimated Time", onClick = { onSetDuration(); onDismiss() })
+            BottomSheetOption(icon = Icons.Outlined.BarChart, label = "View Statistics", onClick = { onShowStats(); onDismiss() })
+
+            HorizontalDivider(
+                modifier = Modifier.padding(vertical = 6.dp),
+                color = Color(0xFF2A2A2A)
+            )
+
             BottomSheetOption(
                 icon = Icons.Default.Delete,
-                label = "Delete",
+                label = "Delete Item",
                 onClick = { onDelete(); onDismiss() },
                 tint = MaterialTheme.colorScheme.error
             )
@@ -869,27 +1197,37 @@ private fun BottomSheetOption(
     Row(
         modifier = Modifier
             .fillMaxWidth()
+            .clip(RoundedCornerShape(12.dp))
             .clickable(onClick = onClick)
-            .padding(horizontal = 20.dp, vertical = 14.dp),
+            .padding(horizontal = 16.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = null,
-            tint = tint ?: MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.size(20.dp)
-        )
-        Spacer(modifier = Modifier.width(16.dp))
+        Box(
+            modifier = Modifier
+                .size(36.dp)
+                .clip(CircleShape)
+                .background((tint ?: Color.White).copy(alpha = 0.1f)),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = tint ?: Color.White,
+                modifier = Modifier.size(18.dp)
+            )
+        }
+        Spacer(modifier = Modifier.width(14.dp))
         Text(
             text = label,
             style = MaterialTheme.typography.bodyMedium,
-            color = tint ?: MaterialTheme.colorScheme.onSurface
+            fontWeight = FontWeight.Medium,
+            color = tint ?: Color.White
         )
     }
 }
 
 @Composable
-private fun SingleBranchBreadcrumb(
+private fun BreadcrumbTrail(
     segments: List<Pair<Long, String>>,
     onSegmentClick: (Long) -> Unit,
     modifier: Modifier = Modifier,
@@ -908,7 +1246,6 @@ private fun SingleBranchBreadcrumb(
             )
         )
     }
-
 
     Row(
         modifier = modifier
@@ -943,6 +1280,7 @@ private fun SingleBranchBreadcrumb(
     }
 }
 
+// Dialog Input with Theme Styling
 @Composable
 fun NodeInputDialog(
     title: String,
@@ -954,16 +1292,18 @@ fun NodeInputDialog(
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
-        shape = RoundedCornerShape(16.dp),
+        containerColor = DARK_DIALOG_SURFACE,
+        shape = RoundedCornerShape(20.dp),
         title = {
             Column {
-                Text(text = title, style = MaterialTheme.typography.titleSmall)
+                Text(text = title, style = MaterialTheme.typography.titleSmall, color = Color.Gray)
                 if (nodeName != null) {
                     Text(
                         text = nodeName,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 1,
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold,
+                        color = Color.White,
+                        maxLines = 2,
                         overflow = TextOverflow.Ellipsis,
                         modifier = Modifier.padding(top = 4.dp)
                     )
@@ -976,11 +1316,229 @@ fun NodeInputDialog(
                 onValueChange = onValueChange,
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth(),
-                textStyle = MaterialTheme.typography.bodyMedium
+                shape = RoundedCornerShape(12.dp),
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedContainerColor = DARK_INPUT_BACKGROUND,
+                    unfocusedContainerColor = DARK_INPUT_BACKGROUND,
+                    focusedBorderColor = Color(0xFF555555),
+                    unfocusedBorderColor = Color(0xFF3A3A3A),
+                    focusedTextColor = Color.White,
+                    unfocusedTextColor = Color.White,
+                    cursorColor = Color.White
+                )
             )
         },
-        confirmButton = { TextButton(onClick = onConfirm) { Text("Add", style = MaterialTheme.typography.labelLarge) } },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel", style = MaterialTheme.typography.labelLarge) } }
+        confirmButton = {
+            TextButton(onClick = onConfirm) {
+                Text("Confirm", style = MaterialTheme.typography.labelLarge, color = Color.White, fontWeight = FontWeight.Bold)
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cancel", style = MaterialTheme.typography.labelLarge, color = Color.Gray)
+            }
+        }
+    )
+}
+
+// Infinite Vertical Snap Wheel Column showing exactly 3 items at a time
+@Composable
+private fun VerticalPickerColumn(
+    label: String,
+    range: List<Int>,
+    selectedValue: Int,
+    onValueSelected: (Int) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val count = range.size
+    if (count == 0) return
+
+    val virtualCount = 10_000 * count
+    val initialIndex = remember(selectedValue) {
+        val middleOffset = (virtualCount / 2) - ((virtualCount / 2) % count)
+        val pos = range.indexOf(selectedValue).coerceAtLeast(0)
+        middleOffset + pos
+    }
+
+    val listState = rememberLazyListState(initialFirstVisibleItemIndex = initialIndex)
+    val snapFlingBehavior = rememberSnapFlingBehavior(lazyListState = listState)
+
+    // Automatically update selected value based on center item position
+    LaunchedEffect(listState.firstVisibleItemIndex) {
+        val actualIndex = listState.firstVisibleItemIndex % count
+        val newValue = range[actualIndex]
+        if (newValue != selectedValue) {
+            onValueSelected(newValue)
+        }
+    }
+
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        modifier = modifier
+    ) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelMedium,
+            fontWeight = FontWeight.Bold,
+            color = Color.Gray,
+            modifier = Modifier.padding(bottom = 8.dp)
+        )
+        Box(
+            modifier = Modifier
+                .height(120.dp) // Exactly 3 items visible (40.dp * 3)
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(12.dp))
+                .background(DARK_INPUT_BACKGROUND)
+                .border(1.dp, Color(0xFF3A3A3A), RoundedCornerShape(12.dp)),
+            contentAlignment = Alignment.Center
+        ) {
+            // Fixed Center Selection Highlight Bar
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(40.dp)
+                    .background(Color(0xFF383838), RoundedCornerShape(8.dp))
+                    .border(1.dp, Color(0xFF555555), RoundedCornerShape(8.dp))
+            )
+
+            LazyColumn(
+                state = listState,
+                flingBehavior = snapFlingBehavior,
+                modifier = Modifier.fillMaxSize(),
+                contentPadding = PaddingValues(vertical = 40.dp) // 40.dp padding centers item 0
+            ) {
+                items(
+                    count = virtualCount,
+                    key = { index -> index }
+                ) { index ->
+                    val value = range[index % count]
+                    val isSelected = value == selectedValue
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(40.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = value.toString(),
+                            fontSize = if (isSelected) 18.sp else 14.sp,
+                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                            color = if (isSelected) Color.White else Color(0xFF777777)
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+// Duration Picker Dialog with Continuous Infinite Loop Vertical Wheel Selectors
+@Composable
+fun ExpectedDurationDialog(
+    nodeName: String?,
+    initialInput: String,
+    onValueChange: (String) -> Unit,
+    onDismiss: () -> Unit,
+    onConfirm: () -> Unit
+) {
+    val initialMinutes = initialInput.toIntOrNull() ?: 0
+    val initialDays = initialMinutes / 1440
+    val initialHours = (initialMinutes % 1440) / 60
+    val initialMins = initialMinutes % 60
+
+    var selectedDays by remember { mutableIntStateOf(initialDays) }
+    var selectedHours by remember { mutableIntStateOf(initialHours) }
+    var selectedMins by remember { mutableIntStateOf(initialMins) }
+
+    val calculatedTotalMinutes = (selectedDays * 1440) + (selectedHours * 60) + selectedMins
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        containerColor = DARK_DIALOG_SURFACE,
+        shape = RoundedCornerShape(20.dp),
+        title = {
+            Column {
+                Text(text = "SET ESTIMATED DURATION", style = MaterialTheme.typography.titleSmall, color = Color.Gray)
+                if (nodeName != null) {
+                    Text(
+                        text = nodeName,
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold,
+                        color = Color.White,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.padding(top = 4.dp)
+                    )
+                }
+            }
+        },
+        text = {
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    VerticalPickerColumn(
+                        label = "Days",
+                        range = (0..30).toList(),
+                        selectedValue = selectedDays,
+                        onValueSelected = { selectedDays = it },
+                        modifier = Modifier.weight(1f)
+                    )
+                    VerticalPickerColumn(
+                        label = "Hours",
+                        range = (0..23).toList(),
+                        selectedValue = selectedHours,
+                        onValueSelected = { selectedHours = it },
+                        modifier = Modifier.weight(1f)
+                    )
+                    VerticalPickerColumn(
+                        label = "Minutes",
+                        range = (0..59).toList(),
+                        selectedValue = selectedMins,
+                        onValueSelected = { selectedMins = it },
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(10.dp))
+                        .background(DARK_INPUT_BACKGROUND)
+                        .border(1.dp, Color(0xFF3A3A3A), RoundedCornerShape(10.dp))
+                        .padding(vertical = 10.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "Selected: ${formatShortDuration(calculatedTotalMinutes * 60)}",
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.White
+                    )
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(
+                onClick = {
+                    onValueChange(calculatedTotalMinutes.toString())
+                    onConfirm()
+                }
+            ) {
+                Text("Save", style = MaterialTheme.typography.labelLarge, color = Color.White, fontWeight = FontWeight.Bold)
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cancel", style = MaterialTheme.typography.labelLarge, color = Color.Gray)
+            }
+        }
     )
 }
 
@@ -1017,12 +1575,31 @@ fun TipCard() {
     }
 }
 
+// Formats estimated time: Displays Days + Hours + Minutes if >= 24h
 private fun formatShortDuration(seconds: Int): String {
-    val minutes = seconds / 60
-    if (minutes < 60) return "${minutes}m"
-    val hours = minutes / 60
-    val remainingMinutes = minutes % 60
-    return "${hours}h ${remainingMinutes}m"
+    if (seconds <= 0) return "0m"
+    val totalMinutes = seconds / 60
+    val totalHours = totalMinutes / 60
+    val days = totalHours / 24
+    val remainingHours = totalHours % 24
+    val remainingMinutes = totalMinutes % 60
+
+    return when {
+        days > 0 -> {
+            buildString {
+                append("${days}d")
+                if (remainingHours > 0) append(" ${remainingHours}h")
+                if (remainingMinutes > 0) append(" ${remainingMinutes}m")
+            }
+        }
+        totalHours > 0 -> {
+            buildString {
+                append("${totalHours}h")
+                if (remainingMinutes > 0) append(" ${remainingMinutes}m")
+            }
+        }
+        else -> "${totalMinutes}m"
+    }
 }
 
 private fun findNodeById(tree: List<UnplannedProjectUiModel>, nodeId: Long): UnplannedProjectUiModel? {
@@ -1044,158 +1621,7 @@ fun UnplannedProjectScreenPreview() {
                 title = "Android Architecture",
                 accentIndex = 0,
                 currentDurationSeconds = 5720,
-                expectedDurationSeconds = 7200,
-                isCompleted = false,
-                children = listOf(
-                    UnplannedProjectUiModel(
-                        nodeId = 2L,
-                        title = "UI",
-                        accentIndex = 0,
-                        currentDurationSeconds = 2710,
-                        expectedDurationSeconds = 3600,
-                        isCompleted = true,
-                        children = emptyList()
-                    ),
-                    UnplannedProjectUiModel(
-                        nodeId = 3L,
-                        title = "Engine",
-                        accentIndex = 0,
-                        currentDurationSeconds = 1530,
-                        expectedDurationSeconds = 1800,
-                        isCompleted = false,
-                        children = listOf(
-                            UnplannedProjectUiModel(
-                                nodeId = 8L,
-                                title = "Database",
-                                accentIndex = 0,
-                                currentDurationSeconds = 400,
-                                expectedDurationSeconds = 600,
-                                isCompleted = false,
-                                children = emptyList()
-                            ),
-                            UnplannedProjectUiModel(
-                                nodeId = 4L,
-                                title = "Layout",
-                                accentIndex = 0,
-                                currentDurationSeconds = 610,
-                                expectedDurationSeconds = 900,
-                                isCompleted = false,
-                                children = listOf(
-                                    UnplannedProjectUiModel(
-                                        nodeId = 9L,
-                                        title = "Canvas",
-                                        accentIndex = 0,
-                                        currentDurationSeconds = 200,
-                                        expectedDurationSeconds = 400,
-                                        isCompleted = false,
-                                        children = listOf(
-                                            UnplannedProjectUiModel(
-                                                nodeId = 20L,
-                                                title = "Renderer",
-                                                accentIndex = 0,
-                                                currentDurationSeconds = 50,
-                                                expectedDurationSeconds = 200,
-                                                isCompleted = false,
-                                                children = listOf(
-                                                    UnplannedProjectUiModel(
-                                                        nodeId = 21L,
-                                                        title = "GPU Pipeline",
-                                                        accentIndex = 0,
-                                                        currentDurationSeconds = 20,
-                                                        expectedDurationSeconds = 150,
-                                                        isCompleted = false,
-                                                        children = listOf(
-                                                            UnplannedProjectUiModel(
-                                                                nodeId = 22L,
-                                                                title = "Shaders",
-                                                                accentIndex = 0,
-                                                                currentDurationSeconds = 10,
-                                                                expectedDurationSeconds = 100,
-                                                                isCompleted = false,
-                                                                children = listOf(
-                                                                    UnplannedProjectUiModel(
-                                                                        nodeId = 23L,
-                                                                        title = "Fragment Shader Bug",
-                                                                        accentIndex = 0,
-                                                                        currentDurationSeconds = 0,
-                                                                        expectedDurationSeconds = 30,
-                                                                        isCompleted = false,
-                                                                        children = emptyList()
-                                                                    ),
-                                                                    UnplannedProjectUiModel(
-                                                                        nodeId = 24L,
-                                                                        title = "Vertex Shader Bug",
-                                                                        accentIndex = 0,
-                                                                        currentDurationSeconds = 0,
-                                                                        expectedDurationSeconds = 30,
-                                                                        isCompleted = false,
-                                                                        children = emptyList()
-                                                                    )
-                                                                )
-                                                            )
-                                                        )
-                                                    )
-                                                )
-                                            )
-                                        )
-                                    ),
-                                    UnplannedProjectUiModel(
-                                        nodeId = 10L,
-                                        title = "Export",
-                                        accentIndex = 0,
-                                        currentDurationSeconds = 0,
-                                        expectedDurationSeconds = 300,
-                                        isCompleted = false,
-                                        children = emptyList()
-                                    )
-                                )
-                            ),
-                            UnplannedProjectUiModel(
-                                nodeId = 11L,
-                                title = "Pomodoro",
-                                accentIndex = 0,
-                                currentDurationSeconds = 0,
-                                expectedDurationSeconds = 500,
-                                isCompleted = false,
-                                children = emptyList()
-                            )
-                        )
-                    ),
-                    UnplannedProjectUiModel(
-                        nodeId = 12L,
-                        title = "Testing",
-                        accentIndex = 0,
-                        currentDurationSeconds = 0,
-                        expectedDurationSeconds = 600,
-                        isCompleted = false,
-                        children = emptyList()
-                    )
-                )
-            ),
-            UnplannedProjectUiModel(
-                nodeId = 5L,
-                title = "Personal Finance Tracker",
-                accentIndex = 3,
-                currentDurationSeconds = 1215,
-                expectedDurationSeconds = 3600,
-                isCompleted = false,
-                children = emptyList()
-            ),
-            UnplannedProjectUiModel(
-                nodeId = 6L,
-                title = "Reading List",
-                accentIndex = 6,
-                currentDurationSeconds = 915,
-                expectedDurationSeconds = 1800,
-                isCompleted = true,
-                children = emptyList()
-            ),
-            UnplannedProjectUiModel(
-                nodeId = 7L,
-                title = "Workout Plan",
-                accentIndex = 8,
-                currentDurationSeconds = 0,
-                expectedDurationSeconds = 2700,
+                expectedDurationSeconds = 90000,
                 isCompleted = false,
                 children = emptyList()
             )
@@ -1207,7 +1633,7 @@ fun UnplannedProjectScreenPreview() {
                 dialogInput = "",
                 showAddRootDialog = false,
                 showAddChildDialog = false,
-                expandedPath = listOf(1L, 3L, 4L, 9L, 20L, 21L, 22L, 23L)
+                expandedPath = emptyList()
             ),
             onAddRoot = {},
             onAddChild = {},
@@ -1235,7 +1661,7 @@ fun UnplannedProjectScreenPreview() {
             onDismissStats = {},
             onToggelExpand = {},
             onNavigateToSession = {},
-            onToggleCompleted = {_, _ -> }
+            onToggleCompleted = { _, _ -> }
         )
     }
 }

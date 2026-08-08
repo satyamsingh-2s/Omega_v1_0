@@ -171,9 +171,9 @@ class UnplannedProjectViewModel(
     fun toggleCompleted(nodeId: Long, isCompleted: Boolean
     ) {
         if (isCompleted) {
-            markIncomplete(nodeId)
-        } else {
             markCompleted(nodeId)
+        } else {
+            markIncomplete(nodeId)
         }
     }
 
@@ -472,6 +472,23 @@ class UnplannedProjectViewModel(
     fun onNodeClick(
         nodeId: Long
     ) {
+
+        //⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️
+        // add this experimental feature TODO -- underdevelopment
+        //--- sovled the problem but add button is not appearing --
+        val clickedNode =
+            findNodeById(
+                nodeId,
+                uiState.value.tree
+            )
+
+        // ---- Frozen Leaf Rule ----
+        // A node with zero children is a LEAF by definition. Do NOT update
+        // expandedPath. Return immediately so the navigation state stays put.
+        if (clickedNode != null && clickedNode.children.isEmpty()) {
+            return
+        }
+        //⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️
         // -----------------------
         // NEW FEATURE : SINGLE BRANCH EXPANSION
         // User clicks node -> findPathToNode() -> expandedPath = returnedPath -> UI recomposes.
