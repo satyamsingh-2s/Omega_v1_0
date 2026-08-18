@@ -11,6 +11,20 @@ It shows you reality.
 
 ---
 
+## Source Code & License
+
+This repository is publicly available for **portfolio, technical review, and recruitment evaluation**.
+
+The source code is **not open source** and is not licensed for copying, redistribution, modification, or reuse in other projects.
+
+You may view and inspect the code to evaluate the architecture, implementation, engineering practices, and development work demonstrated by this project.
+
+For permissions beyond viewing and evaluation, please contact the author.
+
+See [`LICENSE`](LICENSE) for the complete terms.
+
+---
+
 ## 📌 What Omega Is
 
 Omega helps you:
