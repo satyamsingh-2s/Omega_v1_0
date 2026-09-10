@@ -5,7 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.example.omega_v1_0.data_layer.entites.PlannedProjectEntity
 import com.example.omega_v1_0.data_layer.entites.SessionEntity
 import com.example.omega_v1_0.data_layer.omega_repository.Omega_Repository
-import com.example.omega_v1_0.models.Experience
+import com.example.omega_v1_0.models_enums.Experience
 import com.example.omega_v1_0.ui.model.ActiveSessionUiModel
 import com.example.omega_v1_0.ui.model.AllProjectsUiModel
 import kotlinx.coroutines.flow.MutableStateFlow

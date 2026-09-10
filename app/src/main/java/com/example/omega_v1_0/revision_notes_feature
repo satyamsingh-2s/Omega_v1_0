@@ -1,0 +1,628 @@
+That's an excellent idea, and it's something I strongly recommend for Omega.
+
+You're no longer just writing code—you're building an architecture. Every major feature should have its own **living design document** that captures:
+
+* why decisions were made,
+* what rules were frozen,
+* how the implementation is structured,
+* and how future extensions are expected to work.
+
+This prevents revisiting the same architectural discussions months later and makes future refactoring much safer.
+
+I recommend creating a document like:
+
+```text
+docs/
+    architecture/
+        Revision_Notes_Architecture.md
+```
+
+or
+
+```text
+docs/
+    feature_history/
+        Revision_Notes_History.md
+```
+
+---
+
+# Revision Notes Feature Architecture
+
+## Purpose
+
+The Revision Notes feature is designed to help the user **retain knowledge systematically**, not simply store notes.
+
+Every completed work session can produce a revision note describing what was learned during that session.
+
+Unlike ordinary note-taking applications, revision notes in Omega are tightly coupled with work sessions, making them a chronological learning history.
+
+The long-term objective is to evolve these notes into a complete revision system capable of tracking revision progress, scheduling future revisions, and helping the user remember important concepts.
+
+---
+
+# Design Philosophy
+
+The feature follows four principles.
+
+### 1. Work First
+
+Revision notes are always attached to completed work.
+
+```
+Work Session
+        ↓
+Revision Note
+```
+
+A note never exists independently.
+
+---
+
+### 2. Sessions represent learning history
+
+Each session records
+
+* when work happened
+* how long it lasted
+* session title
+* expected duration
+
+A revision note records
+
+* what was learned during that session
+
+Therefore multiple sessions naturally create a learning timeline.
+
+Example
+
+```
+Repository Pattern
+
+↓
+
+Session 1
+Learned DAO
+
+↓
+
+Session 2
+Implemented Repository
+
+↓
+
+Session 3
+Added Flow support
+
+↓
+
+Session 4
+Fixed bugs
+```
+
+No additional timeline table is required.
+
+---
+
+### 3. Attachments belong to notes indirectly
+
+Attachments are attached to sessions.
+
+```
+Session
+
+↓
+
+Attachment
+```
+
+Since a session has one revision note,
+
+attachments automatically belong to that note.
+
+This avoids another level of indirection.
+
+---
+
+### 4. Separation of Responsibilities
+
+The feature separates
+
+Knowledge
+
+from
+
+Revision Progress
+
+Knowledge is permanent.
+
+Revision progress changes continuously.
+
+These responsibilities must remain independent.
+
+---
+
+# Current Database Architecture
+
+## UnplannedProjectEntity
+
+Represents the knowledge hierarchy.
+
+Contains
+
+* node title
+* parent relationship
+* ordering
+* completion
+* expected duration
+* accent information
+
+This table defines
+
+**What the topic is.**
+
+It does not contain revision information.
+
+---
+
+## SessionEntity
+
+Represents work history.
+
+Stores
+
+* start time
+* end time
+* duration
+* session name
+* expected duration
+
+Sessions create the chronological learning history.
+
+---
+
+## SessionNoteEntity
+
+Stores
+
+* summary
+* timestamps
+
+One note per session.
+
+Relationship
+
+```
+Session
+
+↓
+
+Revision Note
+```
+
+---
+
+## SessionNoteAttachmentEntity
+
+Stores
+
+* image path
+* creation time
+
+Relationship
+
+```
+Session
+
+↓
+
+Attachments
+```
+
+Attachments are not directly linked to notes.
+
+The relationship is
+
+```
+Session
+
+├── Revision Note
+
+└── Attachments
+```
+
+Since there is only one note per session, attachments are implicitly part of that note.
+
+---
+
+# Current Relationships
+
+```
+Project
+
+↓
+
+Node
+
+↓
+
+Session
+
+├── Revision Note
+
+└── Attachments
+```
+
+This architecture is complete and frozen.
+
+---
+
+# Current UI Flow
+
+## Session Screen
+
+User finishes a session.
+
+↓
+
+Revision Note Editor opens.
+
+User may
+
+* write summary
+* add images
+* edit later
+* delete images
+
+---
+
+## Revision History
+
+Each node displays its own revision history.
+
+History contains
+
+* session title
+* date
+* duration
+* summary
+
+Clicking a note opens
+
+Revision Note Viewer.
+
+---
+
+## Revision Note Viewer
+
+Displays
+
+* session information
+* note content
+
+Images are planned to be displayed below the summary.
+
+Selecting an image opens
+
+Image Viewer.
+
+---
+
+## Image Viewer
+
+Implemented features
+
+* pinch zoom
+* panning
+* double tap zoom
+* transparent background
+* fullscreen dialog
+
+Future improvements
+
+* momentum panning
+* zoom centering
+* swipe between images
+
+---
+
+# UI Models
+
+Attachments are converted before reaching the UI.
+
+```
+SessionNoteAttachmentEntity
+
+↓
+
+AttachmentUiModel
+
+↓
+
+Compose UI
+```
+
+Reason
+
+The UI should never understand storage details.
+
+The mapper resolves
+
+```
+Local Storage
+
+↓
+
+Uri
+```
+
+before presentation.
+
+---
+
+# Repository Responsibilities
+
+## SessionNoteRepository
+
+Responsible for
+
+* save note
+* update note
+* delete empty note
+* observe revision notes
+* load note
+
+Business rules remain inside the repository.
+
+---
+
+## SessionNoteAttachmentRepository
+
+Responsible for
+
+* save image
+* delete image
+* observe attachments
+* convert gallery image into local storage
+* remove local file during deletion
+
+The repository owns all storage operations.
+
+---
+
+# Business Rules
+
+## One note per session
+
+A session owns exactly one revision note.
+
+```
+Session
+
+↓
+
+Revision Note
+```
+
+Unique index on
+
+```
+sessionId
+```
+
+enforces this.
+
+---
+
+## Empty note deletion
+
+Saving an empty summary deletes the note automatically.
+
+---
+
+## Attachment ownership
+
+Attachments belong to sessions.
+
+Deleting a session automatically removes
+
+* note
+* attachments
+
+through Room cascade rules.
+
+---
+
+## Local image storage
+
+Gallery images are copied into Omega private storage.
+
+The original gallery path is not stored.
+
+Only Omega's internal path is persisted.
+
+---
+
+# Architecture Decisions
+
+## Why notes belong to sessions
+
+Because sessions represent actual learning events.
+
+A note answers
+
+"What was learned during this work session?"
+
+not
+
+"What do I know about this topic?"
+
+---
+
+## Why attachments do not reference notes
+
+One session has one note.
+
+Adding another foreign key
+
+```
+Attachment
+
+↓
+
+Note
+```
+
+would duplicate information.
+
+Session already provides the relationship.
+
+---
+
+## Why notes are independent of revision
+
+Notes are historical records.
+
+They never change after learning except user edits.
+
+Revision tracking is a separate concern.
+
+---
+
+# Planned Revision Feature
+
+The current implementation provides only learning history.
+
+The actual revision engine will be implemented separately.
+
+A new entity is planned.
+
+```
+RevisionStateEntity
+```
+
+Its responsibility is
+
+* last revised time
+* revision count
+* future scheduling
+* confidence
+* memory strength
+* AI summary
+* spaced repetition
+
+It will **not** duplicate note content.
+
+---
+
+# Planned Revision Architecture
+
+```
+Project
+
+↓
+
+Node
+
+↓
+
+Session
+
+├── Revision Note
+
+└── Attachments
+
+
+RevisionState
+        │
+        ├── Last Revised
+        ├── Revision Count
+        ├── Future Scheduling
+        └── Revision Metadata
+```
+
+Notes answer
+
+> What was learned?
+
+RevisionState answers
+
+> How well has this topic been revised?
+
+---
+
+# Future Revision Workspace
+
+The future revision workspace is planned around four sections.
+
+## Needs Attention
+
+Topics requiring revision.
+
+---
+
+## Recent Notes
+
+Recently created revision notes.
+
+---
+
+## Recent Projects
+
+Three most recent projects.
+
+Mode toggle
+
+* Unplanned
+* Daily
+
+---
+
+## Recently Revised
+
+Topics recently marked as revised.
+
+---
+
+# Topic Picker
+
+Instead of opening projects directly,
+
+users search for a topic.
+
+Search supports
+
+* Node title
+* Session title
+* Revision note content
+
+Search is scoped to the selected project.
+
+No global "All" search is planned initially.
+
+---
+
+# Future Expansion
+
+The architecture intentionally leaves room for
+
+* automatic revision tracking
+* spaced repetition
+* revision reminders
+* AI-generated summaries
+* important sections
+* confidence score
+* backup/export
+* analytics
+* revision statistics
+
+without requiring changes to the existing Notes architecture.
+
+---
+
+## Document Status
+
+**Status:** Planning Complete, Initial Notes Feature Implemented
+
+This document is intended to be a **living architecture history**. It should be updated whenever the Revision Notes or Revision system evolves so that future development decisions remain consistent with the original design principles.
+-----------------------------------------------------------------------------

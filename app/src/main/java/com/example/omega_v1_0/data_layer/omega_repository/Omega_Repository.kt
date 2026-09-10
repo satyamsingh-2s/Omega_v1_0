@@ -9,10 +9,11 @@ import com.example.omega_v1_0.data_layer.entites.DailyRecordEntity
 import com.example.omega_v1_0.data_layer.entites.PhaseEntity
 import com.example.omega_v1_0.data_layer.entites.PlannedProjectEntity
 import com.example.omega_v1_0.data_layer.entites.SessionEntity
-import com.example.omega_v1_0.models.Experience
-import com.example.omega_v1_0.models.PhaseType
-import com.example.omega_v1_0.models.SessionType
+import com.example.omega_v1_0.models_enums.Experience
+import com.example.omega_v1_0.models_enums.PhaseType
+import com.example.omega_v1_0.models_enums.SessionType
 import com.example.omega_v1_0.data_layer.dao.DailyRecordDao
+import com.example.omega_v1_0.data_layer.dao.PlannerDao
 import com.example.omega_v1_0.data_layer.dao.PomodoroDao
 import com.example.omega_v1_0.data_layer.dao.ToDoListDao
 import com.example.omega_v1_0.data_layer.dao.UnplannedProjectDao
@@ -21,11 +22,13 @@ import com.example.omega_v1_0.data_layer.entites.ActiveSessionEntity
 import com.example.omega_v1_0.data_layer.entites.PomodoroEntity
 import com.example.omega_v1_0.data_layer.entites.ToDoListEntity
 import com.example.omega_v1_0.data_layer.imports.OmegaImport
+import com.example.omega_v1_0.models_enums.PlannerPriority
 import com.example.omega_v1_0.omega_engines.pomodoro_engine.PomodoroConfig
 import com.example.omega_v1_0.omega_engines.pomodoro_engine.PomodoroState
-import com.example.omega_v1_0.models.SessionStatus
-import com.example.omega_v1_0.models.SessionStatusBarModel
-import com.example.omega_v1_0.models.TodoCategory
+import com.example.omega_v1_0.models_enums.SessionStatus
+import com.example.omega_v1_0.models_enums.SessionStatusBarModel
+import com.example.omega_v1_0.models_enums.TodoCategory
+import com.example.omega_v1_0.planner.repository.PlannerRepository
 import com.example.omega_v1_0.settings.repository.SettingsRepository
 import com.example.omega_v1_0.ui.model.DailyRecordHistoryUiModel
 import com.example.omega_v1_0.ui.model.DailyRecordSessionDetailsUiModel
@@ -49,13 +52,15 @@ class Omega_Repository (
     private val unplannedProjectDao: UnplannedProjectDao,
     private val pomodoroDao: PomodoroDao,
     private val settingsRepository: SettingsRepository,
-    private val sessionStatusBarRepository: SessionStatusBarRepository
+    private val sessionStatusBarRepository: SessionStatusBarRepository,
+    private val plannerDao: PlannerDao
 
     ){
 
     private val sessionRepository = SessionRepository(sessionDao,activeSessionDao)
     private val unplannedProjectRepository = UnplannedProjectRepository(unplannedProjectDao, sessionDao)
     private val pomodoroRepository = PomodoroRepository(pomodoroDao)
+    private val plannerRepository = PlannerRepository(plannerDao, unplannedProjectRepository )
 
 
     // ----- project related operations -----
@@ -834,6 +839,10 @@ fun getAllToDoItems(category: TodoCategory
 
         return unplannedProjectRepository
             .getSessionScreenData(nodeId)
+    }
+
+    suspend fun addNodeToPlanner(nodeId: Long,priority: PlannerPriority) {
+        plannerRepository.addNodeToPlanner(nodeId,priority)
     }
 
 

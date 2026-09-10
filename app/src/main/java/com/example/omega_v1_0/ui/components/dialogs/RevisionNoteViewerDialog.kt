@@ -20,7 +20,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import com.example.omega_v1_0.models.RevisionNoteItem
+import com.example.omega_v1_0.models_enums.RevisionNoteItem
 import com.example.omega_v1_0.ui.components.revision_notes.AttachmentThumbnail
 import com.example.omega_v1_0.ui.model.AttachmentUiModel
 import com.example.omega_v1_0.ui.utils.formatDate

@@ -1,6 +1,6 @@
 package com.example.omega_v1_0.ui.uistate
 
-import com.example.omega_v1_0.models.SessionStatus
+import com.example.omega_v1_0.models_enums.PlannerPriority
 import com.example.omega_v1_0.ui.model.UnplannedProjectUiModel
 
 
@@ -65,6 +65,11 @@ data class UnplannedProjectUiState (
     // ---- for the notes feature
     val revisionNoteSummary: String = "",
     val workingNodeId: Long? =null,
+
+    // ---------- Add to Planner ----------
+    val showAddToPlannerDialog: Boolean = false,
+    val selectedPlannerNodeId: Long? = null,
+    val selectedPlannerPriority: PlannerPriority = PlannerPriority.MEDIUM,
 
     ){
 

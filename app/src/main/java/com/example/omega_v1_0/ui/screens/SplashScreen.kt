@@ -28,7 +28,7 @@ import com.example.omega_v1_0.R
 import androidx.compose.runtime.setValue
 import androidx.navigation.NavController
 import com.example.omega_v1_0.data_layer.omega_repository.Omega_Repository
-import com.example.omega_v1_0.ui.navigation.Screen
+import com.example.omega_v1_0.navigation.Screen
 import kotlinx.coroutines.delay
 
 @Composable

@@ -4,7 +4,7 @@ import androidx.room.Entity
 import androidx.room.ForeignKey
 import androidx.room.Index
 import androidx.room.PrimaryKey
-import com.example.omega_v1_0.models.PhaseType
+import com.example.omega_v1_0.models_enums.PhaseType
 
 
 // here we create a table for phases data

@@ -15,7 +15,7 @@ import androidx.compose.ui.draw.alpha
 // import androidx.compose.ui.text.intl.Locale
 import androidx.compose.ui.unit.dp
 import com.example.omega_v1_0.data_layer.entites.PlannedProjectEntity
-import com.example.omega_v1_0.models.Experience
+import com.example.omega_v1_0.models_enums.Experience
 import com.example.omega_v1_0.ui.model.ActiveSessionUiModel
 import com.example.omega_v1_0.ui.model.AllProjectsUiModel
 import java.text.SimpleDateFormat

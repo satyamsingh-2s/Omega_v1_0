@@ -1,6 +1,5 @@
 package com.example.omega_v1_0.ui.components.revision_notes
 
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -21,12 +20,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import com.example.omega_v1_0.models.RevisionNoteItem
+import com.example.omega_v1_0.models_enums.RevisionNoteItem
 import com.example.omega_v1_0.ui.utils.formatDate
 import com.example.omega_v1_0.ui.utils.formatDuration2
-import java.text.SimpleDateFormat
-import java.util.Date
-import java.util.Locale
 
 @Composable
 fun RevisionHistoryPanel(

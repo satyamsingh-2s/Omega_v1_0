@@ -1,9 +1,9 @@
 package com.example.omega_v1_0.omega_engines.estimation_engine
 
-import com.example.omega_v1_0.models.Complexity
-import com.example.omega_v1_0.models.Experience
-import com.example.omega_v1_0.models.PhaseType
-import com.example.omega_v1_0.models.Scope
+import com.example.omega_v1_0.models_enums.Complexity
+import com.example.omega_v1_0.models_enums.Experience
+import com.example.omega_v1_0.models_enums.PhaseType
+import com.example.omega_v1_0.models_enums.Scope
 
 /**
  * here we estimates time fro a single phase

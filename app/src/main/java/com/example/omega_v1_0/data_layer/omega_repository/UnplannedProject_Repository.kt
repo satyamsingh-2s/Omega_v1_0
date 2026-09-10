@@ -7,7 +7,7 @@ import com.example.omega_v1_0.data_layer.entites.UnplannedProjectEntity
 import com.example.omega_v1_0.data_layer.imports.ImportNode
 import com.example.omega_v1_0.data_layer.imports.OmegaImport
 import com.example.omega_v1_0.omega_engines.layout_engine.model.LayoutTreeNode
-import com.example.omega_v1_0.models.SessionType
+import com.example.omega_v1_0.models_enums.SessionType
 import com.example.omega_v1_0.ui.model.UnplannedProjectUiModel
 import com.example.omega_v1_0.ui.theme.AccentPalette
 import kotlinx.coroutines.flow.Flow
@@ -465,5 +465,9 @@ class UnplannedProjectRepository(
     }
 // ===========================================================================================
 
+    //---- reactive streams for planner featrue ---
+    fun getAllNodes(): Flow<List<UnplannedProjectEntity>> {
+        return unplannedProjectDao.getAllNodes()
+    }
 
 }

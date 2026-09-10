@@ -2,11 +2,12 @@ package com.example.omega_v1_0.data_layer.convertor
 
 import androidx.room.TypeConverter
 import com.example.omega_v1_0.omega_engines.pomodoro_engine.PomodoroPhase
-import com.example.omega_v1_0.models.Complexity
-import com.example.omega_v1_0.models.Experience
-import com.example.omega_v1_0.models.PhaseType
-import com.example.omega_v1_0.models.Scope
-import com.example.omega_v1_0.models.SessionType
+import com.example.omega_v1_0.models_enums.Complexity
+import com.example.omega_v1_0.models_enums.Experience
+import com.example.omega_v1_0.models_enums.PhaseType
+import com.example.omega_v1_0.models_enums.PlannerPriority
+import com.example.omega_v1_0.models_enums.Scope
+import com.example.omega_v1_0.models_enums.SessionType
 import java.time.LocalDate
 
 // room cannot store enum directyl so we need type convertors
@@ -66,6 +67,16 @@ class EnumConvertors {
     @TypeConverter
     fun toPomodoroPhase(value: String): PomodoroPhase {
         return PomodoroPhase.valueOf(value)
+    }
+
+    // ----------- convertor for planner priority
+    @TypeConverter
+    fun fromPlannerPriority(priority: PlannerPriority): String {
+        return priority.name
+    }
+    @TypeConverter
+    fun toPlannerPriority(value: String): PlannerPriority {
+        return PlannerPriority.valueOf(value)
     }
 
 

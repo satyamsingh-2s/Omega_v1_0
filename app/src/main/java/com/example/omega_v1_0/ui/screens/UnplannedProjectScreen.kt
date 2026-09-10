@@ -40,6 +40,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.CalendarToday
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
@@ -91,6 +92,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.omega_v1_0.models_enums.PlannerPriority
 import com.example.omega_v1_0.ui.model.UnplannedProjectUiModel
 import com.example.omega_v1_0.ui.theme.AccentPalette
 import com.example.omega_v1_0.ui.uistate.UnplannedProjectUiState
@@ -142,9 +144,16 @@ fun UnplannedProjectScreen(
     onConfirmDelete: () -> Unit,
     onShowStats: (UnplannedProjectUiModel) -> Unit,
     onDismissStats: () -> Unit,
+
     onToggelExpand: (Long) -> Unit = {},
     onToggleCompleted: (Long, Boolean) -> Unit,
     onNavigateToSession: (Long) -> Unit,
+
+    // -------- planner section --
+    onAddToPlanner: (Long) -> Unit,
+    onDismissAddToPlanner: () -> Unit,
+    onSelectPlannerPriority: (PlannerPriority) -> Unit,
+    onConfirmAddToPlanner: () -> Unit,
 ) {
     val scope = rememberCoroutineScope()
     val listState = rememberLazyListState()
@@ -233,6 +242,7 @@ fun UnplannedProjectScreen(
                     onNodeClick = onNodeClick,
                     onAddChild = onAddChild,
                     onAddExpectedDuration = onAddExpectedDuration,
+                    onAddToPlanner = onAddToPlanner,
                     onRename = onRename,
                     onDelete = onDelete,
                     onShowStats = onShowStats,
@@ -245,7 +255,7 @@ fun UnplannedProjectScreen(
                             delay(150)
                             animatedLeafNodeId = null
                         }
-                    }
+                    },
                 )
             }
 
@@ -420,6 +430,21 @@ fun UnplannedProjectScreen(
                 )
             }
         }
+
+        if (uiState.showAddToPlannerDialog) {
+
+            val targetNode =
+                uiState.selectedPlannerNodeId
+                    ?.let { findNodeById(uiState.tree, it) }
+
+            AddToPlannerDialog(
+                nodeName = targetNode?.title,
+                selectedPriority = uiState.selectedPlannerPriority,
+                onPrioritySelected = onSelectPlannerPriority,
+                onDismiss = onDismissAddToPlanner,
+                onConfirm = onConfirmAddToPlanner
+            )
+        }
     }
 }
 
@@ -446,6 +471,7 @@ private fun UnplannedProjectRootCard(
     onNodeClick: (Long) -> Unit,
     onAddChild: (Long) -> Unit,
     onAddExpectedDuration: (Long) -> Unit,
+    onAddToPlanner: (Long) -> Unit,
     onRename: (Long, String) -> Unit,
     onDelete: (Long) -> Unit,
     onShowStats: (UnplannedProjectUiModel) -> Unit,
@@ -566,6 +592,9 @@ private fun UnplannedProjectRootCard(
                                                     onAddChild = onAddChild,
                                                     onRename = onRename,
                                                     onAddExpectedDuration = onAddExpectedDuration,
+                                                    onAddToPlanner = {
+                                                        onAddToPlanner(node.nodeId)
+                                                    },
                                                     onShowStats = onShowStats,
                                                     onDelete = onDelete,
                                                     onToggleCompleted = onToggleCompleted,
@@ -621,6 +650,9 @@ private fun UnplannedProjectRootCard(
                                                             onAddChild = onAddChild,
                                                             onRename = onRename,
                                                             onAddExpectedDuration = onAddExpectedDuration,
+                                                            onAddToPlanner = {
+                                                                onAddToPlanner(fRow.nodeId)
+                                                            },
                                                             onShowStats = onShowStats,
                                                             onDelete = onDelete,
                                                             showVerticalLine = true,
@@ -665,6 +697,9 @@ private fun UnplannedProjectRootCard(
                                         onAddChild = onAddChild,
                                         onRename = onRename,
                                         onAddExpectedDuration = onAddExpectedDuration,
+                                        onAddToPlanner = {
+                                            onAddToPlanner(level2node.nodeId)
+                                        },
                                         onShowStats = onShowStats,
                                         onDelete = onDelete,
                                         onToggleCompleted = onToggleCompleted,
@@ -703,7 +738,11 @@ private fun UnplannedProjectRootCard(
         onRename = { onRename(node.nodeId, node.title) },
         onSetDuration = { onAddExpectedDuration(node.nodeId) },
         onShowStats = { onShowStats(node) },
-        onDelete = { onDelete(node.nodeId) }
+        onDelete = { onDelete(node.nodeId) },
+        onAddToPlanner = {
+            onAddToPlanner(node.nodeId)
+        },
+        isLeaf = node.children.isEmpty(),
     )
 }
 
@@ -717,6 +756,7 @@ private fun WorkspaceChildRowList(
     onAddChild: (Long) -> Unit,
     onRename: (Long, String) -> Unit,
     onAddExpectedDuration: (Long) -> Unit,
+    onAddToPlanner: (Long) -> Unit,
     onShowStats: (UnplannedProjectUiModel) -> Unit,
     onDelete: (Long) -> Unit,
     onToggleCompleted: (Long, Boolean) -> Unit,
@@ -733,6 +773,7 @@ private fun WorkspaceChildRowList(
             onAddChild = onAddChild,
             onRename = onRename,
             onAddExpectedDuration = onAddExpectedDuration,
+            onAddToPlanner = onAddToPlanner,
             onShowStats = onShowStats,
             onDelete = onDelete,
             showVerticalLine = true,
@@ -787,6 +828,7 @@ private fun TreeRow(
     onAddChild: (Long) -> Unit,
     onRename: (Long, String) -> Unit,
     onAddExpectedDuration: (Long) -> Unit,
+    onAddToPlanner: (Long) -> Unit,
     onShowStats: (UnplannedProjectUiModel) -> Unit,
     onDelete: (Long) -> Unit,
     showVerticalLine: Boolean = true,
@@ -852,7 +894,11 @@ private fun TreeRow(
         onRename = { onRename(node.nodeId, node.title) },
         onSetDuration = { onAddExpectedDuration(node.nodeId) },
         onShowStats = { onShowStats(node) },
-        onDelete = { onDelete(node.nodeId) }
+        onDelete = { onDelete(node.nodeId) },
+        onAddToPlanner = {
+            onAddToPlanner(node.nodeId)
+        },
+        isLeaf = node.children.isEmpty(),
     )
 }
 
@@ -1123,7 +1169,9 @@ private fun NodeOptionsBottomSheet(
     onRename: () -> Unit,
     onSetDuration: () -> Unit,
     onShowStats: () -> Unit,
-    onDelete: () -> Unit
+    onDelete: () -> Unit,
+    onAddToPlanner: () -> Unit,
+    isLeaf: Boolean,
 ) {
     if (!show) return
 
@@ -1170,6 +1218,12 @@ private fun NodeOptionsBottomSheet(
             BottomSheetOption(icon = Icons.Default.Add, label = "Add Child Item", onClick = { onAddChild(); onDismiss() })
             BottomSheetOption(icon = Icons.Default.Edit, label = "Rename Item", onClick = { onRename(); onDismiss() })
             BottomSheetOption(icon = Icons.Default.Timer, label = "Set Estimated Time", onClick = { onSetDuration(); onDismiss() })
+            if(isLeaf) {
+                BottomSheetOption(
+                    icon = Icons.Default.CalendarToday,
+                    label = "Add to Planner",
+                    onClick = { onAddToPlanner(); onDismiss() })
+            }
             BottomSheetOption(icon = Icons.Outlined.BarChart, label = "View Statistics", onClick = { onShowStats(); onDismiss() })
 
             HorizontalDivider(
@@ -1543,6 +1597,146 @@ fun ExpectedDurationDialog(
 }
 
 @Composable
+fun AddToPlannerDialog(
+    nodeName: String?,
+    selectedPriority: PlannerPriority,
+    onPrioritySelected: (PlannerPriority) -> Unit,
+    onDismiss: () -> Unit,
+    onConfirm: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+
+        containerColor = DARK_DIALOG_SURFACE,
+
+        shape = RoundedCornerShape(20.dp),
+
+        title = {
+            Column {
+
+                Text(
+                    text = "ADD TO PLANNER",
+                    style = MaterialTheme.typography.titleSmall,
+                    color = Color.Gray
+                )
+
+                if (nodeName != null) {
+                    Text(
+                        text = nodeName,
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold,
+                        color = Color.White,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.padding(top = 4.dp)
+                    )
+                }
+            }
+        },
+
+        text = {
+
+            Column(
+                modifier = Modifier.fillMaxWidth()
+            ) {
+
+                Text(
+                    text = "Select priority",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = Color.Gray,
+                    modifier = Modifier.padding(bottom = 8.dp)
+                )
+
+                PlannerPriority.entries.forEach { priority ->
+
+                    PlannerPriorityRow(
+                        priority = priority,
+                        selected = priority == selectedPriority,
+                        onClick = {
+                            onPrioritySelected(priority)
+                        }
+                    )
+                }
+            }
+        },
+
+        confirmButton = {
+
+            TextButton(
+                onClick = onConfirm
+            ) {
+                Text(
+                    text = "Add",
+                    style = MaterialTheme.typography.labelLarge,
+                    color = Color.White,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+        },
+
+        dismissButton = {
+
+            TextButton(
+                onClick = onDismiss
+            ) {
+                Text(
+                    text = "Cancel",
+                    style = MaterialTheme.typography.labelLarge,
+                    color = Color.Gray
+                )
+            }
+        }
+    )
+}
+
+@Composable
+private fun PlannerPriorityRow(
+    priority: PlannerPriority,
+    selected: Boolean,
+    onClick: () -> Unit
+) {
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(12.dp))
+            .clickable(onClick = onClick)
+            .padding(
+                horizontal = 8.dp,
+                vertical = 10.dp
+            ),
+
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+
+        androidx.compose.material3.RadioButton(
+            selected = selected,
+            onClick = onClick
+        )
+
+        Spacer(
+            modifier = Modifier.width(8.dp)
+        )
+
+        Text(
+            text = priority.displayName(),
+            style = MaterialTheme.typography.bodyMedium,
+            color = Color.White
+        )
+    }
+}
+
+private fun PlannerPriority.displayName(): String =
+    when (this) {
+        PlannerPriority.CRITICAL -> "Critical"
+        PlannerPriority.HIGH -> "High"
+        PlannerPriority.MEDIUM -> "Medium"
+        PlannerPriority.LOW -> "Low"
+        PlannerPriority.BACKLOG -> "Backlog"
+    }
+
+
+@Composable
 fun TipCard() {
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -1611,57 +1805,60 @@ private fun findNodeById(tree: List<UnplannedProjectUiModel>, nodeId: Long): Unp
     return null
 }
 
-@Preview(showBackground = true, showSystemUi = true)
-@Composable
-fun UnplannedProjectScreenPreview() {
-    MaterialTheme {
-        val sampleTree = listOf(
-            UnplannedProjectUiModel(
-                nodeId = 1L,
-                title = "Android Architecture",
-                accentIndex = 0,
-                currentDurationSeconds = 5720,
-                expectedDurationSeconds = 90000,
-                isCompleted = false,
-                children = emptyList()
-            )
-        )
-
-        UnplannedProjectScreen(
-            uiState = UnplannedProjectUiState(
-                tree = sampleTree,
-                dialogInput = "",
-                showAddRootDialog = false,
-                showAddChildDialog = false,
-                expandedPath = emptyList()
-            ),
-            onAddRoot = {},
-            onAddChild = {},
-            onDialogInputChanged = {},
-            onDismissRootDialog = {},
-            onDismissChildDialog = {},
-            onConfirmRoot = {},
-            onConfirmChild = {},
-            onOpenSession = {},
-            onEndSession = {},
-            onDismissSessionDialog = {},
-            onNodeClick = {},
-            onExpectedDurationChanged = {},
-            onDismissExpectedDuration = {},
-            onConfirmExpectedDuration = {},
-            onAddExpectedDuration = {},
-            onRename = { _, _ -> },
-            onRenameChanged = {},
-            onDismissRename = {},
-            onConfirmRename = {},
-            onDelete = {},
-            onDismissDelete = {},
-            onConfirmDelete = {},
-            onShowStats = {},
-            onDismissStats = {},
-            onToggelExpand = {},
-            onNavigateToSession = {},
-            onToggleCompleted = { _, _ -> }
-        )
-    }
-}
+//@Preview(showBackground = true, showSystemUi = true)
+//@Composable
+//fun UnplannedProjectScreenPreview() {
+//    MaterialTheme {
+//        val sampleTree = listOf(
+//            UnplannedProjectUiModel(
+//                nodeId = 1L,
+//                title = "Android Architecture",
+//                accentIndex = 0,
+//                currentDurationSeconds = 5720,
+//                expectedDurationSeconds = 90000,
+//                isCompleted = false,
+//                children = emptyList()
+//            )
+//        )
+//
+//        UnplannedProjectScreen(
+//            uiState = UnplannedProjectUiState(
+//                tree = sampleTree,
+//                dialogInput = "",
+//                showAddRootDialog = false,
+//                showAddChildDialog = false,
+//                expandedPath = emptyList()
+//            ),
+//            onAddRoot = {},
+//            onAddChild = {},
+//            onDialogInputChanged = {},
+//            onDismissRootDialog = {},
+//            onDismissChildDialog = {},
+//            onConfirmRoot = {},
+//            onConfirmChild = {},
+//            onOpenSession = {},
+//            onEndSession = {},
+//            onDismissSessionDialog = {},
+//            onNodeClick = {},
+//            onExpectedDurationChanged = {},
+//            onDismissExpectedDuration = {},
+//            onConfirmExpectedDuration = {},
+//            onAddExpectedDuration = {},
+//            onRename = { _, _ -> },
+//            onRenameChanged = {},
+//            onDismissRename = {},
+//            onConfirmRename = {},
+//            onDelete = {},
+//            onDismissDelete = {},
+//            onConfirmDelete = {},
+//            onShowStats = {},
+//            onDismissStats = {},
+//            onToggelExpand = {},
+//            onNavigateToSession = {},
+//            onToggleCompleted = { _, _ -> },
+//            onAddToPlanner = {},
+//            animatedLeafNodeId = null,
+//            onLeafClicked = {}
+//        )
+//    }
+//}

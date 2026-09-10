@@ -7,8 +7,8 @@ import com.example.omega_v1_0.data_layer.dao.PhaseDao
 import com.example.omega_v1_0.data_layer.dao.SessionDao
 import com.example.omega_v1_0.data_layer.dao.UnplannedProjectDao
 import com.example.omega_v1_0.data_layer.entites.SessionEntity
-import com.example.omega_v1_0.models.SessionStatusBarModel
-import com.example.omega_v1_0.models.SessionType
+import com.example.omega_v1_0.models_enums.SessionStatusBarModel
+import com.example.omega_v1_0.models_enums.SessionType
 
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map

@@ -1,6 +1,6 @@
 package com.example.omega_v1_0.ui.uistate
 
-import com.example.omega_v1_0.models.SessionStatus
+import com.example.omega_v1_0.models_enums.SessionStatus
 import com.example.omega_v1_0.ui.model.DailyRecordRecentsSessionUiModel
 
 data class DailyRecordUiState(

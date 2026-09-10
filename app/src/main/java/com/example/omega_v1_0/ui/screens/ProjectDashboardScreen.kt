@@ -10,7 +10,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
-import com.example.omega_v1_0.models.PhaseType
 import com.example.omega_v1_0.ui.model.DashboardPhaseItem
 
 @Composable

@@ -4,8 +4,8 @@ import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.omega_v1_0.data_layer.omega_repository.Omega_Repository
+import com.example.omega_v1_0.models_enums.PlannerPriority
 import com.example.omega_v1_0.ui.model.UnplannedProjectUiModel
-import com.example.omega_v1_0.ui.navigation.Screen
 import com.example.omega_v1_0.ui.uistate.UnplannedProjectUiState
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -16,7 +16,8 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 class UnplannedProjectViewModel(
-    private val repository: Omega_Repository
+    private val repository: Omega_Repository,
+   // private val plannerRepository: PlannerRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(UnplannedProjectUiState())  // used to change
@@ -30,6 +31,8 @@ class UnplannedProjectViewModel(
 
     // this is for focused camera feature to keep track of the tree for the ui
     private val navigationStack = mutableListOf<Long>()
+
+    //private val plannerRepository = PlannerRepository()
 
     init {
         Log.d(
@@ -197,43 +200,32 @@ class UnplannedProjectViewModel(
         }
     }
 
-//    fun startSession(
-//        nodeId: Long,
-//        sessionName: String?,
-//        expectedDurationMinutes: Int?
-//
-//    ) {
-//
-//        viewModelScope.launch {
-//            repository.startUnplannedSession(
-//                nodeId,
-//                sessionName,
-//                expectedDurationMinutes
-//            )
-//          //  navController.navigate(Screen.UnplannedProjectSessionScreen.route)
-//        }
-//    }
-//
-//    fun pauseSession() {
-//
-//        viewModelScope.launch {
-//            repository.pauseUnplannedSession()
-//        }
-//    }
-//
-//    fun resumeSession() {
-//
-//        viewModelScope.launch {
-//            repository.resumeUnplannedSession()
-//        }
-//    }
-//
-//    fun stopSession() {
-//
-//        viewModelScope.launch {
-//            repository.stopUnplannedSession()
-//        }
-//    }
+
+fun confirmAddToPlanner() {
+
+    val nodeId =
+        _uiState.value.selectedPlannerNodeId
+            ?: return
+
+    val priority =
+        _uiState.value.selectedPlannerPriority
+
+    viewModelScope.launch {
+
+        repository.addNodeToPlanner(
+            nodeId = nodeId,
+            priority = priority
+        )
+
+        _uiState.update {
+            it.copy(
+                showAddToPlannerDialog = false,
+                selectedPlannerNodeId = null,
+                selectedPlannerPriority = PlannerPriority.MEDIUM
+            )
+        }
+    }
+}
 
     // ---------------- dialogue part -----------------------------------------------------
     // ------------- root dilagoue
@@ -434,6 +426,39 @@ class UnplannedProjectViewModel(
                 )
             }
             _navigateToSession.emit(Unit)
+        }
+    }
+
+    // -------------- add to Planner dialog part ---------------------
+    fun showAddToPlannerDialog(
+        nodeId: Long
+    ) {
+        _uiState.update {
+            it.copy(
+                showAddToPlannerDialog = true,
+                selectedPlannerNodeId = nodeId,
+                selectedPlannerPriority = PlannerPriority.MEDIUM
+            )
+        }
+    }
+
+    fun hideAddToPlannerDialog() {
+        _uiState.update {
+            it.copy(
+                showAddToPlannerDialog = false,
+                selectedPlannerNodeId = null,
+                selectedPlannerPriority = PlannerPriority.MEDIUM
+            )
+        }
+    }
+
+    fun selectPlannerPriority(
+        priority: PlannerPriority
+    ) {
+        _uiState.update {
+            it.copy(
+                selectedPlannerPriority = priority
+            )
         }
     }
 

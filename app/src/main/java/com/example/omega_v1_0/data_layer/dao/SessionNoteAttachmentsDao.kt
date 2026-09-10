@@ -5,12 +5,7 @@ import androidx.room.Delete
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
-import androidx.room.Transaction
-import androidx.room.Update
 import com.example.omega_v1_0.data_layer.entites.SessionNoteAttachmentEntity
-import com.example.omega_v1_0.data_layer.entites.SessionNoteEntity
-import com.example.omega_v1_0.models.RevisionNoteItem
-import com.example.omega_v1_0.models.SessionType
 import kotlinx.coroutines.flow.Flow
 
 @Dao

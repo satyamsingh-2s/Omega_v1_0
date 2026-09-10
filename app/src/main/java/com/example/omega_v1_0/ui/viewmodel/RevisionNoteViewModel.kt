@@ -6,7 +6,7 @@ import com.example.omega_v1_0.core.storage.LocalFileStorageManager
 import com.example.omega_v1_0.data_layer.entites.SessionNoteAttachmentEntity
 import com.example.omega_v1_0.data_layer.omega_repository.SessionNoteAttachmentRepository
 import com.example.omega_v1_0.data_layer.omega_repository.SessionNoteRepository
-import com.example.omega_v1_0.models.RevisionNoteItem
+import com.example.omega_v1_0.models_enums.RevisionNoteItem
 import com.example.omega_v1_0.ui.mapper.toAttachmentUiModel
 import com.example.omega_v1_0.ui.model.AttachmentUiModel
 import com.example.omega_v1_0.ui.uistate.RevisionNoteUiState

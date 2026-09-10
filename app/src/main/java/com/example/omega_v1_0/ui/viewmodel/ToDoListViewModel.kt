@@ -4,7 +4,7 @@ import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.omega_v1_0.data_layer.omega_repository.Omega_Repository
-import com.example.omega_v1_0.models.TodoCategory
+import com.example.omega_v1_0.models_enums.TodoCategory
 import com.example.omega_v1_0.ui.model.ToDoListUiModel
 import com.example.omega_v1_0.ui.uistate.ToDoListUiState
 import kotlinx.coroutines.flow.MutableStateFlow

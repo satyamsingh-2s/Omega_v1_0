@@ -1,10 +1,9 @@
 package com.example.omega_v1_0.data_layer.entites
 
 import androidx.room.Entity
-import androidx.room.ForeignKey
 import androidx.room.Index
 import androidx.room.PrimaryKey
-import com.example.omega_v1_0.models.SessionType
+import com.example.omega_v1_0.models_enums.SessionType
 
 // here we create a table for sessions data
 @Entity(

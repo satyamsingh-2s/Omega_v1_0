@@ -1,0 +1,40 @@
+Architecture Review
+Current dependency chain
+
+AiRepository
+      │
+      ▼
+AiApi
+      │
+      ▼
+AiNetworkProvider
+      │
+      ▼
+Gemini
+--------------------
+CONTENT FLOW
+Prompt
+
+↓
+
+GenerateContentRequest
+
+↓
+
+AiApi
+
+↓
+
+Gemini
+
+↓
+
+GenerateContentResponse
+
+↓
+
+generatedText
+
+↓
+
+Result<String>

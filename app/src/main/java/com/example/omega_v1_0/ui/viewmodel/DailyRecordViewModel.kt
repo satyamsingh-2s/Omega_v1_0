@@ -6,7 +6,7 @@ import androidx.lifecycle.viewModelScope
 import com.example.omega_v1_0.data_layer.omega_repository.BreakReminderManager
 import com.example.omega_v1_0.data_layer.omega_repository.SessionReminderManager
 import com.example.omega_v1_0.data_layer.omega_repository.Omega_Repository
-import com.example.omega_v1_0.models.SessionStatus
+import com.example.omega_v1_0.models_enums.SessionStatus
 import com.example.omega_v1_0.notification.OmegaNotificationManager
 import com.example.omega_v1_0.ui.model.DailyRecordRecentsSessionUiModel
 import com.example.omega_v1_0.ui.model.DeskOmegaUiModel

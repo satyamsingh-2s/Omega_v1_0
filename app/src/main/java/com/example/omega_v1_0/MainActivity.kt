@@ -7,7 +7,7 @@ import androidx.activity.enableEdgeToEdge
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.navigation.compose.rememberNavController
 import com.example.omega_v1_0.notification.OmegaNotificationManager
-import com.example.omega_v1_0.ui.navigation.OmegaNavGraph
+import com.example.omega_v1_0.navigation.OmegaNavGraph
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {

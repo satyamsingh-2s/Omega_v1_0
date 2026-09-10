@@ -1,3 +1,5 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
@@ -20,6 +22,15 @@ android {
         versionName = "1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+
+        val localProperties = Properties()
+        localProperties.load(rootProject.file("local.properties").inputStream())
+
+        buildConfigField(
+            "String",
+            "GEMINI_API_KEY",
+            "\"${localProperties.getProperty("GEMINI_API_KEY")}\""
+        )
     }
 
     buildTypes {
@@ -40,11 +51,13 @@ android {
     }
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 }
 
 dependencies {
 
+    implementation(libs.androidx.compose.ui)
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.foundation.layout)
     implementation(libs.androidx.lifecycle.runtime.ktx)
@@ -73,6 +86,7 @@ dependencies {
     implementation(libs.androidx.runtime)
     implementation(libs.androidx.compose.foundation.layout)
     implementation(libs.androidx.compose.foundation)
+    implementation(libs.runtime)
     ksp(libs.androidx.room.compiler)
 
     // Kotlinx Serialization
@@ -93,5 +107,13 @@ dependencies {
 
     implementation(libs.androidx.core.splashscreen)
     implementation(libs.coil.compose)
+
+    implementation(libs.retrofit.core)
+    implementation(libs.okhttp.core)
+    implementation(libs.okhttp.logging.interceptor)
+    implementation(libs.retrofit.converter.kotlinx.serialization)
+    implementation(libs.kotlinx.serialization.json)
+
+    implementation("com.google.ai.client.generativeai:generativeai:0.9.0")
 
 }

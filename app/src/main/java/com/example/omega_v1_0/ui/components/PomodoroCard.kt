@@ -43,7 +43,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.omega_v1_0.models.SessionStatus
+import com.example.omega_v1_0.models_enums.SessionStatus
 import com.example.omega_v1_0.omega_engines.pomodoro_engine.PomodoroPhase
 import com.example.omega_v1_0.omega_engines.pomodoro_engine.PomodoroState
 import com.example.omega_v1_0.ui.components.common.CircularIconButton

@@ -4,10 +4,10 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.omega_v1_0.data_layer.omega_repository.Omega_Repository
 import com.example.omega_v1_0.omega_engines.estimation_engine.estimateProject
-import com.example.omega_v1_0.models.Complexity
-import com.example.omega_v1_0.models.Experience
-import com.example.omega_v1_0.models.PhaseType
-import com.example.omega_v1_0.models.Scope
+import com.example.omega_v1_0.models_enums.Complexity
+import com.example.omega_v1_0.models_enums.Experience
+import com.example.omega_v1_0.models_enums.PhaseType
+import com.example.omega_v1_0.models_enums.Scope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch

@@ -2,8 +2,8 @@ package com.example.omega_v1_0.data_layer.omega_repository
 
 import com.example.omega_v1_0.data_layer.dao.SessionNoteDao
 import com.example.omega_v1_0.data_layer.entites.SessionNoteEntity
-import com.example.omega_v1_0.models.RevisionNoteItem
-import com.example.omega_v1_0.models.SessionType
+import com.example.omega_v1_0.models_enums.RevisionNoteItem
+import com.example.omega_v1_0.models_enums.SessionType
 import kotlinx.coroutines.flow.Flow
 
 class SessionNoteRepository(

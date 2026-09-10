@@ -1,6 +1,6 @@
 package com.example.omega_v1_0.ui.viewmodel
 
-import com.example.omega_v1_0.models.SessionStatusBarModel
+import com.example.omega_v1_0.models_enums.SessionStatusBarModel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope

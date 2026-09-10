@@ -1,7 +1,6 @@
 package com.example.omega_v1_0.ui.model
 
-import com.example.omega_v1_0.models.SessionStatus
-import com.example.omega_v1_0.ui.deskOmega.DeskOmegaSkin
+import com.example.omega_v1_0.models_enums.SessionStatus
 
 data class DeskOmegaUiModel(
 

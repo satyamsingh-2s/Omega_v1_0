@@ -3,10 +3,9 @@ package com.example.omega_v1_0.ui.viewmodel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.omega_v1_0.data_layer.omega_repository.Omega_Repository
-import com.example.omega_v1_0.omega_engines.pomodoro_engine.PomodoroConfig
 import com.example.omega_v1_0.omega_engines.pomodoro_engine.PomodoroEngine
 import com.example.omega_v1_0.omega_engines.pomodoro_engine.PomodoroEvent
-import com.example.omega_v1_0.models.SessionStatus
+import com.example.omega_v1_0.models_enums.SessionStatus
 import com.example.omega_v1_0.ui.model.DeskOmegaUiModel
 import com.example.omega_v1_0.ui.model.UnplannedProjectRecentSessionUiModel
 import com.example.omega_v1_0.ui.uistate.UnplannedProjectSessionScreenUiState

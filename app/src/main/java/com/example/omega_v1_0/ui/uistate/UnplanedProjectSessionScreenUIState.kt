@@ -2,7 +2,7 @@ package com.example.omega_v1_0.ui.uistate
 
 import com.example.omega_v1_0.omega_engines.pomodoro_engine.PomodoroPhase
 import com.example.omega_v1_0.omega_engines.pomodoro_engine.PomodoroState
-import com.example.omega_v1_0.models.SessionStatus
+import com.example.omega_v1_0.models_enums.SessionStatus
 import com.example.omega_v1_0.ui.model.UnplannedProjectRecentSessionUiModel
 
 data class UnplannedProjectSessionScreenUiState(

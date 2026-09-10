@@ -4,8 +4,8 @@ import com.example.omega_v1_0.data_layer.dao.ActiveSessionDao
 import com.example.omega_v1_0.data_layer.dao.SessionDao
 import com.example.omega_v1_0.data_layer.entites.ActiveSessionEntity
 import com.example.omega_v1_0.data_layer.entites.SessionEntity
-import com.example.omega_v1_0.models.SessionStatus
-import com.example.omega_v1_0.models.SessionType
+import com.example.omega_v1_0.models_enums.SessionStatus
+import com.example.omega_v1_0.models_enums.SessionType
 
 class SessionRepository(
     private val sessionDao: SessionDao,

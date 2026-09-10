@@ -12,10 +12,8 @@ import androidx.compose.foundation.layout.Arrangement
 
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
@@ -29,7 +27,7 @@ import com.example.omega_v1_0.ui.deskOmega.DeskOmegaSkin
 import com.example.omega_v1_0.ui.deskOmega.getDeskOmegaSkin
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
-import com.example.omega_v1_0.models.SessionStatus
+import com.example.omega_v1_0.models_enums.SessionStatus
 import com.example.omega_v1_0.ui.components.common.CircularIconButton
 import com.example.omega_v1_0.ui.model.DeskOmegaUiModel
 import com.example.omega_v1_0.ui.theme.StopwatchTextStyle

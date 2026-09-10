@@ -26,6 +26,8 @@ import com.example.omega_v1_0.data_layer.entites.ActiveBreakEntity
 import com.example.omega_v1_0.data_layer.entites.PomodoroEntity
 import com.example.omega_v1_0.data_layer.entites.SessionNoteAttachmentEntity
 import com.example.omega_v1_0.data_layer.entites.SessionNoteEntity
+import com.example.omega_v1_0.data_layer.dao.PlannerDao
+import com.example.omega_v1_0.data_layer.entites.PlannerNodeEntity
 
 @Database(
     [
@@ -43,9 +45,11 @@ import com.example.omega_v1_0.data_layer.entites.SessionNoteEntity
 
         ActiveBreakEntity::class,
 
-        PomodoroEntity::class
+        PomodoroEntity::class,
+
+        PlannerNodeEntity::class,
     ],
-    version = 10
+    version = 11
 )
 
 // here we are telling database that to use type convertors for enum
@@ -62,6 +66,7 @@ abstract class OmegaDatabase: RoomDatabase() {
     abstract fun pomodoroDao(): PomodoroDao
     abstract fun sessionNoteDao(): SessionNoteDao
     abstract fun sessionNoteAttachmentDao(): SessionNoteAttachmentDao
+    abstract fun plannerDao(): PlannerDao
 }
 
 /**

@@ -1,5 +1,5 @@
 [versions]
-agp = "9.3.1"
+agp = "9.3.2"
 coilCompose = "2.7.0"
 coreSplashscreen = "1.2.0"
 kotlin = "2.2.10"
@@ -24,6 +24,8 @@ foundationVersion = "1.11.3"
 foundationLayoutVersion = "1.11.4"
 retrofit = "2.11.0"
 okhttp = "4.12.0"
+androidxRuntime = "1.11.4"
+ui = "1.11.4"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -60,6 +62,8 @@ retrofit-core = { group = "com.squareup.retrofit2", name = "retrofit", version.r
 retrofit-converter-kotlinx-serialization = { group = "com.squareup.retrofit2", name = "converter-kotlinx-serialization", version.ref = "retrofit" }
 okhttp-core = { group = "com.squareup.okhttp3", name = "okhttp", version.ref = "okhttp" }
 okhttp-logging-interceptor = { group = "com.squareup.okhttp3", name = "logging-interceptor", version.ref = "okhttp" }
+runtime = { group = "androidx.compose.runtime", name = "runtime", version.ref = "androidxRuntime" }
+androidx-compose-ui = { group = "androidx.compose.ui", name = "ui", version.ref = "ui" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

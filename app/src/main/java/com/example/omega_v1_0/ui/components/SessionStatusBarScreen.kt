@@ -3,7 +3,6 @@ package com.example.omega_v1_0.ui.components
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -32,8 +31,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import com.example.omega_v1_0.models.SessionStatusBarModel
-import com.example.omega_v1_0.models.SessionType
+import com.example.omega_v1_0.models_enums.SessionStatusBarModel
+import com.example.omega_v1_0.models_enums.SessionType
 import androidx.compose.runtime.*
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch

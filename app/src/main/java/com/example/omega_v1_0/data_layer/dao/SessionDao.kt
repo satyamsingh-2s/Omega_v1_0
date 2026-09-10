@@ -4,7 +4,7 @@ import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.Query
 import com.example.omega_v1_0.data_layer.entites.SessionEntity
-import com.example.omega_v1_0.models.SessionType
+import com.example.omega_v1_0.models_enums.SessionType
 import kotlinx.coroutines.flow.Flow
 
 /**

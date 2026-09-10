@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -20,21 +21,14 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowForwardIos
-import androidx.compose.material.icons.filled.Computer
 import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Pause
-import androidx.compose.material.icons.filled.PlayArrow
-import androidx.compose.material.icons.filled.Stop
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -56,15 +50,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalConfiguration
-import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.omega_v1_0.models.RevisionNoteItem
-import com.example.omega_v1_0.omega_engines.pomodoro_engine.PomodoroPhase
+import com.example.omega_v1_0.models_enums.RevisionNoteItem
 import com.example.omega_v1_0.omega_engines.pomodoro_engine.PomodoroState
-import com.example.omega_v1_0.models.SessionStatus
-import com.example.omega_v1_0.models.TodoCategory
+import com.example.omega_v1_0.models_enums.SessionStatus
+import com.example.omega_v1_0.models_enums.TodoCategory
 import com.example.omega_v1_0.ui.components.PomodoroCard
 import com.example.omega_v1_0.ui.components.PomodoroCardStyle
 import com.example.omega_v1_0.ui.components.SessionControlCard
@@ -76,7 +67,6 @@ import com.example.omega_v1_0.ui.components.revision_notes.RevisionHistoryPanel
 import com.example.omega_v1_0.ui.model.RevisionNoteMenuAction
 import com.example.omega_v1_0.ui.model.ToDoListUiModel
 import com.example.omega_v1_0.ui.model.UnplannedProjectRecentSessionUiModel
-import com.example.omega_v1_0.ui.theme.StopwatchTextStyle
 import com.example.omega_v1_0.ui.utils.formatDuration
 import com.example.omega_v1_0.ui.viewmodel.RevisionNoteViewModel
 
@@ -189,427 +179,85 @@ fun UnplannedProjectSessionScreen(
                 .padding(horizontal = 24.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-
-            // Zone 1 (18%): Top App Bar
-            Column(
+            HeaderZone(
+                projectName = projectName,
+                breadcrumb = breadcrumb,
+                onBack = onBack,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .weight(0.18f),
-                verticalArrangement = Arrangement.Center
-            ) {
-                TopAppBar(
-                    title = {
-                        Column {
-                            Text(
-                                text = projectName,
-                                style = MaterialTheme.typography.headlineMedium.copy(fontSize = 19.sp),
-                                color = MaterialTheme.colorScheme.onBackground
-                            )
-                            Spacer(modifier = Modifier.height(4.dp))
-                            Text(
-                                text = breadcrumb,
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                    },
-                    navigationIcon = {
-                        IconButton(onClick = onBack) {
-                            Icon(
-                                Icons.AutoMirrored.Filled.ArrowBack,
-                                contentDescription = "Back",
-                                tint = MaterialTheme.colorScheme.onSurface
-                            )
-                        }
-                    },
-                    colors = androidx.compose.material3.TopAppBarDefaults.topAppBarColors(
-                        containerColor = MaterialTheme.colorScheme.background
-                    )
-                )
-            }
+                    .weight(2f)
+            )
 
-            // Zone 2 (18%): Project Progress
-            Column(
+            Spacer(modifier = Modifier.height(14.dp))
+
+            ProjectProgressZone(
+                currentDurationSeconds = currentDurationSeconds,
+                expectedDurationSeconds = expectedDurationSeconds,
+                progress = progress,
+                totalSessions = totalSessions,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .weight(0.18f),
-                verticalArrangement = Arrangement.Center,
-                horizontalAlignment = Alignment.Start
-            ) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Column {
-                        Text(
-                            text = "Current",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                        Text(
-                            text = formatDuration(currentDurationSeconds),
-                            style = MaterialTheme.typography.titleMedium,
-                            color = MaterialTheme.colorScheme.onSurface
-                        )
-                    }
-                    Column(
-                        horizontalAlignment = Alignment.End
-                    ) {
-                        Text(
-                            text = "Expected",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                        Text(
-                            text = formatDuration(expectedDurationSeconds),
-                            style = MaterialTheme.typography.titleMedium,
-                            color = MaterialTheme.colorScheme.onSurface
-                        )
-                    }
-                }
-                Spacer(modifier = Modifier.height(8.dp))
-                LinearProgressIndicator(
-                    progress = progress,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(8.dp),
-                    color = MaterialTheme.colorScheme.primary,
-                    trackColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Text(
-                        text = "${(progress * 100).toInt()}%",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.primary,
-                        fontWeight = androidx.compose.ui.text.font.FontWeight.Medium
-                    )
-                    Text(
-                        text = "$totalSessions Sessions",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-            }
+                    .weight(2f)
+            )
 
-//            // Zone 3 (12%): Session Name
-//            Column(
-//                modifier = Modifier
-//                    .fillMaxWidth()
-//                    .weight(0.12f),
-//                verticalArrangement = Arrangement.Center,
-//                horizontalAlignment = Alignment.CenterHorizontally
-//            ) {
-//                OutlinedTextField(
-//                    value = sessionName,
-//                    onValueChange = onSessionNameChanged,
-//                    textStyle = MaterialTheme.typography.bodyMedium.copy(fontSize = 16.sp),
-//                    placeholder = {
-//                        Text(
-//                            text = if (sessionName.isBlank() && activeSessionName != null) {
-//                                activeSessionName
-//                            } else {
-//                                "Session Name"
-//                            },
-//                            style = MaterialTheme.typography.bodyMedium,
-//                            color = MaterialTheme.colorScheme.onSurfaceVariant
-//                        )
-//                    },
-//                    modifier = Modifier.fillMaxWidth(),
-//                    singleLine = true,
-//                    colors = OutlinedTextFieldDefaults.colors(
-//                        focusedBorderColor = Color.Transparent,
-//                        unfocusedBorderColor = Color.Transparent,
-//                        focusedContainerColor = MaterialTheme.colorScheme.background,
-//                        unfocusedContainerColor = MaterialTheme.colorScheme.background
-//                    )
-//                )
-//            }
-//
-//            // Zone 4 (24%): Large Stopwatch
-//            Column(
-//                modifier = Modifier
-//                    .fillMaxWidth()
-//                    .weight(0.24f),
-//                verticalArrangement = Arrangement.Center,
-//                horizontalAlignment = Alignment.CenterHorizontally
-//            ) {
-//                Text(
-//                    text = formatDuration(stopwatchSeconds),
-//                   // style = MaterialTheme.typography.displayLarge.copy(fontSize = 72.sp),
-//                    style = StopwatchTextStyle,
-//                    textAlign = TextAlign.Center,
-//                    color = MaterialTheme.colorScheme.onSurface
-//                )
-//                Text(
-//                    text = "HH : MM : SS",
-//                    style = MaterialTheme.typography.labelSmall,
-//                    color = MaterialTheme.colorScheme.onSurfaceVariant
-//                )
-//            }
-//            Spacer(modifier = Modifier.height(12.dp))
-//
-//            PomodoroCard(
-//                pomodoroState = pomodoroState,
-//                workCyclesBeforeLongBreak =
-//                    workCyclesBeforeLongBreak,
-//                onSkipBreak = onSkipBreak
-//            )
-//
-//
-//            // Zone 5 (12%): Session Controls
-//            Row(
-//                modifier = Modifier
-//                    .fillMaxWidth()
-//                    .weight(0.12f),
-//                horizontalArrangement = Arrangement.Center,
-//                verticalAlignment = Alignment.CenterVertically
-//            ) {
-//                when (sessionStatus) {
-//
-//                    null -> {
-//
-//                        FilledTonalButton(
-//                            onClick = onStartSession
-//                        ) {
-//                            Icon(
-//                                imageVector = Icons.Filled.PlayArrow,
-//                                contentDescription = null
-//                            )
-//
-//                            Spacer(
-//                                modifier = Modifier.width(8.dp)
-//                            )
-//
-//                            Text("Start Session")
-//                        }
-//                    }
-//
-//                    SessionStatus.RUNNING -> {
-//
-//                        CircularIconButton(
-//                            onClick = onPauseSession,
-//                            icon = Icons.Filled.Pause,
-//                            contentDescription = "Pause Session",
-//                            backgroundColor = MaterialTheme.colorScheme.surfaceVariant,
-//                            iconTint = MaterialTheme.colorScheme.onSurfaceVariant,
-//                            size = 56.dp
-//                        )
-//
-//                        Spacer(
-//                            modifier = Modifier.width(86.dp)
-//                        )
-//
-//                        CircularIconButton(
-//                            onClick = onStopSession,
-//                            icon = Icons.Filled.Stop,
-//                            contentDescription = "Stop Session",
-//                            backgroundColor = MaterialTheme.colorScheme.primary,
-//                            iconTint = MaterialTheme.colorScheme.onPrimary,
-//                            size = 56.dp
-//                        )
-//                    }
-//
-//                    SessionStatus.PAUSED -> {
-//
-//                        CircularIconButton(
-//                            onClick = onResumeSession,
-//                            icon = Icons.Filled.PlayArrow,
-//                            contentDescription = "Resume Session",
-//                            backgroundColor = MaterialTheme.colorScheme.primary,
-//                            iconTint = MaterialTheme.colorScheme.onPrimary,
-//                            size = 56.dp
-//                        )
-//
-//                        Spacer(
-//                            modifier = Modifier.width(86.dp)
-//                        )
-//
-//                        CircularIconButton(
-//                            onClick = onStopSession,
-//                            icon = Icons.Filled.Stop,
-//                            contentDescription = "Stop Session",
-//                            backgroundColor = MaterialTheme.colorScheme.primary,
-//                            iconTint = MaterialTheme.colorScheme.onPrimary,
-//                            size = 56.dp
-//                        )
-//                    }
-//                }
-//            }
-
-//            Column(
-//                modifier = Modifier
-//                    .fillMaxWidth()
-//                    .weight(1f)
-//                    .verticalScroll(rememberScrollState())
-//            ) {
-            Box( modifier = Modifier
-                .fillMaxWidth()
-                .weight(0.40f),
-                ) {
-                if (pomodoroState?.isEnabled == true) {
-                    //-------------- PomodoroControlCard -------
-                    PomodoroCard(
-                        sessionName = sessionName,
-                        totalSessionSeconds = expectedDurationSeconds,
-                        sessionStatus = sessionStatus,
-                        pomodoroState = pomodoroState,
-                        workCyclesBeforeLongBreak = workCyclesBeforeLongBreak,
-                        onStart = onStartSession,
-                        onPause = onPauseSession,
-                        onResume = onResumeSession,
-                        onStop = onStopSession,
-                        onSkipBreak = onSkipBreak,
-                        onMenuClick = {},
-                        modifier = Modifier.fillMaxWidth(),
-                        style = PomodoroCardStyle(0.8f, 0.5f, 0.5f, 0.6f, 1f)
-                    )
-                } else {
-
-                    // ----- now we bring sessioncontrol card or stopwatch card
-                    SessionControlCard(
-                        sessionName = sessionName,
-                        activeSessionName = activeSessionName,
-                        selectedDurationMinutes = selectedDurationMinutes,
-                        onDurationSelected = onDurationSelected,
-                        stopwatchSeconds = stopwatchSeconds,
-                        sessionStatus = sessionStatus,
-                        onSessionNameChanged = onSessionNameChanged,
-                        onStart = onStartSession,
-                        onPause = onPauseSession,
-                        onResume = onResumeSession,
-                        onStop = onStopSession,
-                        modifier = Modifier.fillMaxWidth(),
-                        style = SessionControlCardStyle(1f, 1f, 1f, 1f)
-
-                    )
-                }
-            }
-
-            // zone for utitlity buttons
-            Row(
+            SessionControlZone(
+                sessionName = sessionName,
+                activeSessionName = activeSessionName,
+                onSessionNameChanged = onSessionNameChanged,
+                sessionStatus = sessionStatus,
+                stopwatchSeconds = stopwatchSeconds,
+                onStartSession = onStartSession,
+                onPauseSession = onPauseSession,
+                onResumeSession = onResumeSession,
+                onStopSession = onStopSession,
+                selectedDurationMinutes = selectedDurationMinutes,
+                onDurationSelected = onDurationSelected,
+                pomodoroState = pomodoroState,
+                workCyclesBeforeLongBreak = workCyclesBeforeLongBreak,
+                onSkipBreak = onSkipBreak,
+                totalSessionSeconds = expectedDurationSeconds,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .weight(0.04f),
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
+                    .weight(5f)
+            )
 
-                Button(
-                    modifier = Modifier.weight(1f),
-                    onClick = {
-                        showNotesSheet = true
-                    }
-                ) {
-                    Text("Notes")
-                }
+            Spacer(modifier = Modifier.height(22.dp))
 
-                Button(
-                    modifier = Modifier.weight(1f),
-                    onClick = {
-                        showFocusSheet = true
-                    }
-                ) {
-
-                    if (selectedTodoCategory == TodoCategory.TODAY)
-                        Text("TODY [ $todayTasksLeft ]")
-
-                    if (selectedTodoCategory == TodoCategory.FUTURE)
-                        Text("FUTY [ $futureTasksLeft ]")
-                }
-            }
-            Column(
+            UtilityZone(
+                onNotesClick = { showNotesSheet = true },
+                onTodoClick = { showFocusSheet = true },
+                selectedTodoCategory = selectedTodoCategory,
+                todayTasksLeft = todayTasksLeft,
+                futureTasksLeft = futureTasksLeft,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .weight(0.03f)
-            ){
+                    .weight(1f)
+            )
 
-            }
-
-                // Zone 6 (18%): View Statistics & Past Sessions
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .weight(0.18f)
-                ) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable(onClick = onStatsClick)
-                            .padding(vertical = 4.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(
-                            text = "View Statistics",
-                            style = MaterialTheme.typography.labelMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.weight(1f)
-                        )
-                        Icon(
-                            imageVector = Icons.Filled.ArrowForwardIos,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.size(16.dp)
-                        )
-                    }
-                   // Spacer(modifier = Modifier.height(8.dp))
-//                    if (sessionStatus != null) {
-//                        IconButton(
-//                            onClick = navigateToDeskOmega
-//                        ) {
-//                            Icon(
-//                                imageVector = Icons.Default.Computer,
-//                                contentDescription = "Desk Mode",
-//                                tint = MaterialTheme.colorScheme.onSurfaceVariant
-//                            )
-//                        }
-//                    }
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Text(
-                        text = "PAST SESSIONS",
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Surface(
-                        modifier = Modifier.fillMaxWidth(),
-                        color = MaterialTheme.colorScheme.background
-                    ) {
-                        LazyRow(
-                            horizontalArrangement = Arrangement.spacedBy(12.dp)
-                        ) {
-                            items(groupedSessions) { sessionGroup ->
-                                Column(
-                                    modifier = Modifier.width(groupWidth)
-                                ) {
-                                    sessionGroup.forEach { session ->
-                                        UnplannedRecentSessionItem(session = session,
-                                            onLongClick = { selectedSession ->
-                                                revisionNoteViewModel.loadRevisionNote(
-                                                    selectedSession.id
-                                                )
-                                                showRevisionEditor = true
-                                            })
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            // -- USING AS SPACER FOR dynamics
-            Column(
+            StatisticsZone(
+                onStatsClick = onStatsClick,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .weight(0.007f)
-            ){
+                    .weight(1f)
+            )
 
-            }
-         //   } // ------- making things scrollable
+            RecentSessionsZone(
+                groupedSessions = groupedSessions,
+                groupWidth = groupWidth,
+                onSessionLongClick = { selectedSession ->
+                    revisionNoteViewModel.loadRevisionNote(selectedSession.id)
+                    showRevisionEditor = true
+                },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(3f)
+            )
         }
     }
 
+    // --------------------------------------------------------------
+    // Bottom sheets and dialogs (outside the workspace layout)
+    // --------------------------------------------------------------
     // to do button --------------
     if (showFocusSheet) {
         ModalBottomSheet(
@@ -619,7 +267,8 @@ fun UnplannedProjectSessionScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .weight(1f)
-                    .padding(horizontal = 24.dp, vertical = 16.dp)
+                    .padding(horizontal = 24.dp, vertical = 16.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 // Category Toggle
                 Row(
@@ -639,8 +288,6 @@ fun UnplannedProjectSessionScreen(
                         label = { Text("Future") }
                     )
                 }
-
-                Spacer(modifier = Modifier.height(20.dp))
 
                 // Add Todo Input
                 Row(
@@ -676,8 +323,6 @@ fun UnplannedProjectSessionScreen(
                         size = 52.dp
                     )
                 }
-
-                Spacer(modifier = Modifier.height(20.dp))
 
                 // Todo List
                 LazyColumn(
@@ -839,10 +484,306 @@ fun UnplannedProjectSessionScreen(
             },
 
 
-        )
+            )
 
     }
 
+}
+
+// ================================================================
+// WORKSPACE ZONE COMPOSABLES
+// Each zone owns its layout via Arrangement / Alignment / spacedBy.
+// Zone sizes are controlled by the parent Column's Modifier.weight().
+// ================================================================
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun HeaderZone(
+    projectName: String,
+    breadcrumb: String,
+    onBack: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Column(
+        modifier = modifier,
+        verticalArrangement = Arrangement.Center
+    ) {
+        TopAppBar(
+            title = {
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    Text(
+                        text = projectName,
+                        style = MaterialTheme.typography.headlineMedium.copy(fontSize = 19.sp),
+                        color = MaterialTheme.colorScheme.onBackground
+                    )
+                    Text(
+                        text = breadcrumb,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            },
+            navigationIcon = {
+                IconButton(onClick = onBack) {
+                    Icon(
+                        Icons.AutoMirrored.Filled.ArrowBack,
+                        contentDescription = "Back",
+                        tint = MaterialTheme.colorScheme.onSurface
+                    )
+                }
+            },
+            colors = androidx.compose.material3.TopAppBarDefaults.topAppBarColors(
+                containerColor = MaterialTheme.colorScheme.background
+            )
+        )
+    }
+}
+
+@Composable
+private fun ProjectProgressZone(
+    currentDurationSeconds: Int,
+    expectedDurationSeconds: Int,
+    progress: Float,
+    totalSessions: Int,
+    modifier: Modifier = Modifier,
+) {
+    Column(
+        modifier = modifier,
+        verticalArrangement = Arrangement.SpaceEvenly,
+        horizontalAlignment = Alignment.Start
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Column(
+                verticalArrangement = Arrangement.spacedBy(2.dp)
+            ) {
+                Text(
+                    text = "Current",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Text(
+                    text = formatDuration(currentDurationSeconds),
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+            }
+            Column(
+                horizontalAlignment = Alignment.End,
+                verticalArrangement = Arrangement.spacedBy(2.dp)
+            ) {
+                Text(
+                    text = "Expected",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Text(
+                    text = formatDuration(expectedDurationSeconds),
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+            }
+        }
+        LinearProgressIndicator(
+            progress = progress,
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(8.dp),
+            color = MaterialTheme.colorScheme.primary,
+            trackColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
+        )
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Text(
+                text = "${(progress * 100).toInt()}%",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.primary,
+                fontWeight = androidx.compose.ui.text.font.FontWeight.Medium
+            )
+            Text(
+                text = "$totalSessions Sessions",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+    }
+}
+
+@Composable
+private fun SessionControlZone(
+    sessionName: String,
+    activeSessionName: String?,
+    onSessionNameChanged: (String) -> Unit,
+    sessionStatus: SessionStatus?,
+    stopwatchSeconds: Int,
+    onStartSession: () -> Unit,
+    onPauseSession: () -> Unit,
+    onResumeSession: () -> Unit,
+    onStopSession: () -> Unit,
+    selectedDurationMinutes: Int?,
+    onDurationSelected: (Int?) -> Unit,
+    pomodoroState: PomodoroState?,
+    workCyclesBeforeLongBreak: Int,
+    onSkipBreak: () -> Unit,
+    totalSessionSeconds: Int,
+    modifier: Modifier = Modifier,
+) {
+    Box(
+        modifier = modifier,
+        contentAlignment = Alignment.Center
+    ) {
+        if (pomodoroState?.isEnabled == true) {
+            PomodoroCard(
+                sessionName = sessionName,
+                totalSessionSeconds = totalSessionSeconds,
+                sessionStatus = sessionStatus,
+                pomodoroState = pomodoroState,
+                workCyclesBeforeLongBreak = workCyclesBeforeLongBreak,
+                onStart = onStartSession,
+                onPause = onPauseSession,
+                onResume = onResumeSession,
+                onStop = onStopSession,
+                onSkipBreak = onSkipBreak,
+                onMenuClick = {},
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .fillMaxHeight(),
+                style = PomodoroCardStyle(0.8f, 0.5f, 0.5f, 0.6f, 1f)
+            )
+        } else {
+            SessionControlCard(
+                sessionName = sessionName,
+                activeSessionName = activeSessionName,
+                selectedDurationMinutes = selectedDurationMinutes,
+                onDurationSelected = onDurationSelected,
+                stopwatchSeconds = stopwatchSeconds,
+                sessionStatus = sessionStatus,
+                onSessionNameChanged = onSessionNameChanged,
+                onStart = onStartSession,
+                onPause = onPauseSession,
+                onResume = onResumeSession,
+                onStop = onStopSession,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .fillMaxHeight(),
+                style = SessionControlCardStyle(1f, 1f, 1.3f, 1f)
+            )
+        }
+    }
+}
+
+@Composable
+private fun UtilityZone(
+    onNotesClick: () -> Unit,
+    onTodoClick: () -> Unit,
+    selectedTodoCategory: TodoCategory,
+    todayTasksLeft: Int?,
+    futureTasksLeft: Int?,
+    modifier: Modifier = Modifier,
+) {
+    Row(
+        modifier = modifier,
+        horizontalArrangement = Arrangement.spacedBy(82.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Button(
+            modifier = Modifier
+                .weight(1f)
+                .fillMaxHeight(),
+            onClick = onNotesClick
+        ) {
+            Text("Notes")
+        }
+        Button(
+            modifier = Modifier
+                .weight(1f)
+                .fillMaxHeight(),
+            onClick = onTodoClick
+        ) {
+            if (selectedTodoCategory == TodoCategory.TODAY)
+                Text("TODY [ $todayTasksLeft ]")
+            if (selectedTodoCategory == TodoCategory.FUTURE)
+                Text("FUTY [ $futureTasksLeft ]")
+        }
+    }
+}
+
+@Composable
+private fun StatisticsZone(
+    onStatsClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .clickable(onClick = onStatsClick),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween
+    ) {
+        Text(
+            text = "View Statistics",
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        Icon(
+            imageVector = Icons.Filled.ArrowForwardIos,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.size(16.dp)
+        )
+    }
+}
+
+@Composable
+private fun RecentSessionsZone(
+    groupedSessions: List<List<UnplannedProjectRecentSessionUiModel>>,
+    groupWidth: androidx.compose.ui.unit.Dp,
+    onSessionLongClick: (UnplannedProjectRecentSessionUiModel) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Column(
+        modifier = modifier,
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        Text(
+            text = "PAST SESSIONS",
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        Surface(
+            modifier = Modifier
+                .fillMaxWidth()
+                .weight(1f),
+            color = MaterialTheme.colorScheme.background
+        ) {
+            LazyRow(
+                modifier = Modifier.fillMaxSize(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                items(groupedSessions) { sessionGroup ->
+                    Column(
+                        modifier = Modifier
+                            .width(groupWidth)
+                            .fillMaxHeight(),
+                        verticalArrangement = Arrangement.spacedBy(3.dp)
+                    ) {
+                        sessionGroup.forEach { session ->
+                            UnplannedRecentSessionItem(
+                                session = session,
+                                onLongClick = onSessionLongClick
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
 }
 
 
@@ -854,7 +795,6 @@ fun UnplannedRecentSessionItem(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(top = 3.dp)
             .combinedClickable(
                 onClick = {
                     // Reserved for future
