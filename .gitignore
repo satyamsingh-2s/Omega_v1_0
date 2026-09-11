@@ -13,3 +13,11 @@
 .externalNativeBuild
 .cxx
 local.properties
+
+# Release build artifacts
+*.aab
+*.apk
+
+# Signing keys
+*.jks
+*.keystore

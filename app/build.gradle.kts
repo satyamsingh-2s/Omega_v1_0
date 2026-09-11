@@ -11,11 +11,11 @@ plugins {
 }
 
 android {
-    namespace = "com.example.omega_v1_0"
+    namespace = "com.satyamsingh2s.productivity.omega"
     compileSdk = 36
 
     defaultConfig {
-        applicationId = "com.example.omega_v1_0"
+        applicationId = "com.satyamsingh2s.productivity.omega"
         minSdk = 28
         targetSdk = 36
         versionCode = 1
