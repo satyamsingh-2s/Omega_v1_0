@@ -1,0 +1,179 @@
+package com.satyamsingh2s.productivity.omega.ui.screens
+
+import android.app.Activity
+import android.content.pm.ActivityInfo
+import android.util.Log
+import androidx.compose.foundation.layout.Column
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.Modifier
+import androidx.compose.foundation.layout.Arrangement
+
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Pause
+import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import com.satyamsingh2s.productivity.omega.ui.deskOmega.DeskOmegaSkin
+import com.satyamsingh2s.productivity.omega.ui.deskOmega.getDeskOmegaSkin
+import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.WindowInsetsControllerCompat
+import com.satyamsingh2s.productivity.omega.models_enums.SessionStatus
+import com.satyamsingh2s.productivity.omega.ui.components.common.CircularIconButton
+import com.satyamsingh2s.productivity.omega.ui.model.DeskOmegaUiModel
+import com.satyamsingh2s.productivity.omega.ui.theme.StopwatchTextStyle
+import com.satyamsingh2s.productivity.omega.ui.utils.formatDuration
+
+
+//DailyRecordViewModel
+//↓
+//uiState
+//↓
+//DashboardScreen
+
+@Composable
+fun DeskOmegaScreen(
+
+    uiModel: DeskOmegaUiModel,
+    onPauseSession: () -> Unit,
+    onResumeSession: () -> Unit,
+    onBack: () -> Unit,
+    skin: DeskOmegaSkin
+
+) {
+
+    val view = LocalView.current
+
+    DisposableEffect(Unit) {
+
+        val activity =
+            view.context as Activity
+
+        val window =
+            (view.context as Activity).window
+
+        val controller =
+            WindowInsetsControllerCompat(
+                window,
+                view
+            )
+
+        // Lock portrait---------------TODO-----------------
+        activity.requestedOrientation =
+            ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
+
+
+        // Hide status bar
+        controller.systemBarsBehavior =
+            WindowInsetsControllerCompat
+                .BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+
+        controller.hide(WindowInsetsCompat.Type.systemBars())
+
+        // Keep screen on
+        view.keepScreenOn = true
+
+        onDispose {
+            // Show status bar again
+            controller.show(WindowInsetsCompat.Type.statusBars())
+            // Disable keep screen on
+            view.keepScreenOn = false
+        }
+    }
+
+    val colors = getDeskOmegaSkin(skin)
+
+    Surface(
+        modifier = Modifier.fillMaxSize(),
+        color = colors.background
+    ) {
+
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(24.dp),
+            horizontalAlignment = Alignment.Start,
+            verticalArrangement = Arrangement.Center
+        ) {
+            // Session Name
+            Text(
+                text = uiModel.title ,
+                style = MaterialTheme.typography.headlineSmall.copy(fontSize = 17.sp),
+                color = colors.content
+            )
+            Spacer(modifier = Modifier.height(36.dp))
+            // Session Name
+            Text(
+                text = uiModel.subtitle ?: "Session",
+                style = MaterialTheme.typography.headlineSmall.copy(fontSize = 15.sp),
+                color = colors.content
+            )
+
+            // Expected Duration
+            uiModel.expectedDurationSeconds?.let {
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = formatDuration(it),
+                    style = MaterialTheme.typography.headlineSmall,
+                    color = colors.secondary,
+                    modifier = Modifier.align(Alignment.CenterHorizontally)
+                )
+            }
+            // Stopwatch
+            Spacer(modifier = Modifier.height(36.dp))
+            Text(
+                text = formatDuration(uiModel.stopwatchSeconds),
+                modifier = Modifier.align(Alignment.CenterHorizontally),
+               // style = MaterialTheme.typography.displayLarge,
+                style = StopwatchTextStyle,
+                color = colors.content
+            )
+
+            Spacer(
+                modifier = Modifier.height(60.dp)
+            )
+
+            Surface(modifier = Modifier.align(Alignment.CenterHorizontally),
+                color = colors.background)
+            {
+                when (uiModel.sessionStatus) {
+                    null -> {
+                        Log.d("DeskOmegaScreen", "Session status is null")
+                    }
+
+                    SessionStatus.RUNNING -> {
+                        CircularIconButton(
+                            onClick = onPauseSession,
+                            icon = Icons.Filled.Pause,
+                            contentDescription = "Pause Session",
+                            backgroundColor = colors.background,
+                            iconTint = colors.content,
+                            size = 56.dp,
+                        )
+                    }
+
+                    SessionStatus.PAUSED -> {
+                        CircularIconButton(
+                            onClick = onResumeSession,
+                            icon = Icons.Filled.PlayArrow,
+                            contentDescription = "Resume Session",
+                            backgroundColor = colors.content,
+                            iconTint = colors.background,
+                            size = 56.dp
+                        )
+                    }
+
+                }
+            }
+        }
+    }
+}

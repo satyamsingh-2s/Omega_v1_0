@@ -1,0 +1,48 @@
+package com.satyamsingh2s.productivity.omega.navigation
+
+import com.satyamsingh2s.productivity.omega.models_enums.Experience
+
+
+sealed class Screen(val route:String) {
+// here we define all the navigation routes as objects .
+
+    object OmegaSplashScreen : Screen("omega_splash_screen")
+
+    object MainScreen : Screen("main_screen")
+
+    object Planner : Screen(route = "planner")
+
+    object CreateProject : Screen("create_project")
+
+    object Estimate : Screen("estimate/{projectId}/{experience}") {
+        fun createRoute(projectId: Long, experience: Experience) = "estimate/$projectId/${experience.name}"
+    }
+
+
+    object Dashboard : Screen("dashboard/{projectId}") {
+        fun createRoute(projectId: Long) ="dashboard/$projectId"
+    }
+
+    object PhaseTimer : Screen("phase_timer/{phaseId}") {
+        fun createRoute(phaseId: Long) = "phase_timer/$phaseId"
+    }
+
+    //----------- unplanned part ------------------------
+    object UnplannedProjectEntryScreen : Screen("unplanned_project_entry")
+    object UnplannedProject : Screen("unplanned_project")
+    object UnplannedProjectSessionScreen : Screen("unplanned_project_session_screen")
+
+
+    object DailyRecord : Screen("daily_record")
+
+    object DeskOmega : Screen("desk_omega")
+    //- for the navigation to deskomega without seeing flash (a logic for ui)
+    object DeskOmegaRouter : Screen("desk_omega_launcher")
+
+    object DailyRecordHistory : Screen("daily_record_history/{recordId}")
+
+    object DailyRecordDetails : Screen("daily_record_details/{recordId}/{recordDate}")
+}
+
+// navigation done
+// here we deifne the route strings for each screen, or we can say routes

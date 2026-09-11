@@ -1,0 +1,13 @@
+package com.satyamsingh2s.productivity.omega.omega_engines.pomodoro_engine
+
+data class PomodoroState(
+
+    val phase: PomodoroPhase,
+
+    val remainingSeconds: Int,
+
+    val completedWorkCycles: Int,
+
+    val isRunning: Boolean,
+    val isEnabled: Boolean,
+)

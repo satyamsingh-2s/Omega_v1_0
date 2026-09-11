@@ -1,0 +1,31 @@
+package com.satyamsingh2s.productivity.omega.data_layer.entites
+
+import androidx.room.Entity
+import androidx.room.ForeignKey
+import androidx.room.Index
+import androidx.room.PrimaryKey
+import com.satyamsingh2s.productivity.omega.models_enums.PhaseType
+
+
+// here we create a table for phases data
+@Entity(  // here by using foreign key we link phases table to projects table
+    tableName= "phases",
+    foreignKeys=[
+        ForeignKey(
+            entity= PlannedProjectEntity::class, // defining the parent table: i.e project entity
+            parentColumns=["id"],
+            childColumns=["projectId"],
+            onDelete= ForeignKey.CASCADE  // when the planned projects is deleted
+        // then deletes all phases table related to project table,
+        )
+    ],
+    indices = [Index("projectId")]  // Inedex is the data stuructue, which is used to improve searching , if it is not used then it have to manually search each row
+)
+data class PhaseEntity(
+    @PrimaryKey(autoGenerate =true)
+    val id: Long=0L,
+    val projectId: Long,
+    val phaseType: PhaseType,
+    val orderIndex: Int,
+    val estimatedMinutes: Int
+)
