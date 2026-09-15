@@ -17,6 +17,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 
 @Composable
@@ -53,7 +54,7 @@ fun MainScreen(
                     },
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    Text("Planned Work")
+                    Text("A D A P T I V E", fontWeight = FontWeight.Bold)
                 }
 
                 Spacer(modifier = Modifier.height(16.dp))
@@ -62,7 +63,7 @@ fun MainScreen(
                     onClick = onUnplannedWorkClick,
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    Text("Unplanned Work")
+                    Text("P L A N N E D", fontWeight = FontWeight.Bold)
                 }
 
                 Spacer(modifier = Modifier.height(16.dp))
@@ -71,7 +72,7 @@ fun MainScreen(
                     onClick = onDailyRecordClick,
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    Text("Daily Record")
+                    Text("I N S T A N T", fontWeight = FontWeight.Bold)
                 }
             }
         }
