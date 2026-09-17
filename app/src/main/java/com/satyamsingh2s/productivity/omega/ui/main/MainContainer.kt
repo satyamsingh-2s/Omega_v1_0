@@ -26,20 +26,18 @@ import com.satyamsingh2s.productivity.omega.navigation.NavigationAction
 import com.satyamsingh2s.productivity.omega.navigation.NavigationCoordinator
 import com.satyamsingh2s.productivity.omega.navigation.NavigationItem
 import com.satyamsingh2s.productivity.omega.navigation.Screen
-import com.satyamsingh2s.productivity.omega.ui.navigation.navigation_bar.BottomNavigationBar
 import com.satyamsingh2s.productivity.omega.navigation.workspace.WorkspaceManager
-import com.satyamsingh2s.productivity.omega.navigation.workspace.WorkspaceSwitcher
+import com.satyamsingh2s.productivity.omega.ui.navigation.navigation_bar.BottomNavigationBar
 import com.satyamsingh2s.productivity.omega.ui.screens.PlannerBottomSheet.PlannerBottomSheet
 import com.satyamsingh2s.productivity.omega.ui.screens.PlannerBottomSheet.TodayQueueBottomSheet
+import com.satyamsingh2s.productivity.omega.ui.screens.WorkspaceBottomSheet.WorkspaceBottomSheet
 import com.satyamsingh2s.productivity.omega.ui.viewmodel.PlannerViewModel
 
 @Composable
 fun MainContainer(
-
     navController: NavHostController,
     workspaceManager: WorkspaceManager,
     content: @Composable (PaddingValues) -> Unit
-
 ) {
 
     val navBackStackEntry by
@@ -48,6 +46,7 @@ fun MainContainer(
     var showTodayQueue by rememberSaveable {
         mutableStateOf(false)
     }
+
     var showPlanner by rememberSaveable {
         mutableStateOf(false)
     }
@@ -71,47 +70,60 @@ fun MainContainer(
             icon = Icons.Outlined.Workspaces,
             action = NavigationAction.OpenWorkspace
         )
-
     )
-// ---- quick fix for navigation bar not display on spalsh screen
+
+    // ---- Quick fix for navigation bar not displaying on splash screen
+
     val currentRoute =
-        navController.currentBackStackEntryFlow.collectAsState(initial = null)
+        navController.currentBackStackEntryFlow
+            .collectAsState(initial = null)
             .value
             ?.destination
             ?.route
-    val showBottomBar = currentRoute != Screen.OmegaSplashScreen.route
 
+    val showBottomBar =
+        currentRoute != Screen.OmegaSplashScreen.route
 
-    var showWorkspaceSwitcher by rememberSaveable {
+    var showWorkspaceSheet by rememberSaveable {
         mutableStateOf(false)
     }
 
-    val currentWorkspace by workspaceManager.currentWorkspace.collectAsState()
-
+    val currentWorkspace by
+    workspaceManager.currentWorkspace.collectAsState()
 
     val context = LocalContext.current
-    val db = remember { DatabaseProvider.getDatabase(context) }
+
+    val db = remember {
+        DatabaseProvider.getDatabase(context)
+    }
 
     val unplannedProjectRepository = remember {
         UnplannedProjectRepository(
             db.UnplannedProjectDao(),
-            db.SessionDao())
+            db.SessionDao()
+        )
     }
 
     val plannerRepository = remember {
         PlannerRepository(
             plannerDao = db.plannerDao(),
-            unplannedProjectRepository = unplannedProjectRepository)
+            unplannedProjectRepository = unplannedProjectRepository
+        )
     }
 
     val plannerViewModel = remember {
         PlannerViewModel(plannerRepository)
     }
-    val uiState by plannerViewModel.uiState.collectAsState()
+
+    val uiState by
+    plannerViewModel.uiState.collectAsState()
+
     val expandedBucket by
     plannerViewModel.expandedBucket.collectAsState()
+
     val taskContextMenuState by
     plannerViewModel.taskContextMenuState.collectAsState()
+
     val openSessionNode by
     plannerViewModel.openSessionNode.collectAsState()
 
@@ -119,13 +131,18 @@ fun MainContainer(
         mutableStateOf(false)
     }
 
-    // --- listen the event-- pausing the navigation as it not navigation to that node
+    // --- Listen to the event ---
+    // Pausing the navigation as it is not navigating to that node.
+
     LaunchedEffect(openSessionNode) {
 
-        val node = openSessionNode ?: return@LaunchedEffect
+        val node = openSessionNode
+            ?: return@LaunchedEffect
+
         navController.navigate(
             Screen.UnplannedProjectSessionScreen.route
         )
+
         plannerViewModel.onSessionNavigationComplete()
     }
 
@@ -135,9 +152,7 @@ fun MainContainer(
 
             showPlanner = true
             openPlannerAfterDismiss = false
-
         }
-
     }
 
     Scaffold(
@@ -158,7 +173,9 @@ fun MainContainer(
                         ),
 
                     onAction = { action ->
+
                         when (action) {
+
                             NavigationAction.OpenTodo -> {
                                 showTodayQueue = true
                             }
@@ -173,16 +190,16 @@ fun MainContainer(
                         }
                     },
 
-                    // ---------------- longclick section
+                    // ---------------- Long-click section
+
                     onTodoLongClick = {
                         showPlanner = true
                     },
+
                     onWorkspaceLongClick = {
-                        showWorkspaceSwitcher = true
+                        showWorkspaceSheet = true
                     }
-
                 )
-
             }
         }
 
@@ -190,54 +207,76 @@ fun MainContainer(
 
         content(innerPadding)
 
-        WorkspaceSwitcher(
-            expanded = showWorkspaceSwitcher,
-            currentWorkspace = currentWorkspace,
-            onDismiss = { showWorkspaceSwitcher = false
-            },
-            onWorkspaceSelected = { workspace ->
-                workspaceManager.setCurrentWorkspace(workspace)
-                showWorkspaceSwitcher = false
-                NavigationCoordinator.handle(
+        // ---------------- Workspace Bottom Sheet
 
-                    action = NavigationAction.OpenWorkspace,
+        if (showWorkspaceSheet) {
 
-                    navController = navController,
+            WorkspaceBottomSheet(
 
-                    workspaceManager = workspaceManager
+                currentWorkspace = currentWorkspace,
 
-                )
+                onDismiss = {
+                    showWorkspaceSheet = false
+                },
 
-            }
+                onWorkspaceSelected = { workspace ->
 
-        )
+                    workspaceManager.setCurrentWorkspace(workspace)
+
+                    showWorkspaceSheet = false
+
+                    NavigationCoordinator.handle(
+
+                        action = NavigationAction.OpenWorkspace,
+
+                        navController = navController,
+
+                        workspaceManager = workspaceManager
+                    )
+                }
+            )
+        }
+
+        // ---------------- Today Queue Bottom Sheet
+
         if (showTodayQueue) {
 
             TodayQueueBottomSheet(
+
                 todayQueue = uiState.todayQueue,
+
                 onDismiss = {
                     showTodayQueue = false
                 },
+
                 onTaskClick = {
 
                     // Will connect later
-
                 },
+
                 onTaskLongClick = {
 
-                // Will connect later
+                    // Will connect later
                 },
+
                 onOpenPlanner = {
+
                     openPlannerAfterDismiss = true
                     showTodayQueue = false
                 }
-
             )
         }
+
+        // ---------------- Planner Bottom Sheet
+
         if (showPlanner) {
+
             PlannerBottomSheet(
+
                 uiState = uiState,
+
                 expandedBucket = expandedBucket,
+
                 taskContextMenuState = taskContextMenuState,
 
                 onDismiss = {
@@ -245,23 +284,20 @@ fun MainContainer(
                 },
 
                 onExpandBucket = plannerViewModel::expandBucket,
+
                 onTaskClick = plannerViewModel::openSession,
+
                 onTaskLongClick = plannerViewModel::showTaskMenu,
+
                 onDismissTaskMenu = plannerViewModel::hideTaskMenu,
 
                 onMovePriority = plannerViewModel::moveTaskToPriority,
+
                 onAddToToday = plannerViewModel::addSelectedTaskToToday,
-                onRemoveFromPlanner = plannerViewModel::removeSelectedTaskFromPlanner,
 
-
-                )
-
+                onRemoveFromPlanner =
+                    plannerViewModel::removeSelectedTaskFromPlanner
+            )
         }
-
-
     }
 }
-
-
-
-
