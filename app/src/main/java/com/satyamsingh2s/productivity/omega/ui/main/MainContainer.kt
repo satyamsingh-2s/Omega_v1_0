@@ -81,8 +81,14 @@ fun MainContainer(
             ?.destination
             ?.route
 
-    val showBottomBar =
-        currentRoute != Screen.OmegaSplashScreen.route
+    val showBottomBar = when (currentRoute) {
+        Screen.OmegaSplashScreen.route ->
+            false
+        Screen.DeskOmega.route ->
+            false
+        else ->
+            true
+    }
 
     var showWorkspaceSheet by rememberSaveable {
         mutableStateOf(false)

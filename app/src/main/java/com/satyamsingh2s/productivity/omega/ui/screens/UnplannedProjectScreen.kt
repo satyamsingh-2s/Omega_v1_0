@@ -202,7 +202,7 @@ fun UnplannedProjectScreen(
                 title = {
                     Column {
                         Text(
-                            text = "Unplanned Projects",
+                            text = "Project Workspace",
                             style = MaterialTheme.typography.headlineMedium,
                             color = Color.White
                         )
@@ -977,10 +977,23 @@ private fun NodeSummaryRow(
     val progress = if (node.expectedDurationSeconds == 0) {
         0f
     } else {
-        (node.currentDurationSeconds.toFloat() / node.expectedDurationSeconds).coerceIn(0f, 1f)
+        (node.currentDurationSeconds.toFloat() / node.expectedDurationSeconds)
+            .coerceIn(0f, 1f)
     }
-    val displayedProgress = if (node.children.isEmpty()) progress else node.completionProgress
-    val displayedPercent = if (node.children.isEmpty()) (progress * 100).toInt() else (node.completionProgress * 100).toInt()
+
+    val isLeaf = node.children.isEmpty()
+
+    val displayedProgress = when {
+        isLeaf && node.isCompleted -> 1f
+        isLeaf -> progress
+        else -> node.completionProgress
+    }
+
+    val displayedPercent = when {
+        isLeaf && node.isCompleted -> 100
+        isLeaf -> (progress * 100).toInt()
+        else -> (node.completionProgress * 100).toInt()
+    }
 
     val accentColor = AccentPalette.getAccent(node.accentIndex)
     val isLeafAnimated = animatedLeafNodeId == node.nodeId
@@ -1098,7 +1111,7 @@ private fun NodeSummaryRow(
                 ) {
                     Text(
                         text = "$displayedPercent%",
-                        fontSize = 14.sp,
+                        fontSize = 10.sp,
                         fontWeight = FontWeight.Medium,
                         color = Color.White
                     )
@@ -1115,7 +1128,7 @@ private fun NodeSummaryRow(
                     ) {
                         Text(
                             text = "$displayedPercent%",
-                            fontSize = 14.sp,
+                            fontSize = 10.sp,
                             fontWeight = FontWeight.Medium,
                             color = Color.White
                         )

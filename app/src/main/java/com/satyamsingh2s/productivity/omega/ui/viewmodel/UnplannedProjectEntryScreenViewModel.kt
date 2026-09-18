@@ -2,41 +2,51 @@ package com.satyamsingh2s.productivity.omega.ui.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.satyamsingh2s.productivity.omega.ai.branch_b.prompt.AiPromptBuilder
 import com.satyamsingh2s.productivity.omega.ai.branch_b.repository.AiRepository
+import com.satyamsingh2s.productivity.omega.ai.branch_b.state.AiUiState
 import com.satyamsingh2s.productivity.omega.data_layer.imports.OmegaImport
 import com.satyamsingh2s.productivity.omega.data_layer.omega_repository.Omega_Repository
-import kotlinx.coroutines.launch
-
-
-import com.satyamsingh2s.productivity.omega.ai.branch_b.prompt.AiPromptBuilder
-import com.satyamsingh2s.productivity.omega.ai.branch_b.state.AiUiState
 import com.satyamsingh2s.productivity.omega.ui.utils.OmegaJsonParser
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-//import com.satyamsingh2s.productivity.omega_v1_0.BuildConfig
+import kotlinx.coroutines.launch
 
 class UnplannedProjectEntryScreenViewModel(
-
     private val repository: Omega_Repository,
     private val aiRepository: AiRepository
-
 ) : ViewModel() {
+
+    // -------------------------------------------------------------------------
+    // AI UI STATE
+    // -------------------------------------------------------------------------
 
     private val _aiUiState =
         MutableStateFlow<AiUiState>(
             AiUiState.Idle
         )
+
     val aiUiState: StateFlow<AiUiState> =
         _aiUiState.asStateFlow()
 
-     fun importWorkspace(
+
+    // -------------------------------------------------------------------------
+    // MANUAL WORKSPACE IMPORT
+    // -------------------------------------------------------------------------
+
+    fun importWorkspace(
         omegaImport: OmegaImport
     ) {
         viewModelScope.launch {
             repository.importStructure(omegaImport)
         }
     }
+
+
+    // -------------------------------------------------------------------------
+    // AI WORKSPACE GENERATION
+    // -------------------------------------------------------------------------
 
     fun generateWorkspace(
 
@@ -52,61 +62,96 @@ class UnplannedProjectEntryScreenViewModel(
 
         finalDeliverable: String? = null,
 
+        additionalContext: String? = null,
+
         onSuccess: () -> Unit
 
     ) {
 
         viewModelScope.launch {
 
-            _aiUiState.value = AiUiState.Loading
+            // -------------------------------------------------------------
+            // START LOADING
+            // -------------------------------------------------------------
 
-            val prompt = AiPromptBuilder.buildWorkspacePrompt(
+            _aiUiState.value =
+                AiUiState.Loading
 
-                topic = topic,
 
-                goal = goal,
+            // -------------------------------------------------------------
+            // BUILD PROMPT
+            // -------------------------------------------------------------
 
-                currentLevel = currentLevel,
+            val prompt =
+                AiPromptBuilder.buildWorkspacePrompt(
+                    topic = topic,
+                    goal = goal,
+                    currentLevel = currentLevel,
+                    targetDuration = targetDuration,
+                    learningStyle = learningStyle,
+                    finalDeliverable = finalDeliverable,
+                    additionalContext = additionalContext
+                )
 
-                targetDuration = targetDuration,
 
-                learningStyle = learningStyle,
-
-                finalDeliverable = finalDeliverable
-
-            )
+            // -------------------------------------------------------------
+            // GENERATE WORKSPACE
+            // -------------------------------------------------------------
 
             val result =
                 aiRepository.generateWorkspace(prompt)
 
-            result
 
+            // -------------------------------------------------------------
+            // HANDLE RESULT
+            // -------------------------------------------------------------
+
+            result
                 .onSuccess { json ->
 
                     val parseResult =
                         OmegaJsonParser.decode(json)
 
+
+                    // -----------------------------------------------------
+                    // VALID WORKSPACE JSON
+                    // -----------------------------------------------------
+
                     if (parseResult.isSuccess) {
 
-                        parseResult.getOrNull()?.let {
+                        parseResult
+                            .getOrNull()
+                            ?.let { omegaImport ->
 
-                            repository.importStructure(it)
+                                repository.importStructure(
+                                    omegaImport
+                                )
 
-                            _aiUiState.value =
-                                AiUiState.Success(json)
+                                _aiUiState.value =
+                                    AiUiState.Success(json)
 
-                            onSuccess()
-                        }
+                                onSuccess()
+                            }
 
-                    } else {
+                    }
+
+                    // -----------------------------------------------------
+                    // INVALID WORKSPACE JSON
+                    // -----------------------------------------------------
+
+                    else {
 
                         _aiUiState.value =
                             AiUiState.Error(
                                 "Gemini returned an invalid workspace."
                             )
                     }
-
                 }
+
+
+                // ---------------------------------------------------------
+                // AI / NETWORK / OTHER FAILURE
+                // ---------------------------------------------------------
 
                 .onFailure { exception ->
 
@@ -118,5 +163,4 @@ class UnplannedProjectEntryScreenViewModel(
                 }
         }
     }
-
 }

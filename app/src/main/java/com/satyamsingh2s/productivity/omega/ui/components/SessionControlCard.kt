@@ -5,13 +5,12 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxHeight
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -33,6 +32,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.satyamsingh2s.productivity.omega.models_enums.SessionStatus
@@ -40,6 +40,11 @@ import com.satyamsingh2s.productivity.omega.ui.components.common.CircularIconBut
 import com.satyamsingh2s.productivity.omega.ui.theme.StopwatchTextStyle
 import com.satyamsingh2s.productivity.omega.ui.utils.formatDuration
 
+/**
+ * Sizes to its own content (`wrapContentHeight`, set by the caller)
+ * rather than stretching to fill an allotted box - this is what lets
+ * it stay correct whether the parent gives it 220dp or 320dp.
+ */
 @Composable
 fun SessionControlCard(
     // ---------- Session ----------
@@ -66,20 +71,16 @@ fun SessionControlCard(
     // ---------- Style ----------
     style: SessionControlCardStyle = SessionControlCardStyle(),
     modifier: Modifier = Modifier
-){
-    val listState = rememberLazyListState(
-        initialFirstVisibleItemIndex = 2
-    )
+) {
+    val listState = rememberLazyListState(initialFirstVisibleItemIndex = 2)
 
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .fillMaxHeight() // Ensures the column stretches to fill parent height
+            .wrapContentHeight()
             .padding(horizontal = style.horizontalPadding),
         horizontalAlignment = Alignment.CenterHorizontally,
-        // SpaceEvenly automatically calculates the remaining vertical space
-        // and distributes it perfectly between the zones.
-        verticalArrangement = Arrangement.SpaceEvenly
+        verticalArrangement = Arrangement.spacedBy(style.verticalSpacing)
     ) {
 
         // Zone 1: Session Input & Estimates
@@ -100,7 +101,8 @@ fun SessionControlCard(
                             "Session Name"
                         },
                         style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1
                     )
                 },
                 leadingIcon = {
@@ -134,7 +136,7 @@ fun SessionControlCard(
                         onClick = { onDurationSelected(option) },
                         label = {
                             Text(
-                                text = option?.let { "${it}m" } ?: "○",
+                                text = option?.let { "${it}m" } ?: "\u25CB",
                                 fontSize = style.chipLabelFontSize
                             )
                         },
@@ -163,7 +165,8 @@ fun SessionControlCard(
                 text = formatDuration(stopwatchSeconds),
                 style = style.stopwatchTextStyle,
                 textAlign = TextAlign.Center,
-                color = MaterialTheme.colorScheme.onSurface
+                color = MaterialTheme.colorScheme.onSurface,
+                maxLines = 1
             )
             Text(
                 text = "HH : MM : SS",
@@ -176,7 +179,7 @@ fun SessionControlCard(
         // Zone 3: Session Control Buttons
         Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.Center,
+            horizontalArrangement = Arrangement.spacedBy(style.buttonSpacing, Alignment.CenterHorizontally),
             verticalAlignment = Alignment.CenterVertically
         ) {
             when (sessionStatus) {
@@ -199,7 +202,6 @@ fun SessionControlCard(
                         iconTint = MaterialTheme.colorScheme.onSurfaceVariant,
                         size = style.controlButtonSize
                     )
-                    Spacer(modifier = Modifier.width(style.buttonSpacing))
                     CircularIconButton(
                         onClick = onStop,
                         icon = Icons.Filled.Stop,
@@ -218,7 +220,6 @@ fun SessionControlCard(
                         iconTint = MaterialTheme.colorScheme.onPrimary,
                         size = style.controlButtonSize
                     )
-                    Spacer(modifier = Modifier.width(style.buttonSpacing))
                     CircularIconButton(
                         onClick = onStop,
                         icon = Icons.Filled.Stop,
@@ -234,33 +235,44 @@ fun SessionControlCard(
 }
 
 object SessionDefaults {
-    val durationOptions = listOf(
-        5, 15, 30, 45, null, 60, 90, 105, 120
-    )
+    val durationOptions = listOf(5, 15, 30, 45, null, 60, 90, 105, 120)
 }
 
+/**
+ * `startButtonSizeOverride` / `controlButtonSizeOverride` let the
+ * caller pass screen-relative sizes computed from BoxWithConstraints
+ * (see UnplannedProjectSessionScreen). When null, falls back to the
+ * old fixed values scaled by `controlsScale`, so this card still
+ * works standalone / in previews without a screen-width context.
+ */
 data class SessionControlCardStyle(
     val sessionScale: Float = 1f,
     val stopwatchScale: Float = 1f,
     val controlsScale: Float = 1f,
-    val scale: Float = 1f
+    val scale: Float = 1f,
+    val startButtonSizeOverride: Dp? = null,
+    val controlButtonSizeOverride: Dp? = null,
 ) {
     val horizontalPadding = 24.dp * scale
-    val verticalSpacing = 8.dp * scale
+    val verticalSpacing = 14.dp * scale
     val smallSpacing = 8.dp * scale
 
-    // Session section
     val sessionNameFontSize = 16.sp * sessionScale
     val sessionIconSize = 24.dp * sessionScale
 
-    // Chips
     val chipLabelFontSize = 14.sp * scale
     val expectedLabelFontSize = 10.sp * scale
     val chipSpacing = 8.dp * scale
 
-    val buttonSpacing = 86.dp * scale
-    val startButtonSize = 64.dp * controlsScale
-    val controlButtonSize = 56.dp * controlsScale
+    // Reduced from a fixed 86.dp gap (which could push buttons off a
+    // narrow / one-handed width) to a smaller, centered gap.
+    val buttonSpacing = 48.dp * scale
+
+    // ~30% smaller than the old fixed 64dp / 56dp defaults, and this
+    // is only the fallback used when the caller doesn't supply a
+    // screen-relative override.
+    val startButtonSize = startButtonSizeOverride ?: (55.dp * controlsScale)
+    val controlButtonSize = controlButtonSizeOverride ?: (50.dp * controlsScale)
 
     val stopwatchTextStyle = StopwatchTextStyle.copy(
         fontSize = StopwatchTextStyle.fontSize * stopwatchScale
@@ -273,39 +285,27 @@ data class SessionControlCardStyle(
     backgroundColor = 0xFFFFFFFF
 )
 @Composable
-private fun SessionControlCardPreview(){
+private fun SessionControlCardPreview() {
     MaterialTheme {
         Surface(
-            // By giving the preview container a fixed height (e.g. 400.dp),
-            // you can easily test how the components distribute themselves relatively.
             modifier = Modifier
                 .fillMaxWidth()
-                .height(400.dp)
+                .wrapContentHeight()
                 .background(MaterialTheme.colorScheme.background)
         ) {
             SessionControlCard(
-                // ---------- Session ----------
                 sessionName = "Refactoring UI",
                 activeSessionName = "Current Task",
-
-                // ---------- Duration ----------
                 selectedDurationMinutes = 60,
                 onDurationSelected = {},
-
-                // ---------- Stopwatch ----------
-                stopwatchSeconds = 3645, // 01:00:45
+                stopwatchSeconds = 3645,
                 sessionStatus = SessionStatus.RUNNING,
-
-                // ---------- Inputs ----------
                 onSessionNameChanged = {},
-
-                // ---------- Controls ----------
                 onStart = {},
                 onPause = {},
                 onResume = {},
                 onStop = {},
-
-                modifier = Modifier.fillMaxSize()
+                modifier = Modifier.fillMaxWidth()
             )
         }
     }
